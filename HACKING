@@ -1,0 +1,29 @@
+installpkg
+----------
+ - umask 022, setuid 0
+ - fix /var/log/{packages,scripts,removed_packages,removed_scripts,setup}
+ - make sure it is not link and it is directory with right perms
+ - extract package description
+ - extract doinst.sh symbolic links
+   warn mode:
+   - check symbolic links in the doinst.sh and test if locations, that are to 
+     be removed exist in the tree
+   - check all other tgz files for overwriting
+ - extract files
+ - ldconfig
+ - doinst.sh
+ - update package database
+ - cleanup install/doinst.sh and slack-*
+ - do all this with respect to ROOT env. variable
+
+upgradepkg
+----------
+ - installpkg
+ - update db
+ - remove oldpkg
+
+removepkg
+---------
+ - check if file is not used by other packages
+ - remove it (to temp dir)
+ - updatedb

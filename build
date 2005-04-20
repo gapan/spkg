@@ -1,0 +1,15 @@
+#!/bin/sh
+OPT="-ggdb2 -Wall -O0"
+#  -fomit-frame-pointer
+export LD_CONFIG_PATH=/home/megi/usr/lib
+export LD_LIBRARY_PATH=/home/megi/usr/lib
+
+gcc $OPT -o installpkg pkgdb.c untgz.c main.c pkgtools.c `pkg-config --libs --cflags glib-2.0` -lz
+
+VG="valgrind --tool=memcheck --leak-check=yes --show-reachable=yes --log-file=valgrind.log"
+
+#$VG ./pkgdb
+
+#export LD_PRELOAD="hook.so"
+#./pkgdb
+#gdb
