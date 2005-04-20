@@ -14,7 +14,6 @@ static gint strcmp_shortname(gchar* a, gchar* b)
 {
   gchar* pn = parse_pkgname(a,1);
   gint r = strcmp(b,pn);
-//  printf("%d = strcmp(%s, %s)\n", r, pn, b);
   g_free(pn);
   return r;
 }
@@ -65,7 +64,6 @@ static gint pkgdb_parse_pkgname(pkgdb_pkg_t* p)
   p->version =   g_strndup(p->name+rm[2].rm_so, rm[2].rm_eo-rm[2].rm_so);
   p->arch =      g_strndup(p->name+rm[3].rm_so, rm[3].rm_eo-rm[3].rm_so);
   p->build =     g_strndup(p->name+rm[4].rm_so, rm[4].rm_eo-rm[4].rm_so);
-//  printf("%s %s %s %s\n", p->shortname, p->version, p->arch, p->build);
   regfree(&re);
   return 0;
 }
@@ -265,7 +263,6 @@ gint pkgdb_load_pkg(pkgdb_t* db, gchar* pkg)
 
   if (db->pkgs == 0)
     db->pkgs = g_tree_new_full((GCompareDataFunc)strcmp, 0, 0, free_pkg);
-//  printf("%s\n", pkg);
   g_tree_insert(db->pkgs, p->name, p);
 
   rval = 0;
