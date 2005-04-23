@@ -1,6 +1,7 @@
 TODO
 ----
 - port pkgdb to the sqlite3
+- implement rm_rf and mkdir_p in C
 - implement error reporting, handling (use setjmp)
 - 
 

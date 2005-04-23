@@ -8,6 +8,8 @@
 \*----------------------------------------------------------------------*/
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <dirent.h>
 #include <regex.h>
 #include <string.h>
@@ -16,7 +18,186 @@
 #include "pkgtools.h"
 #include "sysutils.h"
 
-/* helper functions */
+/* implement them in C */
+static gint rm_rf(gchar* p)
+{
+  gint rval;
+  gchar* s = g_strdup_printf("/bin/rm -rf %s", p);
+  rval = system(s);
+  g_free(s);
+  if (rval == 0)
+    return 0;
+  return 1;
+}
+
+static gint mkdir_p(gchar* p)
+{
+  gint rval;
+  gchar* s = g_strdup_printf("/bin/mkdir -p %s", p);
+  rval = system(s);
+  g_free(s);
+  if (rval == 0)
+    return 0;
+  return 1;
+}
+
+/* public functions */
+static void sql_error(sqlite3 *db, char* err);
+
+pkgdb_t* db_open(gchar* root)
+{
+  pkgdb_t *pdb;
+  gchar** d;
+  gchar* checkdirs[] = {
+    "packages", "scripts", "removed_packages", "removed_scripts", "setup", 
+    "fastpkg", 0
+  };
+
+  pdb = g_new0(pkgdb_t,1);
+  for (d = checkdirs; *d != 0; d++)
+  {
+    gchar* tmpdir = g_strdup_printf("%s/%s/%s", root, PKGDB_DIR, *d);
+    if (file_type(tmpdir) != FT_DIR)
+    {
+      rm_rf(tmpdir);
+      mkdir_p(tmpdir);
+      chmod(tmpdir, 0755);
+    }
+    g_free(tmpdir);
+  }
+
+  pdb->topdir = g_strdup_printf("%s/%s", root, PKGDB_DIR);
+  pdb->fpkdir = g_strdup_printf("%s/%s/%s", root, PKGDB_DIR, "fastpkg");
+  pdb->fpkdb = g_strdup_printf("%s/%s", pdb->fpkdir, "fastpkg.db");
+ 
+  sqlite3_open(pdb->fpkdb, &pdb->db);
+  /*TODO: more checks here (if all tables are present in db, etc.) */
+  sqlite3_exec(pdb->db, 
+    "CREATE TABLE packages ("
+    "  id INTEGER PRIMARY KEY,"
+    "  name TEXT UNIQUE NOT NULL,"
+    "  shortname TEXT UNIQUE NOT NULL,"
+    "  version TEXT,"
+    "  arch TEXT,"
+    "  build TEXT,"
+    "  csize INTEGER,"
+    "  usize INTEGER,"
+    "  desc TEXT,"
+    "  location TEXT"
+    ");",
+    0,0,0);
+//  sql_error(pdb->db,"exec");
+
+  sqlite3_exec(pdb->db, 
+    "CREATE TABLE files ("
+    "  id INTEGER PRIMARY KEY,"
+    "  path TEXT UNIQUE,"
+    "  link TEXT DEFAULT NULL"
+    ");",
+    0,0,0);
+//  sql_error(pdb->db,"exec");
+
+  sqlite3_exec(pdb->db, 
+    "CREATE TABLE files_map ("
+    "  pkg_id INTEGER NOT NULL,"
+    "  file_id INTEGER NOT NULL"
+    ");",
+    0,0,0);
+//  sql_error(pdb->db,"exec");
+
+  return pdb;
+}
+
+void db_close(pkgdb_t* pdb)
+{
+  if (pdb == 0)
+    return;
+  sqlite3_close(pdb->db);
+  g_free(pdb->topdir);
+  g_free(pdb->fpkdir);
+  g_free(pdb->fpkdb);
+  g_free(pdb);
+}
+
+gint db_sync_fastpkgdb_to_legacydb(pkgdb_t* db)
+{
+  return 0;
+}
+
+static pkgdb_pkg_t* parse_legacydb_entry(pkgdb_t* db, gchar* pkg);
+static void free_legacydb_entry(gpointer pkg);
+
+static void sql_error(sqlite3 *db, char* err)
+{
+  switch (sqlite3_errcode(db))
+  {
+    case SQLITE_OK:
+    case SQLITE_DONE:
+    break;
+    default:
+    fprintf(stderr, "error: sqlite3_%s: %s\n", err, sqlite3_errmsg(db));
+    sqlite3_close(db);
+    exit(1);
+  }
+}
+
+gint db_sync_legacydb_to_fastpkgdb(pkgdb_t* db)
+{
+  DIR* d;
+  gchar* tmpstr;
+  struct dirent* de;
+  pkgdb_pkg_t* p;
+  sqlite3_stmt* stmt;
+
+  tmpstr = g_strdup_printf("%s/%s", db->topdir, "packages");
+  d = opendir(tmpstr);
+  g_free(tmpstr);
+  if (d == NULL)
+    return 1;
+
+  sqlite3_exec(db->db, "PRAGMA synchronous = OFF;",0,0,0);
+  sql_error(db->db,"exec");
+  sqlite3_exec(db->db, "DELETE FROM packages;",0,0,0);
+  sql_error(db->db,"exec");
+
+  sqlite3_prepare(db->db, "INSERT INTO packages(name, shortname, version, arch, build, csize, usize, desc, location) VALUES(?,?,?,?,?,?,?,?,?);", -1, &stmt, 0);
+  sql_error(db->db,"prepare");
+  while ((de = readdir(d)) != NULL)
+  {
+    if (!strcmp(de->d_name,".") || !strcmp(de->d_name,".."))
+      continue;
+
+    p = parse_legacydb_entry(db, de->d_name);
+    if (p == 0)
+    {
+      closedir(d);
+      return 1;
+    }
+    printf("processing %s\n", p->name);
+
+    sqlite3_bind_text(stmt, 1, p->name, -1, 0);
+    sqlite3_bind_text(stmt, 2, p->shortname, -1, 0);
+    sqlite3_bind_text(stmt, 3, p->version, -1, 0);
+    sqlite3_bind_text(stmt, 4, p->arch, -1, 0);
+    sqlite3_bind_text(stmt, 5, p->build, -1, 0);
+    sqlite3_bind_text(stmt, 8, p->desc, -1, 0);
+    sqlite3_bind_text(stmt, 9, p->location, -1, 0);
+    sqlite3_bind_int(stmt, 7, p->usize);
+    sqlite3_bind_int(stmt, 6, p->csize);
+    sqlite3_step(stmt);
+    sql_error(db->db,"step");
+    sqlite3_reset(stmt);
+    
+    free_legacydb_entry(p);
+  }
+
+  sqlite3_finalize(stmt);
+  sql_error(db->db,"finalize");
+  sqlite3_exec(db->db, "PRAGMA synchronous = ON;",0,0,0);
+  
+  closedir(d);
+  return 0;
+}
 
 static gint strcmp_shortname(gchar* a, gchar* b)
 {
@@ -29,22 +210,6 @@ static gint strcmp_shortname(gchar* a, gchar* b)
 static void free_string(gpointer str)
 {
   g_free(str);
-}
-
-static void free_pkg(gpointer pkg)
-{
-  pkgdb_pkg_t* p = pkg;
-  if (p == 0)
-    return;
-  if (p->files) g_tree_destroy(p->files);
-  g_free(p->name);
-  g_free(p->location);
-  g_free(p->desc);
-  g_free(p->shortname);
-  g_free(p->version);
-  g_free(p->arch);
-  g_free(p->build);
-  g_free(p);
 }
 
 static void remove_eol(gchar* s)
@@ -76,87 +241,30 @@ static gint pkgdb_parse_pkgname(pkgdb_pkg_t* p)
   return 0;
 }
 
-/* public functions */
-
-pkgdb_t* pkgdb_open(gchar* root)
+static void free_legacydb_entry(gpointer pkg)
 {
-  pkgdb_t* db;
-  sqlite3 *db;
-  gchar* tmp;
-
-  /* 
-    check directories (create if not exist)
-    open database
-    alloc and fill db object
-  */
-
-  gchar* topdir = g_strjoin("/", root, PKGDB_DIR, 0);
-  gchar* fpkdir = g_strjoin("/", root, PKGDB_DIR, "fastpkg", 0);
-  
-  if (file_type(db->dbdir) != FT_DIR)
-  {
-  }
- 
-  sqlite3_open(, &db);
-
-  pkgdir = g_strjoin("/", root, PKGDB_DIR, "packages", 0);
-  d = opendir(pkgdir);
-  g_free(pkgdir);
-  if (d == NULL)
-    return NULL;
-  db = g_new0(pkgdb_t,1);
-
-  while ((de = readdir(d)) != NULL)
-  {
-    if (!strcmp(de->d_name,".") || !strcmp(de->d_name,".."))
-      continue;
-    if (pkgdb_load_pkg(db, de->d_name))
-    {
-      closedir(d);
-      pkgdb_close(db);
-      return 0;
-    }
-  }
-  
-  closedir(d);
-  return db;
-}
-
-void pkgdb_close(pkgdb_t* db)
-{
-  if (db == 0)
+  pkgdb_pkg_t* p = pkg;
+  if (p == 0)
     return;
-  if (db->pkgs) g_tree_destroy(db->pkgs);
-  g_free(db->dbdir);
-  g_free(db);
+  if (p->files) g_tree_destroy(p->files);
+  g_free(p->name);
+  g_free(p->location);
+  g_free(p->desc);
+  g_free(p->shortname);
+  g_free(p->version);
+  g_free(p->arch);
+  g_free(p->build);
+  g_free(p);
 }
 
-gint db_sync_fastpkgdb_to_legacydb(pkgdb_t* db)
+static pkgdb_pkg_t* parse_legacydb_entry(pkgdb_t* db, gchar* pkg)
 {
-}
-
-gint db_sync_legacydb_to_fastpkgdb(pkgdb_t* db)
-{
-  DIR* d;
-  struct dirent* de;
-}
-
-/* compile regexps
- * open package db files for given package
- * load package information up to FILE_LIST: using regexps
- * load package file list
- * load package symbolic links list
- */
-gint pkgdb_load_pkg(pkgdb_t* db, gchar* pkg)
-{
-  gint rval = 1;
   gchar *tmpstr;
   FILE *fp, *fs, *f;
   gchar *ln = 0;
   gsize len = 0;
   enum { HEADER, FILELIST, LINKLIST } state = HEADER;
   pkgdb_pkg_t* p=0;
-
   regex_t re_symlink,
           re_pkgname,
           re_pkgsize,
@@ -164,13 +272,13 @@ gint pkgdb_load_pkg(pkgdb_t* db, gchar* pkg)
   regmatch_t rm[4];
 
   if (pkg == 0)
-    return rval;
+    return 0;
 
   /* open package db entries */  
-  tmpstr = g_strjoin("/", db->dbdir, "packages", pkg, 0);
+  tmpstr = g_strjoin("/", db->topdir, "packages", pkg, 0);
   fp = fopen(tmpstr, "r");
   g_free(tmpstr);
-  tmpstr = g_strjoin("/", db->dbdir, "scripts", pkg, 0);
+  tmpstr = g_strjoin("/", db->topdir, "scripts", pkg, 0);
   fs = fopen(tmpstr, "r");
   g_free(tmpstr);
 
@@ -294,14 +402,10 @@ gint pkgdb_load_pkg(pkgdb_t* db, gchar* pkg)
     }
   }
 
-  if (db->pkgs == 0)
-    db->pkgs = g_tree_new_full((GCompareDataFunc)strcmp, 0, 0, free_pkg);
-  g_tree_insert(db->pkgs, p->name, p);
-
-  rval = 0;
   goto err1;
  err:
-  free_pkg(p);
+  free_legacydb_entry(p);
+  p = 0;
  err1:
   regfree(&re_symlink);
   regfree(&re_pkgname);
@@ -310,9 +414,10 @@ gint pkgdb_load_pkg(pkgdb_t* db, gchar* pkg)
   if (ln) free(ln);
   if (fp) fclose(fp);
   if (fs) fclose(fs);
-  return rval;
+  return p;
 }
 
+#if 0
 pkgdb_pkg_t* pkgdb_find_pkg(pkgdb_t* db, gchar* pkg)
 {
   pkgdb_pkg_t* p;
@@ -324,3 +429,4 @@ pkgdb_pkg_t* pkgdb_find_pkg(pkgdb_t* db, gchar* pkg)
     return p;
   return 0;
 }
+#endif

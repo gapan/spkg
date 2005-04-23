@@ -18,7 +18,7 @@ CC := gcc
 
 LDFLAGS := `pkg-config --libs glib-2.0` -lz
 CPPFLAGS := -D_GNU_SOURCE -I. `pkg-config --cflags glib-2.0` `pkg-config --cflags sqlite3`
-CFLAGS := -pipe -Wall -Werror
+CFLAGS := -pipe -Wall
 ifeq ($(DEBUG),yes)
 CFLAGS +=  -ggdb3 -O0
 CPPFLAGS += -DFPKG_DEBUG 
@@ -31,7 +31,7 @@ else
 LDFLAGS += `pkg-config --libs sqlite3`
 endif
 
-objs-fastpkg := main.o pkgtools.o untgz.o sysutils.o # pkgdb.o
+objs-fastpkg := main.o pkgtools.o untgz.o sysutils.o pkgdb.o
 
 # magic barrier
 
@@ -82,7 +82,6 @@ slackpkg:
 # generate deps
 vpath %.c .
 .dep/%.d: %.c
-	@echo "DEP    $<"
 	@mkdir -p .dep
 	@$(CC) -MM -MG -MP -MF $@ -MT ".o/$(<F:.c=.o) $@" $(CPPFLAGS) $<
 ifneq ($(dep-files),)

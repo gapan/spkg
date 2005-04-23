@@ -21,7 +21,9 @@ typedef struct pkgdb_pkg pkgdb_pkg_t;
 /** Package database structure. */
 struct pkgdb {
   /** Package database top directory path. */
-  gchar* dbdir;
+  gchar* topdir;
+  gchar* fpkdir;
+  gchar* fpkdb;
   sqlite3 *db;
 };
 

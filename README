@@ -1,0 +1,8 @@
+fastpkg - Slackware Linux Fast Package Management Tool
+------------------------------------------------------
+
+
+Required software
+-----------------
+  - sqlite3
+  - rm (from coreutils)
