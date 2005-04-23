@@ -27,3 +27,25 @@ removepkg
  - check if file is not used by other packages
  - remove it (to temp dir)
  - updatedb
+
+package database
+----------------
+
+CREATE TABLE packages (
+  id INTEGER PRIMARY KEY,
+  name TEXT,
+  shortname TEXT,
+  version TEXT,
+  arch TEXT,
+  build TEXT,
+  csize INTEGER,
+  usize INTEGER,
+  desc TEXT,
+  location TEXT
+);
+
+CREATE TABLE files (
+  id INTEGER PRIMARY KEY,
+  path TEXT,
+  link TEXT DEFAULT NULL
+);

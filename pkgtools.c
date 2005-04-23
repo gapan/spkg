@@ -5,6 +5,18 @@
 #include "pkgtools.h"
 #include "untgz.h"
 #include "pkgdb.h"
+#include "sysutils.h"
+
+opts_t opts = {
+  .install = 0,
+  .upgrade = 0,
+  .remove = 0,
+  .root = 0,
+  .verbose = 0,
+  .check = 0,
+  .force = 0,
+  .files = 0,
+};
 
 /* private funcs */
 
@@ -81,10 +93,7 @@ gchar* parse_pkgname(gchar* path, guint elem)
       if (rm1[1].rm_so != -1)
         result = g_strndup(path+rm1[1].rm_so, rm1[1].rm_eo-rm1[1].rm_so);
       break;
-    case 1:
-    case 2:
-    case 3:
-    case 4:
+    case 1: case 2: case 3: case 4:
       result = g_strndup(fullname+rm2[elem].rm_so, rm2[elem].rm_eo-rm2[elem].rm_so);
       break;
     case 5:
@@ -107,24 +116,27 @@ gchar* parse_pkgname(gchar* path, guint elem)
  * @param  pkgfile Package file.
  * @return 
  */
-gint installpkg(state_t* s, gchar* pkgfile)
+gint installpkg(gchar* pkgfile)
 {
   gchar* name;
   untgz_state_t* tgz;
-  pkgdb_t* db;
 
   /* check if file exist */
-  if (file_type(pkgfile)!=1)
+  if (file_type(pkgfile) != 1)
+  {
+    err(0,"can't find input package");
     return 1;
-  /* parse package name from the file path */
-  name = parse_pkgname(pkgfile,1);
-  printf("package name = %s\n",name);
-  return 1;
+  }
 
-  db = pkgdb_open("/");
-  /* check if it is already installed (by the shortname) */
-  if (pkgdb_find_pkg(db, name))
-    printf("package already exists\n");
+  /* parse package name from the file path */
+  if ((name = parse_pkgname(pkgfile,1)) == 0)
+  {
+    err(0,"package has invalid name");
+    return 1;
+  }
+  
+//  if (pkgdb_find_pkg(db, name))
+//    printf("package already exists\n");
   /* open tgz */
   tgz = untgz_open(pkgfile);
   if (tgz == 0)
@@ -142,11 +154,10 @@ gint installpkg(state_t* s, gchar* pkgfile)
   /* run ldconfig */
   /* run doinst sh */
   /* add package to the database */
-  pkgdb_close(db);
   return 0;
 }
 
-gint upgradepkg(state_t* s, gchar* pkgfile)
+gint upgradepkg(gchar* pkgfile)
 {
   /* check package db */
   /* check target files */
@@ -154,7 +165,7 @@ gint upgradepkg(state_t* s, gchar* pkgfile)
   return 0;
 }
 
-gint removepkg(state_t* s, gchar* pkgfile)
+gint removepkg(gchar* pkgfile)
 {
   /* check package db */
   /* check target files */

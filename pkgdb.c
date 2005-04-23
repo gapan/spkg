@@ -87,6 +87,8 @@ pkgdb_t* pkgdb_open(gchar* root)
   db->dbdir = g_strjoin("/", root, PKGDB_DIR, 0);
   while ((de = readdir(d)) != NULL)
   {
+    if (!strcmp(de->d_name,".") || !strcmp(de->d_name,".."))
+      continue;
     if (pkgdb_load_pkg(db, de->d_name))
     {
       closedir(d);

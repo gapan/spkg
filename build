@@ -1,12 +1,9 @@
 #!/bin/sh
-OPT="-ggdb2 -Wall -O0"
-#  -fomit-frame-pointer
-export LD_CONFIG_PATH=/home/megi/usr/lib
-export LD_LIBRARY_PATH=/home/megi/usr/lib
+OPT="-ggdb0 -Wall -O3 -fomit-frame-pointer"
+#OPT="-ggdb3 -Wall -O0"
+gcc $OPT -pipe -o installpkg pkgdb.c untgz.c main.c pkgtools.c sysutils.c `pkg-config --libs --cflags glib-2.0` -lz
 
-gcc $OPT -o installpkg pkgdb.c untgz.c main.c pkgtools.c `pkg-config --libs --cflags glib-2.0` -lz
-
-VG="valgrind --tool=memcheck --leak-check=yes --show-reachable=yes --log-file=valgrind.log"
+#VG="valgrind --tool=memcheck --leak-check=yes --show-reachable=yes --log-file=valgrind.log"
 
 #$VG ./pkgdb
 

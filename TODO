@@ -1,6 +1,6 @@
 TODO
 ----
-- implement error reporting
+- implement error reporting, handling (use setjmp)
 - 
 
 Status
