@@ -1,5 +1,6 @@
 TODO
 ----
+- port pkgdb to the sqlite3
 - implement error reporting, handling (use setjmp)
 - 
 

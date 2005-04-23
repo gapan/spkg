@@ -1,3 +1,11 @@
+/*----------------------------------------------------------------------*\
+|* fastpkg                                                              *|
+|*----------------------------------------------------------------------*|
+|* Slackware Linux Fast Package Management Tools                        *|
+|*                               designed by Ondøej (megi) Jirman, 2005 *|
+|*----------------------------------------------------------------------*|
+|*  No copy/usage restrictions are imposed on anybody using this work.  *|
+\*----------------------------------------------------------------------*/
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -20,32 +28,6 @@ opts_t opts = {
 
 /* private funcs */
 
-/* retval:
- *  0 = can't be determined
- *  1 = regular file
- *  2 = directory
- *  3 = symlink
- *  4 = block device
- *  5 = character device
- *  6 = fifo
- *  7 = socket
- */
-static gint file_type(gchar* path)
-{
-  struct stat s;
-  if (stat(path, &s) == 0)
-  {
-    if (S_ISREG(s.st_mode)) return 1;
-    if (S_ISDIR(s.st_mode)) return 2;
-    if (S_ISLNK(s.st_mode)) return 3;
-    if (S_ISBLK(s.st_mode)) return 4;
-    if (S_ISCHR(s.st_mode)) return 5;
-    if (S_ISFIFO(s.st_mode)) return 6;
-    if (S_ISSOCK(s.st_mode)) return 7;
-  }
-  return 0;
-}
-
 /* public funcs */
 
 /* elem:
@@ -62,7 +44,7 @@ gchar* parse_pkgname(gchar* path, guint elem)
   regmatch_t rm1[3];
   regmatch_t rm2[5];
   gint rval;
-  gchar* fullname;
+  gchar* fullname=0;
   gchar* result=0;
   if (path == 0)
     return 0;

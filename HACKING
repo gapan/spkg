@@ -28,8 +28,14 @@ removepkg
  - remove it (to temp dir)
  - updatedb
 
-package database
-----------------
+package database (pkgdb)
+------------------------
+
+pkgdb functions:
+  - sync_fastpkgdb_to_legacydb (synchronize legacy database with fastpkg database)
+  - sync_legacydb_to_fastpkgdb
+
+
 
 CREATE TABLE packages (
   id INTEGER PRIMARY KEY,

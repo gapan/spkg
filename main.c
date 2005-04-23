@@ -1,3 +1,12 @@
+/*----------------------------------------------------------------------*\
+|* fastpkg                                                              *|
+|*----------------------------------------------------------------------*|
+|* Slackware Linux Fast Package Management Tools                        *|
+|*                               designed by Ondøej (megi) Jirman, 2005 *|
+|*----------------------------------------------------------------------*|
+|*  No copy/usage restrictions are imposed on anybody using this work.  *|
+\*----------------------------------------------------------------------*/
+#include <stdlib.h>
 #include <stdio.h>
 #include "untgz.h"
 #include "pkgtools.h"
@@ -21,9 +30,15 @@ int main(int ac, char* av[])
   GError *error = NULL;
   GOptionContext* context;
   gchar** f;
-  pkgdb_t* db;
+//  pkgdb_t* db;
+
+  if (getuid() != 0)
+  {
+    fprintf(stderr, "You need to run this program with root privileges.");
+    exit(1);
+  }
   
-  context = g_option_context_new("- Slackware Linux(TM) package management tool");
+  context = g_option_context_new("- Slackware Linux(TM) Package Management Tool");
   g_option_context_add_main_entries(context, entries, 0);
   g_option_context_parse(context, &ac, &av, &error);
 
@@ -31,17 +46,14 @@ int main(int ac, char* av[])
   if (f == 0)
     return 0;
 
-  db = pkgdb_open("/");
-  /* check if it is already installed (by the shortname) */
-  
+//  db = db_open("/");
+
   while (*f != 0)
   {
     printf("%s\n", *f);
     f++;
   }
 
-  pkgdb_close(db);
-  
-  //installpkg(0, av[1]);
+//  db_close(db);
   return 0;
 }

@@ -1,8 +1,17 @@
+/*----------------------------------------------------------------------*\
+|* fastpkg                                                              *|
+|*----------------------------------------------------------------------*|
+|* Slackware Linux Fast Package Management Tools                        *|
+|*                               designed by Ondøej (megi) Jirman, 2005 *|
+|*----------------------------------------------------------------------*|
+|*  No copy/usage restrictions are imposed on anybody using this work.  *|
+\*----------------------------------------------------------------------*/
 #ifndef __PKGDB_H
 #define __PKGDB_H
 
 #include <glib.h>
 #include <setjmp.h>
+#include <sqlite3.h>
 
 #define PKGDB_DIR "var/log"
 
@@ -13,11 +22,7 @@ typedef struct pkgdb_pkg pkgdb_pkg_t;
 struct pkgdb {
   /** Package database top directory path. */
   gchar* dbdir;
-  /** Packages tree. 
-   *
-   * key = name, val = \ref pkgdb_pkg_t*
-   */
-  GTree* pkgs;
+  sqlite3 *db;
 };
 
 /** Package information structure. */
@@ -37,7 +42,7 @@ struct pkgdb_pkg {
   gchar* location;
   /** Package description. */ 
   gchar* desc;
-  /** File list. 
+  /** File list.
    *
    * key = path, val = link target, NULL otherwise.
    */
@@ -49,29 +54,34 @@ struct pkgdb_pkg {
  * @param root Root directory.
  * @return Package database object.
  */
-extern pkgdb_t* pkgdb_open(gchar* root);
+extern pkgdb_t* db_open(gchar* root);
 
 /** @brief Close package database.
  *
  * @param db Package database object.
- * @bug Glib leaks memory.
  */
-extern void pkgdb_close(pkgdb_t* db);
+extern void db_close(pkgdb_t* db);
 
-/** @brief Load packge to the datasbase.
+/** @brief Recreate legacydb from fastpkgdb.
  *
  * @param db Package database object.
- * @param pkg Package name.
- * @return 0 on success, 1 if pkg not found
+ * @return 0 on success, 1 on error
  */
-extern gint pkgdb_load_pkg(pkgdb_t* db, gchar* pkg);
+extern gint db_sync_fastpkgdb_to_legacydb(pkgdb_t* db);
 
-/** @brief Find package by the name.
+/** @brief Recreate fastpkgdb from legacydb.
  *
  * @param db Package database object.
- * @param pkg Package full name.
+ * @return 0 on success, 1 on error
+ */
+extern gint db_sync_legacydb_to_fastpkgdb(pkgdb_t* db);
+ 
+/** @brief Find package by name.
+ *
+ * @param db Package database object.
+ * @param pkg Package full or short name.
  * @return 0 if not found, 1 if exact match, 2 if shortname match
  */
-extern pkgdb_pkg_t* pkgdb_find_pkg(pkgdb_t* db, gchar* pkg);
+extern pkgdb_pkg_t* db_find_pkg(pkgdb_t* db, gchar* pkg);
 
 #endif

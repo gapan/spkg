@@ -6,27 +6,22 @@
 |*----------------------------------------------------------------------*|
 |*  No copy/usage restrictions are imposed on anybody using this work.  *|
 \*----------------------------------------------------------------------*/
-#ifndef __PKGTOOLS_H
-#define __PKGTOOLS_H
+#ifndef __SYSUTILS_H
+#define __SYSUTILS_H
 
 #include <glib.h>
 
-typedef struct {
-  /* command line opts */
-  gboolean install;
-  gboolean upgrade;
-  gboolean remove;
-  gboolean verbose;
-  gboolean check;
-  gboolean force;
-  gchar*   root;
-  gchar**  files;
+#ifndef __FILETYPE_ENUM
+#define __FILETYPE_ENUM
+typedef enum { FT_NONE=0, FT_DIR, FT_REG, FT_LNK, FT_BLK, FT_CHR, FT_FIFO, FT_SOCK } ftype_t;
+#endif
 
-} opts_t;
-extern opts_t opts;
+extern gint verbose;
 
-extern gchar* parse_pkgname(gchar* path, guint elem);
+extern void notice(const gchar* f,...);
+extern void err(gint e, const gchar* f,...);
+extern void warn(const gchar* f,...);
 
-extern gint installpkg(gchar* pkgfile);
+extern gint file_type(gchar* path);
 
 #endif

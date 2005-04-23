@@ -1,0 +1,4 @@
+#!/bin/sh
+VG="valgrind --tool=memcheck --leak-check=yes --show-reachable=yes --log-file=valgrind.log"
+$VG ./fastpkg
+#gdb

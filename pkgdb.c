@@ -1,4 +1,11 @@
-#define _GNU_SOURCE
+/*----------------------------------------------------------------------*\
+|* fastpkg                                                              *|
+|*----------------------------------------------------------------------*|
+|* Slackware Linux Fast Package Management Tools                        *|
+|*                               designed by Ondøej (megi) Jirman, 2005 *|
+|*----------------------------------------------------------------------*|
+|*  No copy/usage restrictions are imposed on anybody using this work.  *|
+\*----------------------------------------------------------------------*/
 #include <stdlib.h>
 #include <stdio.h>
 #include <dirent.h>
@@ -7,6 +14,7 @@
 
 #include "pkgdb.h"
 #include "pkgtools.h"
+#include "sysutils.h"
 
 /* helper functions */
 
@@ -72,11 +80,25 @@ static gint pkgdb_parse_pkgname(pkgdb_pkg_t* p)
 
 pkgdb_t* pkgdb_open(gchar* root)
 {
-  DIR* d;
   pkgdb_t* db;
-  struct dirent* de;
-  gchar* pkgdir;
+  sqlite3 *db;
+  gchar* tmp;
+
+  /* 
+    check directories (create if not exist)
+    open database
+    alloc and fill db object
+  */
+
+  gchar* topdir = g_strjoin("/", root, PKGDB_DIR, 0);
+  gchar* fpkdir = g_strjoin("/", root, PKGDB_DIR, "fastpkg", 0);
   
+  if (file_type(db->dbdir) != FT_DIR)
+  {
+  }
+ 
+  sqlite3_open(, &db);
+
   pkgdir = g_strjoin("/", root, PKGDB_DIR, "packages", 0);
   d = opendir(pkgdir);
   g_free(pkgdir);
@@ -84,7 +106,6 @@ pkgdb_t* pkgdb_open(gchar* root)
     return NULL;
   db = g_new0(pkgdb_t,1);
 
-  db->dbdir = g_strjoin("/", root, PKGDB_DIR, 0);
   while ((de = readdir(d)) != NULL)
   {
     if (!strcmp(de->d_name,".") || !strcmp(de->d_name,".."))
@@ -108,6 +129,16 @@ void pkgdb_close(pkgdb_t* db)
   if (db->pkgs) g_tree_destroy(db->pkgs);
   g_free(db->dbdir);
   g_free(db);
+}
+
+gint db_sync_fastpkgdb_to_legacydb(pkgdb_t* db)
+{
+}
+
+gint db_sync_legacydb_to_fastpkgdb(pkgdb_t* db)
+{
+  DIR* d;
+  struct dirent* de;
 }
 
 /* compile regexps

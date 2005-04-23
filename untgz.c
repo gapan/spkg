@@ -1,3 +1,11 @@
+/*----------------------------------------------------------------------*\
+|* fastpkg                                                              *|
+|*----------------------------------------------------------------------*|
+|* Slackware Linux Fast Package Management Tools                        *|
+|*                               designed by Ondøej (megi) Jirman, 2005 *|
+|*----------------------------------------------------------------------*|
+|*  No copy/usage restrictions are imposed on anybody using this work.  *|
+\*----------------------------------------------------------------------*/
 /*
 #include <errno.h>
 #include <utime.h>
@@ -258,10 +266,10 @@ gint untgz_get_next_head(untgz_state_t* s)
   {
     case AREGTYPE: 
     case REGTYPE: s->f_type = FT_REG; s->data = 1; s->usize += size; break;
-    case SYMTYPE: s->f_type = FT_LNK;  break;
-    case CHRTYPE: s->f_type = FT_CDEV; break;
-    case BLKTYPE: s->f_type = FT_BDEV; break;
-    case DIRTYPE: s->f_type = FT_DIR;  break;
+    case SYMTYPE: s->f_type = FT_LNK; break;
+    case CHRTYPE: s->f_type = FT_CHR; break;
+    case BLKTYPE: s->f_type = FT_BLK; break;
+    case DIRTYPE: s->f_type = FT_DIR; break;
     default: throw_error(s, "unknown typeflag");
   }
 
@@ -322,10 +330,10 @@ gint untgz_get_next_data(untgz_state_t* s, gchar* file)
     case FT_LNK:
       symlink(h_ltgt, h_name);
       break;
-    case FT_CDEV:
+    case FT_CHR:
       mknod(h_name, S_IFCHR, (dev_t)((((h_devmajor & 0xFF) << 8) & 0xFF00) | (h_devminor & 0xFF)));
       break;
-    case FT_BDEV:
+    case FT_BLK:
       mknod(h_name, S_IFBLK, (dev_t)((((h_devmajor & 0xFF) << 8) & 0xFF00) | (h_devminor & 0xFF)));
       break;
     case FT_DIR:

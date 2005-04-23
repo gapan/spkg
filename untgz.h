@@ -1,3 +1,11 @@
+/*----------------------------------------------------------------------*\
+|* fastpkg                                                              *|
+|*----------------------------------------------------------------------*|
+|* Slackware Linux Fast Package Management Tools                        *|
+|*                               designed by Ondøej (megi) Jirman, 2005 *|
+|*----------------------------------------------------------------------*|
+|*  No copy/usage restrictions are imposed on anybody using this work.  *|
+\*----------------------------------------------------------------------*/
 #ifndef __UNTGZ_H
 #define __UNTGZ_H
 
@@ -5,7 +13,10 @@
 #include <zlib.h>
 #include <setjmp.h>
 
-typedef enum { FT_NONE=0, FT_DIR, FT_REG, FT_LNK, FT_BDEV, FT_CDEV } ftype_t;
+#ifndef __FILETYPE_ENUM
+#define __FILETYPE_ENUM
+typedef enum { FT_NONE=0, FT_DIR, FT_REG, FT_LNK, FT_BLK, FT_CHR, FT_FIFO, FT_SOCK } ftype_t;
+#endif
 
 typedef struct untgz_state untgz_state_t;
 struct untgz_state {
