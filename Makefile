@@ -12,7 +12,7 @@ export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
 DESTDIR :=
 PREFIX := /usr/local
-DEBUG := no
+DEBUG := yes
 STATIC := yes
 VERSION := 0.1
 
@@ -33,7 +33,7 @@ else
 LDFLAGS += `pkg-config --libs sqlite3`
 endif
 
-objs-fastpkg := main.o pkgtools.o untgz.o sysutils.o pkgdb.o
+objs-fastpkg := main.o pkgtools.o untgz.o sysutils.o sql.o pkgdb.o
 
 # magic barrier
 

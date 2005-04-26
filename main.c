@@ -30,7 +30,6 @@ int main(int ac, char* av[])
   GError *error = NULL;
   GOptionContext* context;
   gchar** f;
-  pkgdb_t* db;
 
   if (getuid() != 0)
   {
@@ -46,8 +45,10 @@ int main(int ac, char* av[])
   if (f == 0)
     return 0;
 
-  db = db_open("");
-  db_sync_legacydb_to_fastpkgdb(db);
+  if (db_open(""))
+    return 1;
+
+  db_sync_legacydb_to_fastpkgdb();
 
   while (*f != 0)
   {
@@ -55,6 +56,6 @@ int main(int ac, char* av[])
     f++;
   }
 
-  db_close(db);
+  db_close();
   return 0;
 }

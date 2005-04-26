@@ -77,3 +77,26 @@ gint file_type(gchar* path)
   }
   return FT_NONE;
 }
+
+/* implement them in C */
+gint rm_rf(gchar* p)
+{
+  gint rval;
+  gchar* s = g_strdup_printf("/bin/rm -rf %s", p);
+  rval = system(s);
+  g_free(s);
+  if (rval == 0)
+    return 0;
+  return 1;
+}
+
+gint mkdir_p(gchar* p)
+{
+  gint rval;
+  gchar* s = g_strdup_printf("/bin/mkdir -p %s", p);
+  rval = system(s);
+  g_free(s);
+  if (rval == 0)
+    return 0;
+  return 1;
+}

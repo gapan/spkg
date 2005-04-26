@@ -24,4 +24,7 @@ extern void warn(const gchar* f,...);
 
 extern gint file_type(gchar* path);
 
+extern gint rm_rf(gchar* p);
+extern gint mkdir_p(gchar* p);
+
 #endif
