@@ -8,6 +8,8 @@
 #\----------------------------------------------------------------------/#
 .PHONY: clean mrproper all install install-strip uninstall
 
+export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
+
 DESTDIR :=
 PREFIX := /usr/local
 DEBUG := no

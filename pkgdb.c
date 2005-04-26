@@ -76,10 +76,10 @@ pkgdb_t* db_open(gchar* root)
     "CREATE TABLE packages ("
     "  id INTEGER PRIMARY KEY,"
     "  name TEXT UNIQUE NOT NULL,"
-    "  shortname TEXT UNIQUE NOT NULL,"
-    "  version TEXT,"
-    "  arch TEXT,"
-    "  build TEXT,"
+    "  shortname TEXT NOT NULL,"
+    "  version TEXT NOT NULL,"
+    "  arch TEXT NOT NULL,"
+    "  build TEXT NOT NULL,"
     "  csize INTEGER,"
     "  usize INTEGER,"
     "  desc TEXT,"
@@ -91,16 +91,9 @@ pkgdb_t* db_open(gchar* root)
   sqlite3_exec(pdb->db, 
     "CREATE TABLE files ("
     "  id INTEGER PRIMARY KEY,"
-    "  path TEXT UNIQUE,"
-    "  link TEXT DEFAULT NULL"
-    ");",
-    0,0,0);
-//  sql_error(pdb->db,"exec");
-
-  sqlite3_exec(pdb->db, 
-    "CREATE TABLE files_map ("
     "  pkg_id INTEGER NOT NULL,"
-    "  file_id INTEGER NOT NULL"
+    "  path TEXT NOT NULL,"
+    "  link TEXT DEFAULT NULL"
     ");",
     0,0,0);
 //  sql_error(pdb->db,"exec");
@@ -133,6 +126,7 @@ static void sql_error(sqlite3 *db, char* err)
   {
     case SQLITE_OK:
     case SQLITE_DONE:
+    case SQLITE_ROW:
     break;
     default:
     fprintf(stderr, "error: sqlite3_%s: %s\n", err, sqlite3_errmsg(db));
@@ -148,6 +142,7 @@ gint db_sync_legacydb_to_fastpkgdb(pkgdb_t* db)
   struct dirent* de;
   pkgdb_pkg_t* p;
   sqlite3_stmt* stmt;
+  sqlite3_stmt* stmtf;
 
   tmpstr = g_strdup_printf("%s/%s", db->topdir, "packages");
   d = opendir(tmpstr);
@@ -157,13 +152,18 @@ gint db_sync_legacydb_to_fastpkgdb(pkgdb_t* db)
 
   sqlite3_exec(db->db, "PRAGMA synchronous = OFF;",0,0,0);
   sql_error(db->db,"exec");
-  sqlite3_exec(db->db, "DELETE FROM packages;",0,0,0);
+  sqlite3_exec(db->db, "PRAGMA temp_store = MEMORY;",0,0,0);
   sql_error(db->db,"exec");
+//  sqlite3_exec(db->db, "DELETE FROM packages;",0,0,0);
+//  sql_error(db->db,"exec");
 
   sqlite3_prepare(db->db, "INSERT INTO packages(name, shortname, version, arch, build, csize, usize, desc, location) VALUES(?,?,?,?,?,?,?,?,?);", -1, &stmt, 0);
   sql_error(db->db,"prepare");
   while ((de = readdir(d)) != NULL)
   {
+    GSList* l;
+    int pkgid;
+    
     if (!strcmp(de->d_name,".") || !strcmp(de->d_name,".."))
       continue;
 
@@ -173,20 +173,50 @@ gint db_sync_legacydb_to_fastpkgdb(pkgdb_t* db)
       closedir(d);
       return 1;
     }
-    printf("processing %s\n", p->name);
-
     sqlite3_bind_text(stmt, 1, p->name, -1, 0);
     sqlite3_bind_text(stmt, 2, p->shortname, -1, 0);
     sqlite3_bind_text(stmt, 3, p->version, -1, 0);
     sqlite3_bind_text(stmt, 4, p->arch, -1, 0);
     sqlite3_bind_text(stmt, 5, p->build, -1, 0);
-    sqlite3_bind_text(stmt, 8, p->desc, -1, 0);
+//    sqlite3_bind_text(stmt, 8, p->desc, -1, 0);
     sqlite3_bind_text(stmt, 9, p->location, -1, 0);
     sqlite3_bind_int(stmt, 7, p->usize);
     sqlite3_bind_int(stmt, 6, p->csize);
     sqlite3_step(stmt);
     sql_error(db->db,"step");
     sqlite3_reset(stmt);
+    sql_error(db->db,"reset");
+    sqlite3_exec(db->db, "BEGIN TRANSACTION; CREATE TEMP TABLE package_files ( path TEXT UNIQUE );",0,0,0);
+    sql_error(db->db,"exec");
+
+    /* get package id by name */
+    sqlite3_prepare(db->db, "SELECT id FROM packages WHERE name == ?;", -1, &stmtf, 0);
+    sql_error(db->db,"prepare");
+    sqlite3_bind_text(stmtf, 1, p->name, -1, 0);
+    sqlite3_step(stmtf);
+    sql_error(db->db,"step");
+    pkgid = sqlite3_column_int(stmtf,0);
+    sqlite3_finalize(stmtf);
+    sql_error(db->db,"finalize");
+
+    sqlite3_prepare(db->db, "INSERT INTO package_files VALUES(?);", -1, &stmtf, 0);
+    sql_error(db->db,"prepare");
+    for (l=p->files; l!=0; l=l->next)
+    { /* for each file or link */
+      sqlite3_bind_text(stmtf, 1, l->data, -1, 0);
+      sqlite3_step(stmtf);
+      sql_error(db->db,"step");
+      sqlite3_reset(stmtf);
+      sql_error(db->db,"reset");
+    }
+    sqlite3_finalize(stmtf);
+    sql_error(db->db,"finalize");
+    tmpstr = sqlite3_mprintf("INSERT INTO files(pkg_id, path) SELECT %d,path FROM package_files;", pkgid);
+    sqlite3_exec(db->db, tmpstr,0,0,0);
+    sqlite3_free(tmpstr);
+    sql_error(db->db,"exec");
+    sqlite3_exec(db->db, "DROP TABLE package_files; COMMIT;",0,0,0);
+    sql_error(db->db,"exec");
     
     free_legacydb_entry(p);
   }
@@ -197,19 +227,6 @@ gint db_sync_legacydb_to_fastpkgdb(pkgdb_t* db)
   
   closedir(d);
   return 0;
-}
-
-static gint strcmp_shortname(gchar* a, gchar* b)
-{
-  gchar* pn = parse_pkgname(a,1);
-  gint r = strcmp(b,pn);
-  g_free(pn);
-  return r;
-}
-
-static void free_string(gpointer str)
-{
-  g_free(str);
 }
 
 static void remove_eol(gchar* s)
@@ -244,9 +261,14 @@ static gint pkgdb_parse_pkgname(pkgdb_pkg_t* p)
 static void free_legacydb_entry(gpointer pkg)
 {
   pkgdb_pkg_t* p = pkg;
+  GSList* l;
   if (p == 0)
     return;
-  if (p->files) g_tree_destroy(p->files);
+  if (p->files) {
+    for (l=p->files; l!=0; l=l->next)
+      g_free(l->data);
+    g_slist_free(p->files);
+  }
   g_free(p->name);
   g_free(p->location);
   g_free(p->desc);
@@ -378,11 +400,7 @@ static pkgdb_pkg_t* parse_legacydb_entry(pkgdb_t* db, gchar* pkg)
       }
       break;
       case FILELIST:
-      {
-        if (p->files == 0)
-          p->files = g_tree_new_full((GCompareDataFunc)strcmp, 0, free_string, free_string);
-        g_tree_replace(p->files, g_strdup(ln), 0);
-      }
+        p->files = g_slist_append(p->files, g_strdup(ln));
       break;
       case LINKLIST:
       {
@@ -392,9 +410,8 @@ static pkgdb_pkg_t* parse_legacydb_entry(pkgdb_t* db, gchar* pkg)
         ln[rm[2].rm_eo] = 0;
         ln[rm[3].rm_eo] = 0;
         tmpstr = g_strjoin("/", ln+rm[1].rm_so, ln+rm[3].rm_so, 0);
-        if (p->files == 0)
-          p->files = g_tree_new_full((GCompareDataFunc)strcmp, 0, free_string, free_string);
-        g_tree_replace(p->files, tmpstr, g_strdup(ln+rm[2].rm_so));
+        // linktgt = g_strdup(ln+rm[2].rm_so);
+//        p->files = g_slist_append(p->files, tmpstr);
       }
       break;
       default:

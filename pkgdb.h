@@ -48,7 +48,7 @@ struct pkgdb_pkg {
    *
    * key = path, val = link target, NULL otherwise.
    */
-  GTree* files;
+  GSList* files;
 };
 
 /** @brief Open package database and loads it from the disk.

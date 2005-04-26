@@ -53,3 +53,8 @@ CREATE TABLE files (
   path TEXT,
   link TEXT DEFAULT NULL
 );
+
+
+merging new packge files list into global files list and files_map
+------------------------------------------------------------------
+
