@@ -48,8 +48,9 @@ int main(int ac, char* av[])
   if (db_open(""))
     return 1;
 
-  db_sync_legacydb_to_fastpkgdb();
-
+//  db_sync_legacydb_to_fastpkgdb();
+  db_sync_fastpkgdb_to_legacydb();
+  
   while (*f != 0)
   {
     printf("%s\n", *f);
