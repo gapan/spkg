@@ -18,7 +18,6 @@
 typedef enum { FT_NONE=0, FT_DIR, FT_REG, FT_LNK, FT_BLK, FT_CHR, FT_FIFO, FT_SOCK } ftype_t;
 #endif
 
-typedef struct untgz_state untgz_state_t;
 struct untgz_state {
   gchar*  tgzfile; /* tgzfile path */
   gsize   usize;
@@ -45,9 +44,29 @@ struct untgz_state {
   gboolean eof;
 };
 
-extern untgz_state_t* untgz_open(gchar* tgzfile);
-extern gint untgz_get_next_head(untgz_state_t* s);
-extern gint untgz_get_next_data(untgz_state_t* s, gchar* file);
-extern void untgz_close(untgz_state_t* s);
+/** @brief Open tgz archive.
+ *
+ * @param tgzfile Path to the tgz file.
+ * @return 0 on error, untgz_state* on success.
+ */
+extern struct untgz_state* untgz_open(gchar* tgzfile);
+
+/** @brief Read next object from the tgz archive.
+ *
+ * Needs to be called before untgz_write_data or untgz_write_file.
+ *
+ * @param tgzfile Path to the tgz file.
+ * @return .
+ */
+extern gint untgz_get_header(struct untgz_state* s);
+
+extern gint untgz_write_data(struct untgz_state* s, guchar** buf, gsize* len);
+extern gint untgz_write_file(struct untgz_state* s, gchar* altname);
+
+/** @brief Close tgz archive.
+ *
+ * @param s Untgz object returned by untgz_open.
+ */
+extern void untgz_close(struct untgz_state* s);
 
 #endif

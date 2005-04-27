@@ -49,11 +49,12 @@ int main(int ac, char* av[])
     return 1;
 
 //  db_sync_legacydb_to_fastpkgdb();
-  db_sync_fastpkgdb_to_legacydb();
+//  db_sync_fastpkgdb_to_legacydb();
   
   while (*f != 0)
   {
-    printf("%s\n", *f);
+    installpkg(*f);
+//    printf("%s\n", *f);
     f++;
   }
 

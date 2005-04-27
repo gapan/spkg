@@ -96,42 +96,67 @@ gchar* parse_pkgname(gchar* path, guint elem)
  */
 gint installpkg(gchar* pkgfile)
 {
-  gchar* name;
-  untgz_state_t* tgz;
-
+  gchar *name, *shortname;
+  struct untgz_state* tgz;
+  struct pkgdb_pkg* pkg;
+  GSList* filelist = 0;
+  
   /* check if file exist */
-  if (file_type(pkgfile) != 1)
+  if (file_type(pkgfile) != FT_REG)
   {
-    err(0,"can't find input package");
+    err(0,"package file does not exist: %s\n", pkgfile);
     return 1;
   }
 
   /* parse package name from the file path */
-  if ((name = parse_pkgname(pkgfile,1)) == 0)
+  if ((name = parse_pkgname(pkgfile,5)) == 0 
+      || (shortname = parse_pkgname(pkgfile,1)) == 0)
   {
-    err(0,"package has invalid name");
+    err(0,"package name is invalid: %s\n", pkgfile);
     return 1;
   }
-  
-//  if (pkgdb_find_pkg(db, name))
-//    printf("package already exists\n");
+
+  /* check if package is in the database */  
+  if ((pkg = db_find_pkg(name)))
+  {
+    err(0,"package is already installed: %s\n", name);
+    g_free(name);
+    g_free(shortname);
+    return 1;
+  }
+
   /* open tgz */
   tgz = untgz_open(pkgfile);
   if (tgz == 0)
+  {
+    err(0,"can't open package: %s\n", pkgfile);
+    g_free(name);
+    g_free(shortname);
     return 1;
+  }
 
   /* for each file do extraction or check */
-  while (untgz_get_next_head(tgz) == 0)
+  while (untgz_get_header(tgz) == 0)
   {
-    printf("f: %-30s %6d %-10s %-10s\n", tgz->f_name, tgz->f_size, tgz->f_uname, tgz->f_gname);
+    untgz_write_file(tgz,0);
+    continue;
+    filelist = g_slist_append(filelist, g_strdup(tgz->f_name));
+    if (tgz->f_type == FT_DIR)
+      printf("f: %-30s %6d %-10s %-10s\n", tgz->f_name, tgz->f_size, tgz->f_uname, tgz->f_gname);
+    else
+      printf("f: %-30s.install %6d %-10s %-10s\n", tgz->f_name, tgz->f_size, tgz->f_uname, tgz->f_gname);
   }  
   printf("s: %8d %8d\n", tgz->csize, tgz->usize);
   
   /* close tgz */
   untgz_close(tgz);
+
   /* run ldconfig */
   /* run doinst sh */
   /* add package to the database */
+
+  g_free(name);
+  g_free(shortname);
   return 0;
 }
 

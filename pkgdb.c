@@ -473,7 +473,7 @@ gint db_sync_legacydb_to_fastpkgdb()
   return 0;
 }
 
-pkgdb_pkg_t* pkgdb_find_pkg(gchar* pkg)
+pkgdb_pkg_t* db_find_pkg(gchar* pkg)
 {
   pkgdb_pkg_t* p;
   return 0;

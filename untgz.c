@@ -8,12 +8,12 @@
 \*----------------------------------------------------------------------*/
 /*
 #include <errno.h>
-#include <utime.h>
 */
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <utime.h>
 
 #include "untgz.h"
 
@@ -73,23 +73,23 @@ union tar_block {
  * internal functions
  */
 
-static void throw_error(untgz_state_t* s, gchar* text)
+static void throw_error(struct untgz_state* s, gchar* text)
 {
   s->errstr = text;
   longjmp(s->errjmp, 1);
 }
 
-/* convert octal digits to int */
-static guchar oct_tab[256] = {
-  [0 ... 255] = 0x10,
-  ['0'] = 0, ['1'] = 1, ['2'] = 2, ['3'] = 3,
-  ['4'] = 4, ['5'] = 5, ['6'] = 6, ['7'] = 7,
-  ['\0'] = 0x20, [' '] = 0x20
-};
-
-static guint getoct(untgz_state_t* s, gchar *p, guint w)
+/* optimized conversion from octal ascii digits to uint */
+static guint getoct(struct untgz_state* s, gchar *p, guint w)
 {
   guint r=0, i;
+  static const guchar oct_tab[256] = {
+    [0 ... 255] = 0x10,
+    ['0'] = 0, ['1'] = 1, ['2'] = 2, ['3'] = 3,
+    ['4'] = 4, ['5'] = 5, ['6'] = 6, ['7'] = 7,
+    ['\0'] = 0x20, [' '] = 0x20
+  };
+
   for (i=0; i<w; i++)
   {
     guchar c = oct_tab[(guchar)p[i]];
@@ -103,21 +103,21 @@ static guint getoct(untgz_state_t* s, gchar *p, guint w)
   return r;
 }
 
-static void validate_header_csum(untgz_state_t* s, union tar_block* b)
+/* header checksum validation */
+static void validate_header_csum(struct untgz_state* s, union tar_block* b)
 {
   guint i, head_csum, real_csum=0;
 
   head_csum = getoct(s, b->h.chksum, 6);
   memcpy(b->h.chksum, "        ", sizeof(b->h.chksum));
-
-  for (i=0; i<BLOCKSIZE; i++)
-    real_csum += 0xFF & b->b[i];
-
+  for (i=0; G_LIKELY(i<BLOCKSIZE); i++)
+    real_csum += b->b[i];
   if (G_UNLIKELY(real_csum != head_csum))
     throw_error(s, "header is corrupted (invalid checksum)");
 }
 
-static gint read_next_block(untgz_state_t* s, union tar_block* b, gboolean is_header)
+static gint read_next_block(struct untgz_state* s, union tar_block* b, 
+                            gboolean is_header)
 {
   gsize len = gzread(s->gzf, b->b, BLOCKSIZE);
   if (G_LIKELY(len == BLOCKSIZE))
@@ -158,21 +158,19 @@ static gchar* strnappend(gchar* dst, gchar* src, gsize size)
  * untgz API functions
  */
 
-untgz_state_t* untgz_open(gchar* tgzfile)
+struct untgz_state* untgz_open(gchar* tgzfile)
 {
-  untgz_state_t *s;
+  struct untgz_state *s;
   gzFile *gzf;
   struct stat st;
   
   if (tgzfile == NULL)
     return NULL;
-  
   gzf = gzopen(tgzfile, "rb");
   if (gzf == NULL)
     return NULL;
 
-  s = g_new0(untgz_state_t,1);
-
+  s = g_new0(struct untgz_state,1);
   if (stat(tgzfile, &st) == 0)
     s->csize = st.st_size;
   s->gzf = gzf;
@@ -180,17 +178,15 @@ untgz_state_t* untgz_open(gchar* tgzfile)
   return s;
 }
 
-gint untgz_get_next_head(untgz_state_t* s)
+gint untgz_get_header(struct untgz_state* s)
 {
   gsize size;
   union tar_block b;
 
   if (s == NULL || s->errstr)
     return -1;
-  
   if (s->eof)
     return 1;
-
   if (setjmp(s->errjmp) != 0)
     return -1;
 
@@ -286,75 +282,109 @@ gint untgz_get_next_head(untgz_state_t* s)
   return 0;
 }
 
-gint untgz_get_next_data(untgz_state_t* s, gchar* file)
+gint untgz_write_data(struct untgz_state* s, guchar** buf, gsize* len)
 {
-  FILE *f=0;
+  guchar* buf_tmp=0;  
 
-  if (s == NULL || file == NULL || s->errstr)
+  if (s == NULL || s->errstr)
     return -1;
-  
   if (s->eof)
     return 1;
-
   if (setjmp(s->errjmp) != 0)
   {
-    if (f)
-      fclose(f);
+    g_free(buf_tmp);
     return -1;
   }
 
   if (s->f_type == FT_REG && s->data)
   {
-    union tar_block b;
-    gsize size = s->f_size;
-    f = fopen(file, "w");
-    while (G_LIKELY(size > 0))
+    gsize pos=0;
+    buf_tmp = g_malloc(s->f_size);
+    while (G_LIKELY(s->f_size > 0))
     {
-      if (read_next_block(s, &b, 0))
+      if (read_next_block(s, (union tar_block*)buf_tmp+pos*BLOCKSIZE, 0))
         throw_error(s, "early EOF (missing file data block)");
-      fwrite(b.b, size>BLOCKSIZE?BLOCKSIZE:size, 1, f);
-      size = size<=BLOCKSIZE?0:size-BLOCKSIZE;
     }
-    fclose(f);
     s->data = 0;
+    *buf = buf_tmp;
+    *len = s->f_size;
     return 0;
   }
   return 1;
+}
 
-#if 0
+gint untgz_write_file(struct untgz_state* s, gchar* altname)
+{
   struct utimbuf t;
+  union tar_block b;
+  gchar* path;
+  FILE* f;
+
+  if (s == NULL || s->errstr)
+    return -1;
+  if (s->eof)
+    return 1;
+  if (setjmp(s->errjmp) != 0)
+  {
+    return -1;
+  }
+  
+  if (altname)
+    path = altname;
+  else
+    path = s->f_name;
 
   switch (s->f_type)
   {
     case FT_REG:
+      if (!s->data)
+        return 1;
+      gsize size = s->f_size;
+      f = fopen(path, "w");
+      if (f == 0)
+        throw_error(s, "can't open file for writing");
+      while (G_LIKELY(size > 0))
+      {
+        if (read_next_block(s, &b, 0))
+          throw_error(s, "early EOF (missing file data block)");
+        fwrite(b.b, size>BLOCKSIZE?BLOCKSIZE:size, 1, f);
+        size = size<=BLOCKSIZE?0:size-BLOCKSIZE;
+      }
+      fclose(f);
+      s->data = 0;
+      break;
     case FT_LNK:
-      symlink(h_ltgt, h_name);
+      symlink(s->f_link, path);
       break;
     case FT_CHR:
-      mknod(h_name, S_IFCHR, (dev_t)((((h_devmajor & 0xFF) << 8) & 0xFF00) | (h_devminor & 0xFF)));
+      mknod(path, S_IFCHR, (dev_t)((((s->f_devmaj & 0xFF) 
+            << 8) & 0xFF00) | (s->f_devmin & 0xFF)));
       break;
     case FT_BLK:
-      mknod(h_name, S_IFBLK, (dev_t)((((h_devmajor & 0xFF) << 8) & 0xFF00) | (h_devminor & 0xFF)));
+      mknod(path, S_IFBLK, (dev_t)((((s->f_devmaj & 0xFF) 
+            << 8) & 0xFF00) | (s->f_devmin & 0xFF)));
       break;
     case FT_DIR:
-      mkdir_r(h_name, 0755);
+      /* because of the way tar stores directories, there 
+         is no need to have mkdir_r here */
+      mkdir(path, 0755); 
       break;
     default:
       break;
   }
 
-  chown(file, s->f_uid, s->f_gid);
-  chmod(file, s->f_mode);
+  chown(path, s->f_uid, s->f_gid);
+  chmod(path, s->f_mode);
   t.actime = t.modtime = s->f_mtime;
-  utime(file, &t);
-#endif
-  return 0;
+  utime(path, &t);
+  return 1;
 }
 
-void untgz_close(untgz_state_t* s)
+void untgz_close(struct untgz_state* s)
 {
   if (s == NULL)
     return;
+
   gzclose(s->gzf);
   g_free(s->f_name);
   g_free(s->f_link);
