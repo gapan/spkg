@@ -26,10 +26,6 @@ opts_t opts = {
   .files = 0,
 };
 
-/* private funcs */
-
-/* public funcs */
-
 /* elem:
  * 0 = path
  * 1 = shortname

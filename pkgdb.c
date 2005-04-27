@@ -291,6 +291,7 @@ gint db_open(gchar* root)
   pkgdb.is_open = 1;
 
   /* check database */
+#if 0
   tmp = 0;
   for (i=0; i<MAXHASH; i++)
   {
@@ -305,7 +306,6 @@ gint db_open(gchar* root)
     goto recreate;
   return 0;
  recreate:
-
   sql_exec("BEGIN TRANSACTION;");
   for (i=0; i<MAXHASH; i++)
   {
@@ -330,6 +330,7 @@ gint db_open(gchar* root)
     " location TEXT"
     ");");
   sql_exec("COMMIT;");
+#endif
   return 0;
 }
 
@@ -345,7 +346,7 @@ gint db_sync_fastpkgdb_to_legacydb()
 {
   sqlite3_stmt *q1, *q2, *q3;
 
-  q1 = sql_prep("SELECT id FROM packages WHERE shortname == '%q';", "gcc");
+  q1 = sql_prep("SELECT id FROM packages WHERE shortname == '%q';", "mozilla");
   if (sql_step(q1))
   { /* already in database! */
     gint pid;
@@ -377,9 +378,9 @@ gint db_sync_legacydb_to_fastpkgdb()
   struct dirent* de;
   pkgdb_pkg_t* p;
   sqlite3_stmt *q1, *q2, *q3;
-
+#if FPKG_DEBUG == 1
   gint hash_stats[MAXHASH] = {0};
-
+#endif
   tmpstr = g_strdup_printf("%s/%s", pkgdb.topdir, "packages");
   d = opendir(tmpstr);
   g_free(tmpstr);
@@ -405,7 +406,8 @@ gint db_sync_legacydb_to_fastpkgdb()
       return 1;
     }
     /* add package to the packages table */
-    q1 = sql_prep("INSERT INTO packages(name, shortname, version, arch, build, csize, usize, desc, location) VALUES(?,?,?,?,?,?,?,?,?);");
+    q1 = sql_prep("INSERT INTO packages(name, shortname, version, arch, build, csize, usize, desc, location)"
+                  " VALUES(?,?,?,?,?,?,?,?,?);");
     sqlite3_bind_text(q1, 1, p->name, -1, 0);
     sqlite3_bind_text(q1, 2, p->shortname, -1, 0);
     sqlite3_bind_text(q1, 3, p->version, -1, 0);
@@ -441,7 +443,9 @@ gint db_sync_legacydb_to_fastpkgdb()
         sql_fini(q3);
         sql_exec("INSERT INTO f_%03x(path) VALUES('%q');", hash, (char*)l->data);
         fid = sql_rowid();
+#if FPKG_DEBUG == 1
         hash_stats[hash]++;
+#endif
       }
       sqlite3_bind_int(q2, 1, hash);
       sqlite3_bind_int(q2, 2, fid);
@@ -455,6 +459,7 @@ gint db_sync_legacydb_to_fastpkgdb()
     free_legacydb_entry(p);
   }
 
+#if FPKG_DEBUG == 1
   {
     int i;
     FILE *f=fopen("hash.stats","w");
@@ -462,9 +467,8 @@ gint db_sync_legacydb_to_fastpkgdb()
       fprintf(f,"%d %d\n",i,hash_stats[i]);
     fclose(f);
   } 
-
+#endif
   sql_exec("PRAGMA synchronous = ON;");
-  
   closedir(d);
   return 0;
 }

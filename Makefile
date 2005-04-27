@@ -23,7 +23,7 @@ CPPFLAGS := -D_GNU_SOURCE -I. `pkg-config --cflags glib-2.0` `pkg-config --cflag
 CFLAGS := -pipe -Wall
 ifeq ($(DEBUG),yes)
 CFLAGS +=  -ggdb3 -O0
-CPPFLAGS += -DFPKG_DEBUG 
+CPPFLAGS += -DFPKG_DEBUG=1
 else
 CFLAGS += -g0 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer
 endif
