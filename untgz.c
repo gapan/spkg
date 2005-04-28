@@ -9,11 +9,11 @@
 /*
 #include <errno.h>
 */
-#include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <utime.h>
+#include <fcntl.h>
 
 #include "untgz.h"
 
@@ -318,7 +318,7 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
   struct utimbuf t;
   union tar_block b;
   gchar* path;
-  FILE* f;
+  int fd;
 
   if (s == NULL || s->errstr)
     return -1;
@@ -340,17 +340,17 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
       if (!s->data)
         return 1;
       gsize size = s->f_size;
-      f = fopen(path, "w");
-      if (f == 0)
+      fd = open(path, O_CREAT|O_TRUNC|O_WRONLY);
+      if (fd < 0)
         throw_error(s, "can't open file for writing");
       while (G_LIKELY(size > 0))
       {
         if (read_next_block(s, &b, 0))
           throw_error(s, "early EOF (missing file data block)");
-        fwrite(b.b, size>BLOCKSIZE?BLOCKSIZE:size, 1, f);
+        write(fd, b.b, size>BLOCKSIZE?BLOCKSIZE:size);
         size = size<=BLOCKSIZE?0:size-BLOCKSIZE;
       }
-      fclose(f);
+      close(fd);
       s->data = 0;
       break;
     case FT_LNK:
@@ -370,6 +370,7 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
       mkdir(path, 0755); 
       break;
     default:
+      throw_error(s, "unknown file type in tgz archive");
       break;
   }
 
