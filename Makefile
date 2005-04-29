@@ -6,26 +6,30 @@
 #|----------------------------------------------------------------------|#
 #|  No copy/usage restrictions are imposed on anybody using this work.  |#
 #\----------------------------------------------------------------------/#
-.PHONY: clean mrproper all install install-strip uninstall
+.PHONY: clean mrproper all install install-strip uninstall slackpkg
 
 export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
 DESTDIR :=
 PREFIX := /usr/local
 DEBUG := no
-STATIC := yes
+STATIC := no
 VERSION := 0.1
 
 CC := gcc
 
-LDFLAGS := `pkg-config --libs glib-2.0` -lz
 CPPFLAGS := -D_GNU_SOURCE -I. `pkg-config --cflags glib-2.0` `pkg-config --cflags sqlite3`
 CFLAGS := -pipe -Wall
+LDFLAGS := `pkg-config --libs glib-2.0` -lz
+ifeq ($(PROFILE),yes)
+CFLAGS += -pg
+LDFLAGS += -pg
+endif
 ifeq ($(DEBUG),yes)
 CFLAGS +=  -ggdb3 -O0
 CPPFLAGS += -DFPKG_DEBUG=1
 else
-CFLAGS += -g0 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer
+CFLAGS += -ggdb1 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer
 endif
 ifeq ($(STATIC),yes)
 LDFLAGS += `pkg-config --variable=libdir sqlite3`/libsqlite3.a
@@ -50,9 +54,17 @@ all: fastpkg
 fastpkg: $(objs-fastpkg)
 	$(CC) $^ $(LDFLAGS) -o $@
 
+untgz: .o/untgz-test.o .o/untgz.o
+	$(CC) $^ $(LDFLAGS) -o $@
+
 .o/%.o: %.c
 	@mkdir -p .o
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+
+# profiling
+profile:
+	make clean
+	make PROFILE=yes DEBUG=no
 
 # installation
 install-strip: install

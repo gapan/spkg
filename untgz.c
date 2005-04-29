@@ -110,11 +110,13 @@ static void validate_header_csum(struct untgz_state* s, union tar_block* b)
 
   head_csum = getoct(s, b->h.chksum, 6);
   memcpy(b->h.chksum, "        ", sizeof(b->h.chksum));
-  for (i=0; G_LIKELY(i<BLOCKSIZE); i++)
-    real_csum += b->b[i];
+  for (i=0; G_LIKELY(i<BLOCKSIZE); i+=2)
+    real_csum += b->b[i] + b->b[i+1];
   if (G_UNLIKELY(real_csum != head_csum))
     throw_error(s, "header is corrupted (invalid checksum)");
 }
+
+#define BLOCKBUFSIZE (1024*32) /* optimal (according to the benchmark) */
 
 static gint read_next_block(struct untgz_state* s, union tar_block* b, 
                             gboolean is_header)
@@ -154,9 +156,8 @@ static gchar* strnappend(gchar* dst, gchar* src, gsize size)
   return dst;
 }
 
-/*********************
- * untgz API functions
- */
+/* public 
+ ************************************************************************/
 
 struct untgz_state* untgz_open(gchar* tgzfile)
 {
@@ -183,15 +184,15 @@ gint untgz_get_header(struct untgz_state* s)
   gsize size;
   union tar_block b;
 
-  if (s == NULL || s->errstr)
+  if (G_UNLIKELY(s == NULL || s->errstr))
     return -1;
-  if (s->eof)
+  if (G_UNLIKELY(s->eof))
     return 1;
-  if (setjmp(s->errjmp) != 0)
+  if (G_UNLIKELY(setjmp(s->errjmp) != 0))
     return -1;
-
+  
   /* skip data blocks */
-  if (s->f_type == FT_REG && s->data)
+  if (s->f_type == UNTGZ_REG && s->data)
   {
     size = s->f_size;
     while (G_LIKELY(size > 0))
@@ -207,7 +208,7 @@ gint untgz_get_header(struct untgz_state* s)
   g_free(s->f_name);
   g_free(s->f_link);
   s->f_name = s->f_link = NULL;
-  s->f_type = FT_NONE;
+  s->f_type = UNTGZ_NONE;
   s->data = 0;
 
   while (1)
@@ -261,24 +262,24 @@ gint untgz_get_header(struct untgz_state* s)
   switch (b.h.typeflag)
   {
     case AREGTYPE: 
-    case REGTYPE: s->f_type = FT_REG; s->data = 1; s->usize += size; break;
-    case SYMTYPE: s->f_type = FT_LNK; break;
-    case CHRTYPE: s->f_type = FT_CHR; break;
-    case BLKTYPE: s->f_type = FT_BLK; break;
-    case DIRTYPE: s->f_type = FT_DIR; break;
+    case REGTYPE: s->f_type = UNTGZ_REG; s->data = 1; s->usize += size; break;
+    case DIRTYPE: s->f_type = UNTGZ_DIR; break;
+    case SYMTYPE: s->f_type = UNTGZ_SYM; break;
+    case LNKTYPE: s->f_type = UNTGZ_LNK; break;
+    case CHRTYPE: s->f_type = UNTGZ_CHR; break;
+    case BLKTYPE: s->f_type = UNTGZ_BLK; break;
     default: throw_error(s, "unknown typeflag");
   }
 
   /* just one more check */
   if (s->f_name == 0)
     s->f_name = g_strndup(b.h.name, SHORTNAMESIZE);
-  else if (strncmp(s->f_name, b.h.name, SHORTNAMESIZE))
+  else if (strncmp(s->f_name, b.h.name, SHORTNAMESIZE-1)) /* -1 because it's zero terminated */
     throw_error(s, "extended header mismatch");
   if (s->f_link == 0)
     s->f_link = g_strndup(b.h.linkname, SHORTNAMESIZE);
-  else if (strncmp(s->f_link, b.h.linkname, SHORTNAMESIZE))
+  else if (strncmp(s->f_link, b.h.linkname, SHORTNAMESIZE-1)) /* -1 because it's zero terminated */
     throw_error(s, "extended header mismatch");
-
   return 0;
 }
 
@@ -296,7 +297,7 @@ gint untgz_write_data(struct untgz_state* s, guchar** buf, gsize* len)
     return -1;
   }
 
-  if (s->f_type == FT_REG && s->data)
+  if (s->f_type == UNTGZ_REG && s->data)
   {
     gsize pos=0;
     buf_tmp = g_malloc(s->f_size);
@@ -320,14 +321,12 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
   gchar* path;
   int fd;
 
-  if (s == NULL || s->errstr)
+  if (G_UNLIKELY(s == NULL || s->errstr))
     return -1;
-  if (s->eof)
+  if (G_UNLIKELY(s->eof))
     return 1;
-  if (setjmp(s->errjmp) != 0)
-  {
+  if (G_UNLIKELY(setjmp(s->errjmp) != 0))
     return -1;
-  }
   
   if (altname)
     path = altname;
@@ -336,7 +335,8 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
 
   switch (s->f_type)
   {
-    case FT_REG:
+    case UNTGZ_REG:
+    {
       if (!s->data)
         return 1;
       gsize size = s->f_size;
@@ -353,18 +353,22 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
       close(fd);
       s->data = 0;
       break;
-    case FT_LNK:
+    }
+    case UNTGZ_SYM:
       symlink(s->f_link, path);
       break;
-    case FT_CHR:
+    case UNTGZ_LNK:
+      link(s->f_link, path);
+      break;
+    case UNTGZ_CHR:
       mknod(path, S_IFCHR, (dev_t)((((s->f_devmaj & 0xFF) 
             << 8) & 0xFF00) | (s->f_devmin & 0xFF)));
       break;
-    case FT_BLK:
+    case UNTGZ_BLK:
       mknod(path, S_IFBLK, (dev_t)((((s->f_devmaj & 0xFF) 
             << 8) & 0xFF00) | (s->f_devmin & 0xFF)));
       break;
-    case FT_DIR:
+    case UNTGZ_DIR:
       /* because of the way tar stores directories, there 
          is no need to have mkdir_r here */
       mkdir(path, 0755); 

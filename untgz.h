@@ -13,10 +13,7 @@
 #include <zlib.h>
 #include <setjmp.h>
 
-#ifndef __FILETYPE_ENUM
-#define __FILETYPE_ENUM
-typedef enum { FT_NONE=0, FT_DIR, FT_REG, FT_LNK, FT_BLK, FT_CHR, FT_FIFO, FT_SOCK } ftype_t;
-#endif
+typedef enum { UNTGZ_NONE=0, UNTGZ_DIR, UNTGZ_REG, UNTGZ_LNK, UNTGZ_SYM, UNTGZ_BLK, UNTGZ_CHR, UNTGZ_FIFO, UNTGZ_SOCK } ftype_t;
 
 struct untgz_state {
   gchar*  tgzfile; /* tgzfile path */

@@ -346,7 +346,7 @@ gint db_sync_fastpkgdb_to_legacydb()
 {
   sqlite3_stmt *q1, *q2, *q3;
 
-  q1 = sql_prep("SELECT id FROM packages WHERE shortname == '%q';", "mozilla");
+  q1 = sql_prep("SELECT * FROM packages;");
   if (sql_step(q1))
   { /* already in database! */
     gint pid;

@@ -1,3 +1,23 @@
+source code guide
+-----------------
+  sql.{c,h}: Simplified sqlite3 interface with better error handling.
+
+  Supported error handling methods:
+    - close db and exit
+    - longjmp to the caller's error handler
+    - print err msg and return (retval = -1)
+    - ignore error and return (retval = -1)
+
+  untgz.{c,h}: Extractor/browser for tgz archives.
+  
+  sysutils.{c,h}: Simplified system interface.
+    - check file type
+    - implementation of rm -rf and mkdir -p
+    
+  pkgdb.{c,h}: Interface to the package database.
+    - routines to modify fastpkg database
+    - routines to convert between legacy and fastpkg databases
+
 installpkg
 ----------
  - umask 022, setuid 0
@@ -34,7 +54,4 @@ package database (pkgdb)
 pkgdb functions:
   - sync_fastpkgdb_to_legacydb (synchronize legacy database with fastpkg database)
   - sync_legacydb_to_fastpkgdb
-
-merging new packge files list into global files list and files_map
-------------------------------------------------------------------
 

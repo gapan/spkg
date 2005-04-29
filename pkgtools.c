@@ -138,6 +138,10 @@ gint installpkg(gchar* pkgfile)
   /* for each file do extraction or check */
   while (untgz_get_header(tgz) == 0)
   {
+    /* if not dir transform name to the install.XXXXXX.filename */
+    /* add file to the rollback list */
+    /* add file to the update db list */
+    
     untgz_write_file(tgz,0);
     continue;
     filelist = g_slist_append(filelist, g_strdup(tgz->f_name));

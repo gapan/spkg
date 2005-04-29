@@ -2,8 +2,13 @@ TODO
 ----
 - implement rm_rf and mkdir_p in C
 - i., u., r.
-- optimize disk access in untgz lib
+- further optimize untgz (use 32k BLOCKBUFFER)
 
 Status
 ------
 - pkgdb core finished (uh, oh...)
+
+
+Review
+------
+ - sql, untgz, pkgdb, sysutils
