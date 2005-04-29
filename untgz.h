@@ -13,7 +13,7 @@
 #include <zlib.h>
 #include <setjmp.h>
 
-typedef enum { UNTGZ_NONE=0, UNTGZ_DIR, UNTGZ_REG, UNTGZ_LNK, UNTGZ_SYM, UNTGZ_BLK, UNTGZ_CHR, UNTGZ_FIFO, UNTGZ_SOCK } ftype_t;
+typedef enum { UNTGZ_NONE=0, UNTGZ_DIR, UNTGZ_REG, UNTGZ_LNK, UNTGZ_SYM, UNTGZ_BLK, UNTGZ_CHR, UNTGZ_FIFO, UNTGZ_SOCK } filetype_t;
 
 struct untgz_state {
   gchar*  tgzfile; /* tgzfile path */
@@ -21,7 +21,7 @@ struct untgz_state {
   gsize   csize;
   gzFile* gzf; /* tar stream */
 
-  ftype_t f_type;
+  filetype_t f_type;
   gchar*  f_name; /* file name */
   gchar*  f_link; /* link target (if it is link) */
   gsize   f_size;
