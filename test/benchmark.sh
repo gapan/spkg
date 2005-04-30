@@ -7,35 +7,11 @@ untgzrun() { echo "untgz:" ; bench "../untgz $PKG" ; }
 targzrun() { echo "tar xzf:" ; bench "tar xzf $PKG" ; }
 instprun() { echo "installpkg:" ; bench "ROOT=./ installpkg $PKG > /dev/null" ; }
 gziprun() { echo "gzip:" ; bench "gzip -d < $PKG > /dev/null" ; }
-zlibrun() { echo "zlib:" ; bench "./zlibbench $PKG" ; }
+zlibrun() { echo "zlib:" ; bench "../zlibbench $PKG" ; }
 
-zlibrun
-zlibrun
-gziprun
-exit
-gziprun
-gziprun
-gziprun
-exit
+#zlibrun
+#gziprun
 clean
 untgzrun
-clean
-untgzrun
-clean
-untgzrun
-clean
-untgzrun
-
-clean
-targzrun
-clean
-targzrun
-clean
-targzrun
-clean
-targzrun
-
-exit
-
-clean
-instprun
+#clean
+#targzrun

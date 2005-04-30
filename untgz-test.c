@@ -19,7 +19,10 @@ int main(int ac, char* av[])
     if (tgz == 0)
       return 1;
     while (untgz_get_header(tgz) == 0)
-      untgz_write_file(tgz,0);
+      if (untgz_write_file(tgz,0))
+        break;
+    if (tgz->errstr)
+      printf("err: %s\n", tgz->errstr);
     untgz_close(tgz);
   }
   return 0;

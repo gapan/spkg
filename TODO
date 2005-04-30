@@ -12,3 +12,9 @@ Status
 Review
 ------
  - sql, untgz, pkgdb, sysutils
+
+
+KNOWN BUGS
+----------
+ Real untgz should delay time setting on directories until after all 
+ files/subdirs extracted to it. No need for this.

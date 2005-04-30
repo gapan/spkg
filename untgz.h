@@ -15,6 +15,9 @@
 
 typedef enum { UNTGZ_NONE=0, UNTGZ_DIR, UNTGZ_REG, UNTGZ_LNK, UNTGZ_SYM, UNTGZ_BLK, UNTGZ_CHR, UNTGZ_FIFO, UNTGZ_SOCK } filetype_t;
 
+/* must be multiple of 512 */
+#define BLOCKBUFSIZE (512*64) /* optimal (according to the benchmark) */
+
 struct untgz_state {
   gchar*  tgzfile; /* tgzfile path */
   gsize   usize;
@@ -34,11 +37,18 @@ struct untgz_state {
   guint   f_devmaj;
   guint   f_devmin;
   
+  mode_t  old_umask;
+  
   jmp_buf errjmp;
   gchar*  errstr;
   
   gboolean data;
   gboolean eof;
+  /* block buffer */
+  guchar   bbuf[BLOCKBUFSIZE];
+  guchar*  bend;
+  guchar*  bpos;
+  gint     blockid;
 };
 
 /** @brief Open tgz archive.
