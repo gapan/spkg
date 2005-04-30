@@ -127,12 +127,8 @@ static void validate_header_csum(struct untgz_state* s)
  */
 static union tar_block* read_next_block(struct untgz_state* s, gboolean is_header)
 {
-//  printf("trace1: rnb(bpos=%08x bend=%08x)\n", (unsigned int)s->bpos, (unsigned int)s->bend);
-  if (G_LIKELY(s->bpos+BLOCKSIZE < s->bend))
-  {
-    s->bpos += BLOCKSIZE;
-  }
-  else
+  s->bpos += BLOCKSIZE;
+  if (G_UNLIKELY(s->bpos >= s->bend))
   { /* reload */
     gint read = gzread(s->gzf, s->bbuf, BLOCKBUFSIZE);
     if (read < BLOCKSIZE)
@@ -151,7 +147,6 @@ static union tar_block* read_next_block(struct untgz_state* s, gboolean is_heade
     validate_header_csum(s);
   }
   s->blockid++;
-//  printf("trace2: rnb(bpos=%08x bend=%08x)\n", (unsigned int)s->bpos, (unsigned int)s->bend);
   return (union tar_block*)s->bpos;
 }
 
