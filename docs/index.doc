@@ -1,0 +1,13 @@
+/** @page index Main Page
+
+@section descr Description
+
+This is documentation of the fastpkg, an unofficial Slackware 
+package manager. 
+
+@section feats Features
+
+@li The fastest package manager ever written.
+@li All features of pkgtools (except for makepkg).
+
+*/

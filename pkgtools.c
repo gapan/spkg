@@ -98,7 +98,7 @@ gint installpkg(gchar* pkgfile)
 {
   gchar *name, *shortname;
   struct untgz_state* tgz;
-  struct pkgdb_pkg* pkg;
+  struct db_pkg* pkg;
   GSList* filelist = 0;
   
   /* check if file exist */

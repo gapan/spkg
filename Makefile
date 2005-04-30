@@ -6,7 +6,8 @@
 #|----------------------------------------------------------------------|#
 #|  No copy/usage restrictions are imposed on anybody using this work.  |#
 #\----------------------------------------------------------------------/#
-.PHONY: clean mrproper all install install-strip uninstall slackpkg
+.PHONY: clean mrproper all install install-strip uninstall slackpkg docs \
+profile
 
 export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
@@ -42,7 +43,7 @@ objs-fastpkg := main.o pkgtools.o untgz.o sysutils.o sql.o pkgdb.o
 # magic barrier
 
 export MAKEFLAGS += --no-print-directory -r
-CLEANFILES := .o fastpkg
+CLEANFILES := .o fastpkg untgz
 
 objs-fastpkg := $(addprefix .o/, $(objs-fastpkg))
 objs-all := $(sort $(objs-fastpkg))
@@ -93,6 +94,10 @@ slackpkg:
 	rm -rf pkg
 	make mrproper
 
+docs:
+	rm -rf docs/html
+	doxygen
+
 # generate deps
 vpath %.c .
 .dep/%.d: %.c
@@ -107,5 +112,5 @@ clean:
 	-rm -rf $(CLEANFILES)
 
 mrproper:
-	-rm -rf $(CLEANFILES) .dep
+	-rm -rf $(CLEANFILES) .dep docs/html
 

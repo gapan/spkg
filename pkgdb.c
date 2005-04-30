@@ -39,7 +39,7 @@ static void remove_eol(gchar* s)
     s[l-1] = '\0';
 }
 
-static gint pkgdb_parse_pkgname(pkgdb_pkg_t* p)
+static gint pkgdb_parse_pkgname(struct db_pkg* p)
 {
   regex_t re;
   regmatch_t rm[5];
@@ -63,7 +63,7 @@ static gint pkgdb_parse_pkgname(pkgdb_pkg_t* p)
 
 static void free_legacydb_entry(gpointer pkg)
 {
-  pkgdb_pkg_t* p = pkg;
+  struct db_pkg* p = pkg;
   GSList* l;
   if (p == 0)
     return;
@@ -82,14 +82,14 @@ static void free_legacydb_entry(gpointer pkg)
   g_free(p);
 }
 
-static pkgdb_pkg_t* parse_legacydb_entry(gchar* pkg)
+static struct db_pkg* parse_legacydb_entry(gchar* pkg)
 {
   gchar *tmpstr;
   FILE *fp, *fs, *f;
   gchar *ln = 0;
   gsize len = 0;
   enum { HEADER, FILELIST, LINKLIST } state = HEADER;
-  pkgdb_pkg_t* p=0;
+  struct db_pkg* p=0;
   regex_t re_symlink,
           re_pkgname,
           re_pkgsize,
@@ -118,7 +118,7 @@ static pkgdb_pkg_t* parse_legacydb_entry(gchar* pkg)
       regcomp(&re_pkgsize, "^([^:]+):[ ]*([0-9]+) K$", REG_EXTENDED))
     g_error("can't compile regexps");
 
-  p = g_new0(pkgdb_pkg_t, 1);
+  p = g_new0(struct db_pkg, 1);
   p->name = g_strdup(pkg);
   if (pkgdb_parse_pkgname(p))
     goto err;
@@ -376,7 +376,7 @@ gint db_sync_legacydb_to_fastpkgdb()
   DIR* d;
   gchar* tmpstr;
   struct dirent* de;
-  pkgdb_pkg_t* p;
+  struct db_pkg* p;
   sqlite3_stmt *q1, *q2, *q3;
 #if FPKG_DEBUG == 1
   gint hash_stats[MAXHASH] = {0};
@@ -473,8 +473,8 @@ gint db_sync_legacydb_to_fastpkgdb()
   return 0;
 }
 
-pkgdb_pkg_t* db_find_pkg(gchar* pkg)
+struct db_pkg* db_find_pkg(gchar* pkg)
 {
-  pkgdb_pkg_t* p;
+  struct db_pkg* p;
   return 0;
 }

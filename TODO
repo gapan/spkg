@@ -1,5 +1,8 @@
 TODO
 ----
+- sql documentation and review
+- sql bind and data extraction wrappers
+
 - implement rm_rf and mkdir_p in C
 - i., u., r.
 - further optimize untgz (use 32k BLOCKBUFFER)
@@ -11,7 +14,7 @@ Status
 
 Review
 ------
- - sql, untgz, pkgdb, sysutils
+ - sql, pkgdb, sysutils
 
 
 KNOWN BUGS
