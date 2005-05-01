@@ -1,7 +1,19 @@
 /** @defgroup untgz_api UNTGZ Extraction API
 
+Untgz is fast implementation of the tgz archive browser/extractor.
+
+@section assum Assumptions
+
+@li 
+
+@bug Directory mtimes are not preserved.
+
 */
 
 /** @defgroup pkgdb_api Package Database API
+
+*/
+
+/** @defgroup sql_api SQL Database API
 
 */

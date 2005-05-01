@@ -6,14 +6,21 @@
 |*----------------------------------------------------------------------*|
 |*  No copy/usage restrictions are imposed on anybody using this work.  *|
 \*----------------------------------------------------------------------*/
+/** @addtogroup sql_api */
+/*! @{ */
+
 #ifndef __SQL_H
 #define __SQL_H
 
 #include <sqlite3.h>
 #include <setjmp.h>
 
+/** Error handling type. */
 typedef enum { 
-  SQL_ERREXIT, SQL_ERRJUMP, SQL_ERRINFORM, SQL_ERRIGNORE
+  SQL_ERREXIT,   /**< close sql_db and exit on error */
+  SQL_ERRJUMP,   /**< longjump to sql_errjmp on error */
+  SQL_ERRINFORM, /**< print error to stderr and return */
+  SQL_ERRIGNORE  /**< return silently */
 } sql_error_action;
 
 extern sqlite3 *sql_db;
@@ -21,14 +28,29 @@ extern char* sql_errstr;
 extern jmp_buf sql_errjmp;
 extern sql_error_action sql_erract;
 
+/** Open SQLite database.
+ *
+ * @param file Database file.
+ * @return sqlite3 object on success, 0 on error.
+ */
 extern sqlite3* sql_open(const char* file);
+
 extern int sql_close();
+
 extern int sql_exec(const char* sql, ...);
+
 extern sqlite3_stmt* sql_prep(const char* sql, ...);
+
 extern int sql_fini(sqlite3_stmt* s);
+
 extern int sql_rest(sqlite3_stmt* s);
+
 extern int sql_step(sqlite3_stmt* s);
+
 extern sqlite_int64 sql_rowid();
+
 extern int sql_table_exist(const char* name);
 
 #endif
+
+/*! @} */

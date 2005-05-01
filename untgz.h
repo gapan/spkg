@@ -16,9 +16,16 @@
 #include <zlib.h>
 #include <setjmp.h>
 
+/** File type. */
 typedef enum { 
-  UNTGZ_NONE=0, UNTGZ_DIR, UNTGZ_REG, UNTGZ_LNK, UNTGZ_SYM, UNTGZ_BLK, 
-  UNTGZ_CHR, UNTGZ_FIFO, UNTGZ_SOCK 
+  UNTGZ_NONE=0, /**< nothing read yet */
+  UNTGZ_DIR,    /**< directory */
+  UNTGZ_REG,    /**< regular file (with associated data) */
+  UNTGZ_LNK,    /**< hard link */
+  UNTGZ_SYM,    /**< symbolic link */
+  UNTGZ_BLK,    /**< block device */
+  UNTGZ_CHR,    /**< character device */
+  UNTGZ_FIFO    /**< fifo */
 } filetype_t;
 
 /*! @if false */
@@ -55,6 +62,7 @@ struct untgz_state {
 
   mode_t  old_umask;   /**< saved umask */
   gboolean data;       /**< data from the current file were not read, yet */
+  gboolean written;    /**< file was written */
   gboolean eof;        /**< end of archive reached */
   
   /* internal block buffer  */
@@ -68,7 +76,7 @@ struct untgz_state {
 /** Open tgz archive.
  *
  * @param tgzfile Path to the tgz archive.
- * @return Pointer to the untgz state object on success, 0 on error.
+ * @return Pointer to the \ref untgz_state object on success, 0 on error.
  */
 extern struct untgz_state* untgz_open(gchar* tgzfile);
 
@@ -76,34 +84,37 @@ extern struct untgz_state* untgz_open(gchar* tgzfile);
  *
  * Needs to be called before untgz_write_data or untgz_write_file.
  *
- * @param s Pointer to the untgz state object.
+ * @param s Pointer to the \ref untgz_state object.
  * @return 0 on success, 1 on end of archive, -1 on error.
  */
 extern gint untgz_get_header(struct untgz_state* s);
 
-/** Write data for the current object to the buffer.
+/** Write data for the current file to the buffer.
  *
- * @param s Pointer to the untgz state object.
+ * If file is empty, len will be set to 0 and buf will be unchanged.
+ * If file has no data (s->data == 0), do nothing.
+ *
+ * @param s Pointer to the \ref untgz_state object.
  * @param buf Pointer to the pointer that will be updated with the address
  *            of the buffer with the data from the current file in archive.
  * @param len Pointer to the integer that will be updated with the size of
  *            the buffer.
- * @return 0 on success, 1 on end of archive, -1 on error.
+ * @return 0 on success, 1 if no data, -1 on error.
  */
 extern gint untgz_write_data(struct untgz_state* s, guchar** buf, gsize* len);
 
-/** Read next object from the tgz archive.
+/** Write current file to the disk.
  *
- * @param s Pointer to the untgz state object.
+ * @param s Pointer to the \ref untgz_state object.
  * @param altname Optional alternative name for the file that will be extracted
  *        from the archive. If this is 0 then the original name is used.
- * @return 0 on success, 1 on end of archive, -1 on error.
+ * @return 0 on success, 1 if file was already written, -1 on error.
  */
 extern gint untgz_write_file(struct untgz_state* s, gchar* altname);
 
-/** Close archive.
+/** Close archive and free \ref untgz_state object.
  *
- * @param s Pointer to the untgz state object.
+ * @param s Pointer to the \ref untgz_state object.
  */
 extern void untgz_close(struct untgz_state* s);
 
