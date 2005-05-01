@@ -15,6 +15,12 @@
 
 #include "untgz.h"
 
+#define PRESERVE_DIRECTORY_MTIME 0
+
+#if PRESERVE_DIRECTORY_MTIME == 1
+#include <libgen.h>
+#endif
+
 /* private
  ************************************************************************/
 
@@ -337,18 +343,39 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
   gchar* path;
   gsize remaining;
   int fd;
+#if PRESERVE_DIRECTORY_MTIME == 1
+  gchar *dpath_tmp = 0, *dpath;
+  struct utimbuf dt;
+#endif
 
   if (G_UNLIKELY(s == 0 || s->errstr))
     return -1;
   if (G_UNLIKELY(s->written))
     return 1;
   if (G_UNLIKELY(setjmp(s->errjmp) != 0))
+  {
+#if PRESERVE_DIRECTORY_MTIME == 1
+    g_free(dpath_tmp);
+#endif
     return -1;
+  }
 
   if (altname)
     path = altname;
   else
     path = s->f_name;
+
+#if PRESERVE_DIRECTORY_MTIME == 1
+  {
+    struct stat st;
+    dpath_tmp = g_strdup(path);
+    dpath = dirname(dpath_tmp);
+    if (stat(dpath, &st) == -1)
+      throw_error(s, "tgz extraction failed (can't stat parent directory): %s", strerror(errno));
+    dt.actime = st.st_atime;
+    dt.modtime = st.st_mtime;
+  }
+#endif
 
   switch (s->f_type)
   {
@@ -408,6 +435,13 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
   t.actime = t.modtime = s->f_mtime;
   if (utime(path, &t) == -1)
     throw_error(s, "tgz extraction failed (can't utime file): %s", strerror(errno));
+
+#if PRESERVE_DIRECTORY_MTIME == 1
+  if (utime(dpath, &dt) == -1)
+    throw_error(s, "tgz extraction failed (can't utime parent directory): %s", strerror(errno));
+  g_free(dpath_tmp);
+#endif
+
   s->written = 1;
   return 0;
 }
