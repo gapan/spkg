@@ -1,19 +1,104 @@
+/**********************************************************************/
 /** @defgroup untgz_api UNTGZ Extraction API
 
-Untgz is fast implementation of the tgz archive browser/extractor.
+Untgz is implementation of the robust tgz archive browser/extractor.
+Every known error state is properly handled.
 
 @section assum Assumptions
 
-@li 
+@li Archive was created with tar czf. 
 
-@bug Directory mtimes are not preserved.
+@section usage Typical usage
 
-*/
+@code
+#include "untgz.h"
 
-/** @defgroup pkgdb_api Package Database API
+int main(int ac, char* av[])
+{
+  if (ac == 2)
+  {
+    struct untgz_state* tgz;
+    tgz = untgz_open(av[1]);
+    if (tgz == 0)
+      return 1;
+    while (untgz_get_header(tgz) == 0)
+      if (untgz_write_file(tgz,0))
+        break;
+    if (tgz->errstr)
+      printf("err: %s\n", tgz->errstr);
+    untgz_close(tgz);
+  }
+  return 0;
+}
+@endcode
 
-*/
-
+***********************************************************************/
 /** @defgroup sql_api SQL Database API
 
-*/
+This is simplistic wrapper API for the sqlite3 database engine. It is
+optimized for the single connection at time oriented programming.
+
+@section assum Assumptions
+
+@li One connection at time
+
+@section usage Typical usage
+
+@code
+#include "sql.h"
+
+int main(int ac, char* av[])
+{
+  char* names[] = { "bob", "bill", "ben", 0 };
+  char** name;
+  sql_query* q;
+
+  sql_erract = SQL_ERRJUMP;
+  if (setjmp(sql_errjmp) == 1)
+  { /* exception occured */
+    fprintf(stderr, "sql error: %s\n", sql_errstr);
+    exit(1);
+    sql_close();
+  }
+
+  /* open database */
+  sql_open("test.db");
+
+  if (!sql_table_exist("tab"))
+  {
+    /* create table */
+    sql_exec("CREATE TABLE tab(id INTEGER PRIMARY KEY, name TEXT, age INTEGER DEFAULT 0);");
+
+    /* fill the table */
+    q = sql_prep("INSERT INTO tab(name) VALUES(?);");
+    name = names;
+    while (*name != 0)
+    {
+      sql_set_text(q, 1, *name);
+      sql_step(q);
+      sql_rest(q);
+      name++;
+    }
+    sql_fini(q);
+  }
+  /* update table */
+  sql_exec("UPDATE tab SET age = %d WHERE name == '%q';", 20, "bob");
+  sql_exec("UPDATE tab SET age = %d WHERE name == '%q';", 33, "bill");
+
+  /* query table */
+  q = sql_prep("SELECT id,name,age FROM tab;");
+  while (sql_step(q))
+    printf("%d: %s (%d)\n", sql_get_int(q,0), sql_get_text(q,1), sql_get_int(q,2));
+  sql_fini(q);
+
+  /* close database */
+  sql_close();
+  return 0;
+}
+@endcode
+
+***********************************************************************/
+/** @defgroup pkgdb_api Package Database API
+
+
+***********************************************************************/

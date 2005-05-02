@@ -58,6 +58,9 @@ fastpkg: $(objs-fastpkg)
 untgz: .o/untgz-test.o .o/untgz.o
 	$(CC) $^ $(LDFLAGS) -o $@
 
+sql: .o/sql-test.o .o/sql.o
+	$(CC) $^ $(LDFLAGS) -o $@
+
 .o/%.o: %.c
 	@mkdir -p .o
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<

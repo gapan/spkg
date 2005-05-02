@@ -16,6 +16,11 @@
 #include <zlib.h>
 #include <setjmp.h>
 
+/** Enable or disable parent directory modification and access times 
+ *  preservation. 
+ */
+#define UNTGZ_PRESERVE_DIR_TIMES 0
+
 /** File type. */
 typedef enum { 
   UNTGZ_NONE=0, /**< nothing read yet */

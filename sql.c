@@ -1,3 +1,11 @@
+/*----------------------------------------------------------------------*\
+|* fastpkg                                                              *|
+|*----------------------------------------------------------------------*|
+|* Slackware Linux Fast Package Management Tools                        *|
+|*                               designed by Ondøej (megi) Jirman, 2005 *|
+|*----------------------------------------------------------------------*|
+|*  No copy/usage restrictions are imposed on anybody using this work.  *|
+\*----------------------------------------------------------------------*/
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -133,12 +141,56 @@ int sql_step(sqlite3_stmt* s)
   else if (rs == SQLITE_ROW)
     return 1;
   sql_handle_error(__func__, sqlite3_errmsg(sql_db), 0);
+  return -1;
+}
+
+long long int sql_rowid()
+{
+  return sqlite3_last_insert_rowid(sql_db);
+}
+
+int sql_get_int(sql_query* q, int c)
+{
+  if (c < sqlite3_data_count(q) && sqlite3_column_type(q, c) == SQLITE_INTEGER)
+    return sqlite3_column_int(q, c);
+  sql_handle_error(__func__, "invalid get", 0);
   return 0;
 }
 
-sqlite_int64 sql_rowid()
+const unsigned char* sql_get_text(sql_query* q, int c)
 {
-  return sqlite3_last_insert_rowid(sql_db);
+  if (c < sqlite3_data_count(q) && sqlite3_column_type(q, c) == SQLITE_TEXT)
+    return sqlite3_column_text(q, c);
+  sql_handle_error(__func__, "invalid get", 0);
+  return 0;
+}
+
+long long int sql_get_int64(sql_query* q, int c)
+{
+  if (c < sqlite3_data_count(q) && sqlite3_column_type(q, c) == SQLITE_INTEGER)
+    return sqlite3_column_int64(q, c);
+  sql_handle_error(__func__, "invalid get", 0);
+  return 0;
+}
+
+int sql_set_int(sql_query* q, int c, int v)
+{
+  return sqlite3_bind_int(q, c, v);
+}
+
+int sql_set_text(sql_query* q, int c, const char* v)
+{
+  return sqlite3_bind_text(q, c, v, -1, SQLITE_STATIC); /*XXX: TRANSIENT? */
+}
+
+int sql_set_int64(sql_query* q, int c, long long int v)
+{
+  return sqlite3_bind_int64(q, c, v);
+}
+
+int sql_set_null(sql_query* q, int c)
+{
+  return sqlite3_bind_null(q, c);
 }
 
 int sql_table_exist(const char* name)
