@@ -88,9 +88,7 @@ static void _sql_on_error(const gchar* func, const gchar* fmt, ...)
     default:
     case SQL_ERREXIT:
       fprintf(stderr, "%s\n", sql_errstr);
-      _sql_fini_all();
-      if (sqlite3_close(sql_db) != SQLITE_OK)
-        fprintf(stderr, "panic: database can't be properly closed! :-(\n");
+      sql_close();
       exit(1);
     case SQL_ERRINFORM:
       fprintf(stderr, "%s\n", sql_errstr);
@@ -131,14 +129,15 @@ gint sql_close()
   gint rs;
 
   _sql_reset_errstr();
+  _sql_fini_all();
   rs = sqlite3_close(sql_db);
-  if (rs == SQLITE_OK)
+  sql_db = 0;
+  if (rs != SQLITE_OK)
   {
-    sql_db = 0;
-    return 0;
+    fprintf(stderr, "panic: database can't be properly closed! :-(\n");
+    return 1;
   }
-  sql_on_error("%s", sqlite3_errmsg(sql_db));
-  return 1;
+  return 0;
 }
 
 gint sql_exec(const gchar* sql, ...)
