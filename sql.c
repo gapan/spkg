@@ -12,42 +12,108 @@
 
 #include "sql.h"
 
-sqlite3 *sql_db=0;
-char* sql_errstr=0;
-jmp_buf sql_errjmp;
-sql_error_action sql_erract = SQL_ERREXIT;
+/* private
+ ************************************************************************/
 
-static sql_error_action _sql_erract; /* saved */
+/* queries array */
+static sql_query* _sql_open_queries[SQL_OPEN_QUERIES_LIMIT] = {0};
 
-static void sql_handle_error(const char* func, const char* err, const char* sql)
+static gint _sql_pushq(sql_query* q)
 {
+  guint i;
+  for (i=0; i<SQL_OPEN_QUERIES_LIMIT; i++)
+    if (_sql_open_queries[i] == 0)
+    {
+      _sql_open_queries[i] = q;
+      return 0;
+    }
+  return 1;
+}
+
+static gint _sql_popq(sql_query* q)
+{
+  guint i;
+  for (i=0; i<SQL_OPEN_QUERIES_LIMIT; i++)
+    if (_sql_open_queries[i] == q)
+    {
+      _sql_open_queries[i] = 0;
+      return 0;
+    }
+  return 1;
+}
+
+static __inline__ void _sql_reset_errstr()
+{
+  /* just an optimization */
+  if (G_UNLIKELY(sql_errstr != 0))
+  {
+    g_free(sql_errstr);
+    sql_errstr = 0;
+  }
+}
+
+/* close all open queries */
+static gint _sql_fini_all()
+{
+  guint i;
+  for (i=0; i<SQL_OPEN_QUERIES_LIMIT; i++)
+    if (_sql_open_queries[i] != 0)
+    {
+      sqlite3_finalize(_sql_open_queries[i]); /*XXX: err check?*/
+    }
+  return 0;
+}
+
+#define sql_on_error(fmt, args...) _sql_on_error(__func__, fmt, ##args)
+static void _sql_on_error(const gchar* func, const gchar* fmt, ...)
+{
+  va_list ap;
+  gchar* errhead;
+  gchar* errtail;
+  
+  /* store error message */
+  errhead = g_strdup_printf("error[%s]: ", func);
+  va_start(ap, fmt);
+  errtail = g_strdup_vprintf(fmt, ap);
+  va_end(ap);
+  g_free(sql_errstr);
+  sql_errstr = g_strconcat(errhead, errtail, 0);
+  g_free(errhead);
+  g_free(errtail);
+
   switch (sql_erract)
   {
     case SQL_ERRJUMP:
-      sql_errstr = strdup(err);
       longjmp(sql_errjmp,1);
     default:
     case SQL_ERREXIT:
-      fprintf(stderr, "error[%s]: %s\n", func, err);
-      if (sql)
-        fprintf(stderr, "failed sql query: %s\n", sql);
-      if (sql_db)
-        sqlite3_close(sql_db);
+      fprintf(stderr, "%s\n", sql_errstr);
+      _sql_fini_all();
+      if (sqlite3_close(sql_db) != SQLITE_OK)
+        fprintf(stderr, "panic: database can't be properly closed! :-(\n");
       exit(1);
     case SQL_ERRINFORM:
-      fprintf(stderr, "error[%s]: %s\n", func, err);
-      if (sql)
-        fprintf(stderr, "failed sql query: %s\n", sql);
+      fprintf(stderr, "%s\n", sql_errstr);
     break;
     case SQL_ERRIGNORE:
     break;
   }
 }
 
-sqlite3* sql_open(const char* file)
+/* public 
+ ************************************************************************/
+
+sql* sql_db=0;
+gchar* sql_errstr=0;
+jmp_buf sql_errjmp;
+sql_error_action sql_erract = SQL_ERREXIT;
+
+sql* sql_open(const gchar* file)
 {
-  int rs;
-  sqlite3* db=0;
+  gint rs;
+  sql* db=0;
+
+  _sql_reset_errstr();
   rs = sqlite3_open(file, &db);
   if (rs == SQLITE_OK)
   {
@@ -55,29 +121,33 @@ sqlite3* sql_open(const char* file)
       sql_db = db;
     return db;
   }
-  sql_handle_error(__func__, sqlite3_errmsg(db), 0);
+  sql_on_error("%s", sqlite3_errmsg(db));
   sqlite3_close(db);
   return 0;
 }
 
-int sql_close()
+gint sql_close()
 {
-  int rs;
+  gint rs;
+
+  _sql_reset_errstr();
   rs = sqlite3_close(sql_db);
   if (rs == SQLITE_OK)
   {
     sql_db = 0;
     return 0;
   }
-  sql_handle_error(__func__, sqlite3_errmsg(sql_db), 0);
+  sql_on_error("%s", sqlite3_errmsg(sql_db));
   return 1;
 }
 
-int sql_exec(const char* sql, ...)
+gint sql_exec(const gchar* sql, ...)
 {
   va_list ap;
-  char* tmp;
-  int rs;
+  gchar* tmp;
+  gint rs;
+
+  _sql_reset_errstr();
   va_start(ap, sql);
   tmp = sqlite3_vmprintf(sql, ap);
   va_end(ap);
@@ -87,124 +157,142 @@ int sql_exec(const char* sql, ...)
     sqlite3_free(tmp);
     return 0;
   }
-  sql_handle_error(__func__, sqlite3_errmsg(sql_db), tmp);
+  sql_on_error("%s\nSQL: %s", sqlite3_errmsg(sql_db), tmp);
   sqlite3_free(tmp);
   return 1;
 }
 
-sqlite3_stmt* sql_prep(const char* sql, ...)
+sql_query* sql_prep(const gchar* sql, ...)
 {
-  sqlite3_stmt* s;
+  sql_query* s;
   va_list ap;
-  char* tmp;
-  int rs;
+  gchar* tmp;
+  gint rs;
+
+  _sql_reset_errstr();
   va_start(ap, sql);
   tmp = sqlite3_vmprintf(sql, ap);
   va_end(ap);
   rs = sqlite3_prepare(sql_db, tmp, -1, &s, 0);
   if (rs == SQLITE_OK)
   {
+    _sql_pushq(s); /*XXX: check for unlikely owerflow */
     sqlite3_free(tmp);
     return s;
   }
-  sql_handle_error(__func__, sqlite3_errmsg(sql_db), tmp);
+  sql_on_error("%s\nSQL: %s", sqlite3_errmsg(sql_db), tmp);
   sqlite3_free(tmp);
   return 0;
 }
 
-int sql_fini(sqlite3_stmt* s)
+gint sql_fini(sql_query* s)
 {
-  int rs;
+  gint rs;
+
+  _sql_reset_errstr();
+  _sql_popq(s);
   rs = sqlite3_finalize(s);
   if (rs == SQLITE_OK)
     return 0;
-  sql_handle_error(__func__, sqlite3_errmsg(sql_db), 0);
+  sql_on_error("%s", sqlite3_errmsg(sql_db));
   return 1;
 }
 
-int sql_rest(sqlite3_stmt* s)
+gint sql_rest(sql_query* s)
 {
-  int rs;
+  gint rs;
+
+  _sql_reset_errstr();
   rs = sqlite3_reset(s);
   if (rs == SQLITE_OK)
     return 0;
-  sql_handle_error(__func__, sqlite3_errmsg(sql_db), 0);
+  sql_on_error("%s", sqlite3_errmsg(sql_db));
   return 1;
 }
 
-int sql_step(sqlite3_stmt* s)
+gint sql_step(sql_query* s)
 {
-  int rs;
+  gint rs;
+
+  _sql_reset_errstr();
   rs = sqlite3_step(s);
   if (rs == SQLITE_DONE)
     return 0;
   else if (rs == SQLITE_ROW)
     return 1;
-  sql_handle_error(__func__, sqlite3_errmsg(sql_db), 0);
+  else if (rs == SQLITE_MISUSE)
+    sql_on_error("misused ;-)");
+  else
+    sql_on_error("%s", sqlite3_errmsg(sql_db));
   return -1;
 }
 
-long long int sql_rowid()
+gint64 sql_rowid()
 {
+  _sql_reset_errstr();
   return sqlite3_last_insert_rowid(sql_db);
 }
 
-int sql_get_int(sql_query* q, int c)
+gint sql_get_int(sql_query* q, guint c)
 {
-  if (c < sqlite3_data_count(q) && sqlite3_column_type(q, c) == SQLITE_INTEGER)
+  _sql_reset_errstr();
+  if (c < sqlite3_data_count(q))
     return sqlite3_column_int(q, c);
-  sql_handle_error(__func__, "invalid get", 0);
+  sql_on_error("column out of range (%d)", c);
   return 0;
 }
 
-const unsigned char* sql_get_text(sql_query* q, int c)
+const guchar* sql_get_text(sql_query* q, guint c)
 {
-  if (c < sqlite3_data_count(q) && sqlite3_column_type(q, c) == SQLITE_TEXT)
+  _sql_reset_errstr();
+  if (c < sqlite3_data_count(q))
     return sqlite3_column_text(q, c);
-  sql_handle_error(__func__, "invalid get", 0);
+  sql_on_error("column out of range (%d)", c);
   return 0;
 }
 
-long long int sql_get_int64(sql_query* q, int c)
+gint64 sql_get_int64(sql_query* q, guint c)
 {
-  if (c < sqlite3_data_count(q) && sqlite3_column_type(q, c) == SQLITE_INTEGER)
+  _sql_reset_errstr();
+  if (c < sqlite3_data_count(q))
     return sqlite3_column_int64(q, c);
-  sql_handle_error(__func__, "invalid get", 0);
+  sql_on_error("column out of range (%d)", c);
   return 0;
 }
 
-int sql_set_int(sql_query* q, int c, int v)
+gint sql_set_int(sql_query* q, gint c, gint v)
 {
+  _sql_reset_errstr();
   return sqlite3_bind_int(q, c, v);
 }
 
-int sql_set_text(sql_query* q, int c, const char* v)
+gint sql_set_text(sql_query* q, gint c, const gchar* v)
 {
+  _sql_reset_errstr();
   return sqlite3_bind_text(q, c, v, -1, SQLITE_STATIC); /*XXX: TRANSIENT? */
 }
 
-int sql_set_int64(sql_query* q, int c, long long int v)
+gint sql_set_int64(sql_query* q, gint c, gint64 v)
 {
+  _sql_reset_errstr();
   return sqlite3_bind_int64(q, c, v);
 }
 
-int sql_set_null(sql_query* q, int c)
+gint sql_set_null(sql_query* q, gint c)
 {
+  _sql_reset_errstr();
   return sqlite3_bind_null(q, c);
 }
 
-int sql_table_exist(const char* name)
+gint sql_table_exist(const gchar* name)
 {
-  sqlite3_stmt* q;
-  int ret = 0;
-  _sql_erract = sql_erract;
-  sql_erract = SQL_ERREXIT;
+  sql_query* q;
+  gint ret = 0;
 
+  _sql_reset_errstr();
   q = sql_prep("SELECT name FROM sqlite_master WHERE type == 'table' AND name == '%q';", name);
   if (sql_step(q))
     ret = 1;
   sql_fini(q);
-  
-  sql_erract = _sql_erract;
   return ret;
 }

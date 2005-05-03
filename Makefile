@@ -13,7 +13,7 @@ export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
 DESTDIR :=
 PREFIX := /usr/local
-DEBUG := yes
+DEBUG := no
 STATIC := no
 VERSION := 0.1
 

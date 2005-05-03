@@ -20,7 +20,7 @@ int main(int ac, char* av[])
   sql_erract = SQL_ERRJUMP;
   if (setjmp(sql_errjmp) == 1)
   { /* exception occured */
-    fprintf(stderr, "sql error: %s\n", sql_errstr);
+    fprintf(stderr, "%s\n", sql_errstr);
     exit(1);
     sql_close();
   }

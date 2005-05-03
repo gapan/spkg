@@ -1,22 +1,13 @@
 TODO
 ----
-- sql review (especially error handling)
-
 - implement rm_rf and mkdir_p in C
 - i., u., r.
-- further optimize untgz (use 32k BLOCKBUFFER)
-
-Status
-------
-- pkgdb core finished (uh, oh...)
-
 
 Review
 ------
- - sql, pkgdb, sysutils
+- pkgdb, sysutils
+- sql: check values returned on error by some functions
 
-
-KNOWN BUGS
-----------
- Real untgz should delay time setting on directories until after all 
- files/subdirs extracted to it. No need for this.
+Status
+------
+- untgz: stable

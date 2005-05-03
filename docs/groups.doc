@@ -42,7 +42,36 @@ optimized for the single connection at time oriented programming.
 
 @li One connection at time
 
+@section errs Error handling
+
+Basically, if error occured sql_errstr contains pointer to the error
+message, otherwise it is 0. \ref sql_errstr is not preserved between
+calls to the sql library.
+
+All errors that are returned by the sqlite3 RDBMS are exceptional.
+Well designed program should never encounter an error from sql library.
+
+There are 4 user selectable error handling modes:
+<dl>
+ <dt>\ref SQL_ERREXIT [default]</dt>
+ <dd>Print error message to the stderr, close openned queries and 
+     call exit(1).</dd>
+
+ <dt>\ref SQL_ERRJUMP</dt>
+ <dd>Store error message to the \ref sql_errstr and do a longjmp.</dd>
+
+ <dt>\ref SQL_ERRINFORM</dt>
+ <dd>Print error message to the stderr and store it to the \ref sql_errstr, 
+     then return from function in which error occured.</dd>
+
+ <dt>\ref SQL_ERRIGNORE</dt>
+ <dd>Store error message to the \ref sql_errstr, then return from function 
+     in which error occured.</dd>
+</dl>
+
 @section usage Typical usage
+
+Following code shows \ref sql_api usage.
 
 @code
 #include "sql.h"
