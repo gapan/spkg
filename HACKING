@@ -23,7 +23,7 @@ source code guide
   --------------------------------
                   |
   --------------------------------
-  |         fastpkg api          |
+  |         pkgtools api         |
   --------------------------------
          |                |
   ---------------         |
@@ -68,26 +68,6 @@ removepkg
  - remove it (to temp dir)
  - updatedb
 
-package database (pkgdb)
-------------------------
-
-pkgdb functions:
-  - sync_fastpkgdb_to_legacydb (synchronize legacy database with fastpkg database)
-  - sync_legacydb_to_fastpkgdb (fastpkg db -> legacy db)
-
-  Following funcs are performed in one transaction:
-  - add_package
-  - remove_package
-  - upgrade_package
-  - get_package
-  
-TODO: design package representation structure
-
-fastpkg api
------------
-  Every function shoud be able to run in a dry mode and verbose mode:
-  - upgradepkg
-  - removepkg
-  - installpkg
-  - checkpkg
-
+checkpkg
+--------
+ - check if files on disk match files in database

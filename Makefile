@@ -16,11 +16,11 @@ PREFIX := /usr/local
 DEBUG := no
 PROFILE := no
 STATIC := yes
-VERSION := 0.1
+VERSION := 0.9.0
 
 CC := gcc
 
-CPPFLAGS := -D_GNU_SOURCE -I. `pkg-config --cflags glib-2.0 sqlite3`
+CPPFLAGS := -D_GNU_SOURCE '-DFASTPKG_VERSION="$(VERSION)"' -I. `pkg-config --cflags glib-2.0 sqlite3`
 CFLAGS := -pipe -Wall
 LDFLAGS := `pkg-config --libs glib-2.0` -lz
 ifeq ($(PROFILE),yes)
@@ -29,7 +29,7 @@ LDFLAGS += -pg
 endif
 ifeq ($(DEBUG),yes)
 CFLAGS +=  -ggdb3 -O0
-CPPFLAGS += -DFPKG_DEBUG=1
+CPPFLAGS += -D__DEBUG=1
 else
 CFLAGS += -ggdb1 -O2 -march=i486 -mcpu=i686 # -fomit-frame-pointer
 endif

@@ -107,7 +107,7 @@ int main(int ac, char* av[])
     exit(1);
   }
   
-  context = g_option_context_new("- Slackware Linux(TM) Package Management Tool");
+  context = g_option_context_new("- Slackware Linux(TM) Package Management Tool v." FASTPKG_VERSION);
   g_option_context_add_main_entries(context, entries, 0);
   g_option_context_parse(context, &ac, &av, &error);
 

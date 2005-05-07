@@ -1,0 +1,8 @@
+fastpkg - Slackware Linux Fast Package Management Tool
+------------------------------------------------------
+
+Installation instructions
+-------------------------
+
+  # make slackpkg
+  # installpkg fastpkg-X.X.X-i486-1.tgz
