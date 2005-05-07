@@ -62,19 +62,6 @@ extern void db_close();
  */
 extern gchar* db_error();
 
-/** Get package from legacy database.
- *
- * @param name Package name (something like: blah-1.0-i486-1)
- * @return 0 if not found, \ref db_pkg object on success
- */
-extern struct db_pkg* db_get_legacy_pkg(gchar* name);
-
-/** Free \ref db_pkg object.
- *
- * @param pkg \ref db_pkg object
- */
-extern void db_free_pkg(struct db_pkg* pkg);
-
 /** Add package to the database.
  *
  * @param pkg \ref db_pkg object
@@ -96,6 +83,26 @@ extern gint db_rem_pkg(gchar* name);
  * @return 0 if not found, \ref db_pkg object on success
  */
 extern struct db_pkg* db_get_pkg(gchar* name, gboolean files);
+
+/** Add package to the legacy database.
+ *
+ * @param pkg \ref db_pkg object
+ * @return 0 on success, 1 on error
+ */
+extern gint db_add_legacy_pkg(struct db_pkg* pkg);
+
+/** Get package from legacy database.
+ *
+ * @param name Package name (something like: blah-1.0-i486-1)
+ * @return 0 if not found, \ref db_pkg object on success
+ */
+extern struct db_pkg* db_get_legacy_pkg(gchar* name);
+
+/** Free \ref db_pkg object.
+ *
+ * @param pkg \ref db_pkg object
+ */
+extern void db_free_pkg(struct db_pkg* pkg);
 
 /** Recreate legacydb from fastpkgdb.
  *

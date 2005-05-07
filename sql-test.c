@@ -17,12 +17,13 @@ int main(int ac, char* av[])
   char** name;
   sql_query* q;
 
-  sql_push_erract(SQL_ERRJUMP);
+  sql_push_context(SQL_ERRJUMP);
   if (setjmp(sql_errjmp) == 1)
   { /* exception occured */
-    fprintf(stderr, "%s\n", sql_errstr);
-    exit(1);
+    sql_pop_context();
+    fprintf(stderr, "%s\n", sql_error());
     sql_close();
+    exit(1);
   }
 
   /* open database */
@@ -56,6 +57,7 @@ int main(int ac, char* av[])
   sql_fini(q);
 
   /* close database */
+  sql_pop_context();
   sql_close();
   return 0;
 }

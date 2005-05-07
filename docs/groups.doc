@@ -46,7 +46,7 @@ optimized for the single connection at time oriented programming.
 @section errs Error handling
 
 Basically, if error occured sql_errstr contains pointer to the error
-message, otherwise it is 0. \ref sql_errstr is not preserved between
+message, otherwise it is 0. \ref sql_error() is not preserved between
 calls to the sql library.
 
 All errors that are returned by the sqlite3 RDBMS are exceptional.
@@ -59,14 +59,14 @@ There are 4 user selectable error handling modes:
      call exit(1).</dd>
 
  <dt>\ref SQL_ERRJUMP</dt>
- <dd>Store error message to the \ref sql_errstr and do a longjmp.</dd>
+ <dd>Store error message to the \ref sql_error() and do a longjmp.</dd>
 
  <dt>\ref SQL_ERRINFORM</dt>
- <dd>Print error message to the stderr and store it to the \ref sql_errstr, 
+ <dd>Print error message to the stderr and store it to the \ref sql_error(), 
      then return from function in which error occured.</dd>
 
  <dt>\ref SQL_ERRIGNORE</dt>
- <dd>Store error message to the \ref sql_errstr, then return from function 
+ <dd>Store error message to the \ref sql_error(), then return from function 
      in which error occured.</dd>
 </dl>
 
@@ -83,12 +83,13 @@ int main(int ac, char* av[])
   char** name;
   sql_query* q;
 
-  sql_erract = SQL_ERRJUMP;
+  sql_push_context(SQL_ERRJUMP);
   if (setjmp(sql_errjmp) == 1)
   { /* exception occured */
-    fprintf(stderr, "sql error: %s\n", sql_errstr);
-    exit(1);
+    sql_pop_context();
+    fprintf(stderr, "%s\n", sql_error());
     sql_close();
+    exit(1);
   }
 
   /* open database */
@@ -122,6 +123,7 @@ int main(int ac, char* av[])
   sql_fini(q);
 
   /* close database */
+  sql_pop_context();
   sql_close();
   return 0;
 }
