@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <regex.h>
 #include "pkgtools.h"
 #include "untgz.h"
 #include "pkgdb.h"
@@ -25,67 +24,6 @@ opts_t opts = {
   .force = 0,
   .files = 0,
 };
-
-/* elem:
- * 0 = path
- * 1 = shortname
- * 2 = version
- * 3 = arch
- * 4 = build
- * 5 = fullname
- */
-gchar* parse_pkgname(gchar* path, guint elem)
-{
-  regex_t re1, re2;
-  regmatch_t rm1[3];
-  regmatch_t rm2[5];
-  gint rval;
-  gchar* fullname=0;
-  gchar* result=0;
-  if (path == 0)
-    return 0;
-
-  /* equivalent basename <path> .tgz */
-  path = g_strdup(path);
-  if (g_str_has_suffix(path, ".tgz"))
-    *g_strrstr(path, ".tgz") = 0;
-  if (regcomp(&re1, "^(.*/)?([^/]+)$", REG_EXTENDED))
-    g_error("regexp compilation failed");
-  rval = regexec(&re1, path, 3, rm1, 0);
-  regfree(&re1);
-  if (rval)
-    goto ret;
-  fullname = g_strndup(path+rm1[2].rm_so, rm1[2].rm_eo-rm1[2].rm_so);
-
-  /* separate parts of the package name */
-  if (regcomp(&re2, "^(.+)-([^-]+)-([^-]+)-([^-]+)$", REG_EXTENDED))
-    g_error("regexp compilation failed");
-  rval = regexec(&re2, fullname, 5, rm2, 0);
-  regfree(&re2);
-  if (rval)
-    goto ret;
-
-  switch (elem)
-  {
-    case 0:
-      if (rm1[1].rm_so != -1)
-        result = g_strndup(path+rm1[1].rm_so, rm1[1].rm_eo-rm1[1].rm_so);
-      break;
-    case 1: case 2: case 3: case 4:
-      result = g_strndup(fullname+rm2[elem].rm_so, rm2[elem].rm_eo-rm2[elem].rm_so);
-      break;
-    case 5:
-      result = fullname;
-      fullname = 0;
-      break;
-    default:
-      break;
-  }
- ret:
-  g_free(path);
-  g_free(fullname);
-  return result;
-}
 
 /** @brief Install package from the pkgfile.
  * 

@@ -20,7 +20,7 @@ VERSION := 0.1
 
 CC := gcc
 
-CPPFLAGS := -D_GNU_SOURCE -I. `pkg-config --cflags glib-2.0` `pkg-config --cflags sqlite3`
+CPPFLAGS := -D_GNU_SOURCE -I. `pkg-config --cflags glib-2.0 sqlite3`
 CFLAGS := -pipe -Wall
 LDFLAGS := `pkg-config --libs glib-2.0` -lz
 ifeq ($(PROFILE),yes)
@@ -39,7 +39,7 @@ else
 LDFLAGS += `pkg-config --libs sqlite3`
 endif
 
-objs-fastpkg := main.o pkgtools.o untgz.o sys.o sql.o pkgdb.o
+objs-fastpkg := main.o pkgtools.o untgz.o sys.o sql.o pkgdb.o pkgname.o
 
 # magic barrier
 
@@ -60,7 +60,7 @@ untgz: .o/untgz-test.o .o/untgz.o
 	$(CC) $^ $(LDFLAGS) -o $@
 sql: .o/sql-test.o .o/sql.o
 	$(CC) $^ $(LDFLAGS) -o $@
-pkgdb: .o/pkgdb-test.o .o/sql.o .o/pkgdb.o .o/sys.o
+pkgdb: .o/pkgdb-test.o .o/sql.o .o/pkgdb.o .o/sys.o .o/pkgname.o
 	$(CC) $^ $(LDFLAGS) -o $@
 
 .o/%.o: %.c

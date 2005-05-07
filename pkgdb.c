@@ -549,14 +549,10 @@ struct db_pkg* db_get_legacy_pkg(gchar* name)
 
   p = g_new0(struct db_pkg, 1);
   p->name = g_strdup(name);
-
-  if (regexec(&re_nameparts, p->name, 5, rm, 0))
-    goto err;
-
-  p->shortname = g_strndup(p->name+rm[1].rm_so, rm[1].rm_eo-rm[1].rm_so);
-  p->version = g_strndup(p->name+rm[2].rm_so, rm[2].rm_eo-rm[2].rm_so);
-  p->arch = g_strndup(p->name+rm[3].rm_so, rm[3].rm_eo-rm[3].rm_so);
-  p->build = g_strndup(p->name+rm[4].rm_so, rm[4].rm_eo-rm[4].rm_so);
+  p->shortname = parse_pkgname(p->name, 1);
+  p->version = parse_pkgname(p->name, 2);
+  p->arch = parse_pkgname(p->name, 3);
+  p->build = parse_pkgname(p->name, 4);
     
   /* for each line in the main package db entry file do: */
   f = fp;
