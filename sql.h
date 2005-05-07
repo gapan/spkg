@@ -16,7 +16,14 @@
 #include <sqlite3.h>
 #include <setjmp.h>
 
+/** Set how many queries can be opened at one time. */
 #define SQL_OPEN_QUERIES_LIMIT 16
+
+/* give these beasts more reasonable names */
+/** SQL database object. */
+typedef sqlite3 sql;
+/** SQL query object. */
+typedef sqlite3_stmt sql_query;
 
 /** Error handling type. Whenever error occurs, the \ref sql_errstr is set
  * to point to the error message. If function executes successfully. \ref
@@ -28,16 +35,16 @@ typedef enum {
   SQL_ERRJUMP,   /**< longjump to \ref sql_errjmp */
   SQL_ERRINFORM, /**< print error to stderr and set \ref sql_errstr */
   SQL_ERRIGNORE  /**< set \ref sql_errstr */
-} sql_error_action;
+} sql_erract;
 
-/* give these beasts more reasonable names */
-typedef sqlite3_stmt sql_query;
-typedef sqlite3 sql;
-
+/** Active database. */
 extern sql* sql_db;
+
+/** Error message if last call to the sql library resulted in error. */
 extern gchar* sql_errstr;
+
+/** This can be used to save known state for error recovery in the \ref SQL_ERRJUMP mode. */
 extern jmp_buf sql_errjmp;
-extern sql_error_action sql_erract;
 
 /** Open SQLite database.
  *
@@ -51,6 +58,19 @@ extern sql* sql_open(const gchar* file);
  * @return sqlite3 object on success, 0 on error.
  */
 extern gint sql_close();
+
+/** Set error action.
+ *
+ * @param act Error action.
+ * @return 1 on error, 0 on success (may not return)
+ */
+extern gint sql_push_erract(sql_erract act);
+
+/** Restore error action.
+ *
+ * @return 1 on error, 0 on success (may not return)
+ */
+extern gint sql_pop_erract();
 
 /** Execute SQL statement on the currently open database.
  *
@@ -111,7 +131,7 @@ extern gint sql_get_int(sql_query* q, guint c);
  * @param c Column position. Counts from 0.
  * @return pointer to the text string (may not return)
  */
-extern const guchar* sql_get_text(sql_query* q, guint c);
+extern gchar* sql_get_text(sql_query* q, guint c);
 
 /** Get integer from the specified column of the current row.
  *
@@ -120,6 +140,14 @@ extern const guchar* sql_get_text(sql_query* q, guint c);
  * @return integer (64bit) (may not return)
  */
 extern gint64 sql_get_int64(sql_query* q, guint c);
+
+/** Check if the specified column of the current row is NULL.
+ *
+ * @param q SQL query.
+ * @param c Column position. Counts from 0.
+ * @return 1 if NULL, 0 otherwise (may not return)
+ */
+extern gboolean sql_get_null(sql_query* q, guint c);
 
 /** Set positional argument to the specified value.
  *
@@ -161,7 +189,7 @@ extern gint sql_set_int64(sql_query* q, gint p, gint64 v);
  * @param name Table name.
  * @return 1 if table exists
  */
-extern gint sql_table_exist(const gchar* name);
+extern gint sql_table_exist(const gchar* name, ...);
 
 #endif
 

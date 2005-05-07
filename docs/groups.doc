@@ -41,6 +41,7 @@ optimized for the single connection at time oriented programming.
 @section assum Assumptions
 
 @li One connection at time
+@li Database is open when calling any func except \ref sql_open
 
 @section errs Error handling
 

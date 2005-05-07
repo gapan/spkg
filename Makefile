@@ -14,6 +14,7 @@ export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 DESTDIR :=
 PREFIX := /usr/local
 DEBUG := no
+PROFILE := no
 STATIC := no
 VERSION := 0.1
 
@@ -30,7 +31,7 @@ ifeq ($(DEBUG),yes)
 CFLAGS +=  -ggdb3 -O0
 CPPFLAGS += -DFPKG_DEBUG=1
 else
-CFLAGS += -ggdb1 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer
+CFLAGS += -ggdb1 -O2 -march=i486 -mcpu=i686 # -fomit-frame-pointer
 endif
 ifeq ($(STATIC),yes)
 LDFLAGS += `pkg-config --variable=libdir sqlite3`/libsqlite3.a
@@ -38,12 +39,12 @@ else
 LDFLAGS += `pkg-config --libs sqlite3`
 endif
 
-objs-fastpkg := main.o pkgtools.o untgz.o sysutils.o sql.o pkgdb.o
+objs-fastpkg := main.o pkgtools.o untgz.o sys.o sql.o pkgdb.o
 
 # magic barrier
 
 export MAKEFLAGS += --no-print-directory -r
-CLEANFILES := .o fastpkg untgz
+CLEANFILES := .o fastpkg untgz sql pkgdb
 
 objs-fastpkg := $(addprefix .o/, $(objs-fastpkg))
 objs-all := $(sort $(objs-fastpkg))
@@ -57,8 +58,9 @@ fastpkg: $(objs-fastpkg)
 
 untgz: .o/untgz-test.o .o/untgz.o
 	$(CC) $^ $(LDFLAGS) -o $@
-
 sql: .o/sql-test.o .o/sql.o
+	$(CC) $^ $(LDFLAGS) -o $@
+pkgdb: .o/pkgdb-test.o .o/sql.o .o/pkgdb.o .o/sys.o
 	$(CC) $^ $(LDFLAGS) -o $@
 
 .o/%.o: %.c

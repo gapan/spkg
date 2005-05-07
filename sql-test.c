@@ -17,7 +17,7 @@ int main(int ac, char* av[])
   char** name;
   sql_query* q;
 
-  sql_erract = SQL_ERRJUMP;
+  sql_push_erract(SQL_ERRJUMP);
   if (setjmp(sql_errjmp) == 1)
   { /* exception occured */
     fprintf(stderr, "%s\n", sql_errstr);

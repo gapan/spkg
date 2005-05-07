@@ -13,7 +13,7 @@
 #include "pkgtools.h"
 #include "untgz.h"
 #include "pkgdb.h"
-#include "sysutils.h"
+#include "sys.h"
 
 opts_t opts = {
   .install = 0,
@@ -102,7 +102,7 @@ gint installpkg(gchar* pkgfile)
   GSList* filelist = 0;
   
   /* check if file exist */
-  if (file_type(pkgfile) != FT_REG)
+  if (sys_file_type(pkgfile) != SYS_REG)
   {
     err(0,"package file does not exist: %s\n", pkgfile);
     return 1;
@@ -117,7 +117,7 @@ gint installpkg(gchar* pkgfile)
   }
 
   /* check if package is in the database */  
-  if ((pkg = db_find_pkg(name)))
+  if ((pkg = db_get_pkg(name)))
   {
     err(0,"package is already installed: %s\n", name);
     g_free(name);
@@ -145,7 +145,7 @@ gint installpkg(gchar* pkgfile)
     untgz_write_file(tgz,0);
     continue;
     filelist = g_slist_append(filelist, g_strdup(tgz->f_name));
-    if (tgz->f_type == FT_DIR)
+    if (tgz->f_type == SYS_DIR)
       printf("f: %-30s %6d %-10s %-10s\n", tgz->f_name, tgz->f_size, tgz->f_uname, tgz->f_gname);
     else
       printf("f: %-30s.install %6d %-10s %-10s\n", tgz->f_name, tgz->f_size, tgz->f_uname, tgz->f_gname);

@@ -6,25 +6,32 @@
 |*----------------------------------------------------------------------*|
 |*  No copy/usage restrictions are imposed on anybody using this work.  *|
 \*----------------------------------------------------------------------*/
-#ifndef __SYSUTILS_H
-#define __SYSUTILS_H
+#ifndef __SYS_H
+#define __SYS_H
 
 #include <glib.h>
 
-#ifndef __FILETYPE_ENUM
-#define __FILETYPE_ENUM
-typedef enum { FT_NONE=0, FT_DIR, FT_REG, FT_LNK, FT_BLK, FT_CHR, FT_FIFO, FT_SOCK } ftype_t;
-#endif
+typedef enum { 
+  SYS_ERR=0, /**< can't determine type */
+  SYS_NONE,  /**< file does not exist */
+  SYS_DIR,   /**< directory */
+  SYS_REG,   /**< regular file */
+  SYS_SYM,   /**< symbolic link */
+  SYS_BLK,   /**< block device */
+  SYS_CHR,   /**< character device */
+  SYS_FIFO,  /**< fifo */
+  SYS_SOCK   /**< socket */
+} sys_ftype;
 
+extern sys_ftype sys_file_type(gchar* path);
+
+extern gint sys_rm_rf(gchar* p);
+extern gint sys_mkdir_p(gchar* p);
+
+/*XXX: remove (move to cli) */
 extern gint verbose;
-
 extern void notice(const gchar* f,...);
 extern void err(gint e, const gchar* f,...);
 extern void warn(const gchar* f,...);
-
-extern gint file_type(gchar* path);
-
-extern gint rm_rf(gchar* p);
-extern gint mkdir_p(gchar* p);
 
 #endif

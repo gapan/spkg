@@ -64,6 +64,8 @@ static gint _sql_fini_all()
   return 0;
 }
 
+static sql_erract _sql_erract = SQL_ERREXIT;
+
 #define sql_on_error(fmt, args...) _sql_on_error(__func__, fmt, ##args)
 static void _sql_on_error(const gchar* func, const gchar* fmt, ...)
 {
@@ -81,7 +83,7 @@ static void _sql_on_error(const gchar* func, const gchar* fmt, ...)
   g_free(errhead);
   g_free(errtail);
 
-  switch (sql_erract)
+  switch (_sql_erract)
   {
     case SQL_ERRJUMP:
       longjmp(sql_errjmp,1);
@@ -98,13 +100,42 @@ static void _sql_on_error(const gchar* func, const gchar* fmt, ...)
   }
 }
 
+#define SQL_ERRACT_LIMIT 8
+static sql_erract _sql_erract_stack[SQL_ERRACT_LIMIT];
+static jmp_buf _sql_erract_jmpbuf_stack[SQL_ERRACT_LIMIT];
+static gint _sql_erract_stack_pos = 0;
+
 /* public 
  ************************************************************************/
 
 sql* sql_db=0;
 gchar* sql_errstr=0;
 jmp_buf sql_errjmp;
-sql_error_action sql_erract = SQL_ERREXIT;
+
+gint sql_push_erract(sql_erract act)
+{
+  if (_sql_erract_stack_pos < SQL_ERRACT_LIMIT)
+  {
+    _sql_erract_stack[_sql_erract_stack_pos] = _sql_erract;
+    _sql_erract_jmpbuf_stack[_sql_erract_stack_pos++][0] = sql_errjmp[0];
+    _sql_erract = act;
+    return 0;
+  }
+  sql_on_error("sql erract stack owerflow");
+  return 1;
+}
+
+gint sql_pop_erract()
+{
+  if (_sql_erract_stack_pos > 0)
+  {
+    _sql_erract = _sql_erract_stack[--_sql_erract_stack_pos];
+    sql_errjmp[0] = _sql_erract_jmpbuf_stack[_sql_erract_stack_pos][0];
+    return 0;
+  }
+  sql_on_error("sql erract stack underflow");
+  return 1;
+}
 
 sql* sql_open(const gchar* file)
 {
@@ -241,11 +272,11 @@ gint sql_get_int(sql_query* q, guint c)
   return 0;
 }
 
-const guchar* sql_get_text(sql_query* q, guint c)
+gchar* sql_get_text(sql_query* q, guint c)
 {
   _sql_reset_errstr();
   if (c < sqlite3_data_count(q))
-    return sqlite3_column_text(q, c);
+    return (gchar*)sqlite3_column_text(q, c);
   sql_on_error("column out of range (%d)", c);
   return 0;
 }
@@ -255,6 +286,15 @@ gint64 sql_get_int64(sql_query* q, guint c)
   _sql_reset_errstr();
   if (c < sqlite3_data_count(q))
     return sqlite3_column_int64(q, c);
+  sql_on_error("column out of range (%d)", c);
+  return 0;
+}
+
+gboolean sql_get_null(sql_query* q, guint c)
+{
+  _sql_reset_errstr();
+  if (c < sqlite3_data_count(q))
+    return sqlite3_column_type(q, c) == SQLITE_NULL ? 1 : 0;
   sql_on_error("column out of range (%d)", c);
   return 0;
 }
@@ -283,12 +323,11 @@ gint sql_set_null(sql_query* q, gint c)
   return sqlite3_bind_null(q, c);
 }
 
-gint sql_table_exist(const gchar* name)
+gint sql_table_exist(const gchar* name, ...)
 {
   sql_query* q;
   gint ret = 0;
 
-  _sql_reset_errstr();
   q = sql_prep("SELECT name FROM sqlite_master WHERE type == 'table' AND name == '%q';", name);
   if (sql_step(q))
     ret = 1;

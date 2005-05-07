@@ -72,11 +72,10 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 INPUT                  = . \
                          docs
-FILE_PATTERNS          = *.c \
-                         *.h \
+FILE_PATTERNS          = *.h \
                          *.doc
 RECURSIVE              = NO
-EXCLUDE                = 
+EXCLUDE                = pkgtools.h
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = 
 EXAMPLE_PATH           = 

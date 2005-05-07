@@ -1,12 +1,8 @@
 TODO
 ----
+- sql: implement context stack
+- pkgdb: port to the context stack
 - implement rm_rf and mkdir_p in C
-- i., u., r.
-
-Review
-------
-- pkgdb, sysutils
-- sql: check values returned on error by some functions
 
 Status
 ------

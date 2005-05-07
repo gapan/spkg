@@ -9,8 +9,52 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <errno.h>
 #include <unistd.h>
-#include "sysutils.h"
+#include "sys.h"
+
+sys_ftype sys_file_type(gchar* path)
+{
+  struct stat s;
+  if (lstat(path, &s) == 0)
+  {
+    if (S_ISREG(s.st_mode)) return SYS_REG;
+    if (S_ISDIR(s.st_mode)) return SYS_DIR;
+    if (S_ISLNK(s.st_mode)) return SYS_SYM;
+    if (S_ISBLK(s.st_mode)) return SYS_BLK;
+    if (S_ISCHR(s.st_mode)) return SYS_CHR;
+    if (S_ISFIFO(s.st_mode)) return SYS_FIFO;
+    if (S_ISSOCK(s.st_mode)) return SYS_SOCK;
+  }
+  if (errno == ENOENT || errno == ENOTDIR)
+    return SYS_NONE;
+  return SYS_ERR;
+}
+
+/* implement them in C */
+gint sys_rm_rf(gchar* p)
+{
+  gint rval;
+  gchar* s = g_strdup_printf("/bin/rm -rf %s", p);
+  rval = system(s);
+  g_free(s);
+  if (rval == 0)
+    return 0;
+  return 1;
+}
+
+gint sys_mkdir_p(gchar* p)
+{
+  gint rval;
+  gchar* s = g_strdup_printf("/bin/mkdir -p %s", p);
+  rval = system(s);
+  g_free(s);
+  if (rval == 0)
+    return 0;
+  return 1;
+}
+
+
 
 gint verbose = 2;
 
@@ -49,54 +93,4 @@ void warn(const gchar* f,...)
   va_end(ap);
   fflush(stdout);
   exit(1);
-}
-
-/* retval:
- *  0 = can't be determined
- *  1 = regular file
- *  2 = directory
- *  3 = symlink
- *  4 = block device
- *  5 = character device
- *  6 = fifo
- *  7 = socket
- */
- 
-gint file_type(gchar* path)
-{
-  struct stat s;
-  if (stat(path, &s) == 0)
-  {
-    if (S_ISREG(s.st_mode)) return FT_REG;
-    if (S_ISDIR(s.st_mode)) return FT_DIR;
-    if (S_ISLNK(s.st_mode)) return FT_LNK;
-    if (S_ISBLK(s.st_mode)) return FT_BLK;
-    if (S_ISCHR(s.st_mode)) return FT_CHR;
-    if (S_ISFIFO(s.st_mode)) return FT_FIFO;
-    if (S_ISSOCK(s.st_mode)) return FT_SOCK;
-  }
-  return FT_NONE;
-}
-
-/* implement them in C */
-gint rm_rf(gchar* p)
-{
-  gint rval;
-  gchar* s = g_strdup_printf("/bin/rm -rf %s", p);
-  rval = system(s);
-  g_free(s);
-  if (rval == 0)
-    return 0;
-  return 1;
-}
-
-gint mkdir_p(gchar* p)
-{
-  gint rval;
-  gchar* s = g_strdup_printf("/bin/mkdir -p %s", p);
-  rval = system(s);
-  g_free(s);
-  if (rval == 0)
-    return 0;
-  return 1;
 }
