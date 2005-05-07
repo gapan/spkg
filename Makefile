@@ -15,7 +15,7 @@ DESTDIR :=
 PREFIX := /usr/local
 DEBUG := no
 PROFILE := no
-STATIC := no
+STATIC := yes
 VERSION := 0.1
 
 CC := gcc
@@ -51,7 +51,7 @@ objs-all := $(sort $(objs-fastpkg))
 dep-files := $(addprefix .dep/,$(addsuffix .d,$(basename $(notdir $(objs-all)))))
 
 # default
-all: fastpkg
+all: untgz sql pkgdb fastpkg
 
 fastpkg: $(objs-fastpkg)
 	$(CC) $^ $(LDFLAGS) -o $@

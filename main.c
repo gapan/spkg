@@ -12,6 +12,76 @@
 #include "pkgtools.h"
 #include "pkgdb.h"
 
+/*XXX: remove (move to cli) */
+extern gint verbose;
+extern void notice(const gchar* f,...);
+extern void err(gint e, const gchar* f,...);
+extern void warn(const gchar* f,...);
+
+gint verbose = 2;
+
+void notice(const gchar* f,...)
+{
+  va_list ap;
+  if (verbose < 2)
+    return;
+  printf("notice: ");
+  va_start(ap, f);
+  vprintf(f, ap);
+  va_end(ap);
+  fflush(stdout);
+}
+
+void err(gint e, const gchar* f,...)
+{
+  va_list ap;
+  printf("error: ");
+  va_start(ap, f);
+  vprintf(f, ap);
+  va_end(ap);
+  fflush(stdout);
+  if (e)
+    exit(e);
+}
+
+void warn(const gchar* f,...)
+{
+  va_list ap;
+  if (verbose < 1)
+    return;
+  printf("warning: ");
+  va_start(ap, f);
+  vprintf(f, ap);
+  va_end(ap);
+  fflush(stdout);
+  exit(1);
+}
+
+typedef struct {
+  /* command line opts */
+  gboolean install;
+  gboolean upgrade;
+  gboolean remove;
+  gboolean verbose;
+  gboolean check;
+  gboolean force;
+  gchar*   root;
+  gchar**  files;
+
+} opts_t;
+extern opts_t opts;
+
+opts_t opts = {
+  .install = 0,
+  .upgrade = 0,
+  .remove = 0,
+  .root = 0,
+  .verbose = 0,
+  .check = 0,
+  .force = 0,
+  .files = 0,
+};
+
 static GOptionEntry entries[] = 
 {
   { "install", 'i', 0, G_OPTION_ARG_NONE,   &opts.install, "Install packages", NULL },

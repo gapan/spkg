@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <unistd.h>
+
 #include "sys.h"
 
 sys_ftype sys_file_type(gchar* path)
@@ -31,11 +32,11 @@ sys_ftype sys_file_type(gchar* path)
   return SYS_ERR;
 }
 
-/* implement them in C */
-gint sys_rm_rf(gchar* p)
+/*XXX: implement them in C */
+gint sys_rm_rf(gchar* path)
 {
   gint rval;
-  gchar* s = g_strdup_printf("/bin/rm -rf %s", p);
+  gchar* s = g_strdup_printf("/bin/rm -rf %s", path);
   rval = system(s);
   g_free(s);
   if (rval == 0)
@@ -43,54 +44,13 @@ gint sys_rm_rf(gchar* p)
   return 1;
 }
 
-gint sys_mkdir_p(gchar* p)
+gint sys_mkdir_p(gchar* path)
 {
   gint rval;
-  gchar* s = g_strdup_printf("/bin/mkdir -p %s", p);
+  gchar* s = g_strdup_printf("/bin/mkdir -path %s", path);
   rval = system(s);
   g_free(s);
   if (rval == 0)
     return 0;
   return 1;
-}
-
-
-
-gint verbose = 2;
-
-void notice(const gchar* f,...)
-{
-  va_list ap;
-  if (verbose < 2)
-    return;
-  printf("notice: ");
-  va_start(ap, f);
-  vprintf(f, ap);
-  va_end(ap);
-  fflush(stdout);
-}
-
-void err(gint e, const gchar* f,...)
-{
-  va_list ap;
-  printf("error: ");
-  va_start(ap, f);
-  vprintf(f, ap);
-  va_end(ap);
-  fflush(stdout);
-  if (e)
-    exit(e);
-}
-
-void warn(const gchar* f,...)
-{
-  va_list ap;
-  if (verbose < 1)
-    return;
-  printf("warning: ");
-  va_start(ap, f);
-  vprintf(f, ap);
-  va_end(ap);
-  fflush(stdout);
-  exit(1);
 }

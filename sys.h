@@ -6,11 +6,15 @@
 |*----------------------------------------------------------------------*|
 |*  No copy/usage restrictions are imposed on anybody using this work.  *|
 \*----------------------------------------------------------------------*/
+/** @addtogroup other_api */
+/*! @{ */
+
 #ifndef __SYS_H
 #define __SYS_H
 
 #include <glib.h>
 
+/** File type. */
 typedef enum { 
   SYS_ERR=0, /**< can't determine type */
   SYS_NONE,  /**< file does not exist */
@@ -23,15 +27,27 @@ typedef enum {
   SYS_SOCK   /**< socket */
 } sys_ftype;
 
+/** Get type of the file.
+ *
+ * @param path File path.
+ * @return \ref sys_ftype
+ */
 extern sys_ftype sys_file_type(gchar* path);
 
-extern gint sys_rm_rf(gchar* p);
-extern gint sys_mkdir_p(gchar* p);
+/** Implementation of the rm -rf.
+ *
+ * @param path File path.
+ * @return 0 on success, 1 on error
+ */
+extern gint sys_rm_rf(gchar* path);
 
-/*XXX: remove (move to cli) */
-extern gint verbose;
-extern void notice(const gchar* f,...);
-extern void err(gint e, const gchar* f,...);
-extern void warn(const gchar* f,...);
+/** Implementation of the mkdir -p.
+ *
+ * @param path Directory path.
+ * @return 0 on success, 1 on error
+ */
+extern gint sys_mkdir_p(gchar* path);
 
 #endif
+
+/*! @} */

@@ -75,7 +75,7 @@ INPUT                  = . \
 FILE_PATTERNS          = *.h \
                          *.doc
 RECURSIVE              = NO
-EXCLUDE                = pkgtools.h
+EXCLUDE                =
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = 
 EXAMPLE_PATH           = 
@@ -97,7 +97,7 @@ VERBATIM_HEADERS       = YES
 #---------------------------------------------------------------------------
 # configuration options related to the alphabetical class index
 #---------------------------------------------------------------------------
-ALPHABETICAL_INDEX     = YES
+ALPHABETICAL_INDEX     = NO
 COLS_IN_ALPHA_INDEX    = 3
 IGNORE_PREFIX          = 
 #---------------------------------------------------------------------------

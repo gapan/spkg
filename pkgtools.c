@@ -9,29 +9,14 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include "pkgtools.h"
+
+#include "pkgname.h"
 #include "untgz.h"
 #include "pkgdb.h"
 #include "sys.h"
 
-opts_t opts = {
-  .install = 0,
-  .upgrade = 0,
-  .remove = 0,
-  .root = 0,
-  .verbose = 0,
-  .check = 0,
-  .force = 0,
-  .files = 0,
-};
+#include "pkgtools.h"
 
-/** @brief Install package from the pkgfile.
- * 
- * Install package while creating pkgdb entry and then update database.
- *
- * @param  pkgfile Package file.
- * @return 
- */
 gint installpkg(gchar* pkgfile)
 {
   gchar *name, *shortname;
@@ -55,7 +40,7 @@ gint installpkg(gchar* pkgfile)
   }
 
   /* check if package is in the database */  
-  if ((pkg = db_get_pkg(name)))
+  if ((pkg = db_get_pkg(name,0)))
   {
     err(0,"package is already installed: %s\n", name);
     g_free(name);
