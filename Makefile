@@ -79,6 +79,7 @@ install-strip: install
 install: all docs
 	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/bin
 	install -o root -g bin -m 0755 fastpkg $(DESTDIR)$(PREFIX)/bin/
+	strip $(DESTDIR)$(PREFIX)/bin/fastpkg
 	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/man/man1/
 	install -o root -g root -m 0644 docs/fastpkg.1 $(DESTDIR)$(PREFIX)/man/man1/
 	gzip -9 $(DESTDIR)$(PREFIX)/man/man1/fastpkg.1

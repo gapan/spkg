@@ -16,7 +16,7 @@ static void add_pkg(gchar* name)
   struct db_pkg* pkg;
   printf("loading legacy pkg %s...\n", name);
   fflush(stdout);
-  pkg = db_get_legacy_pkg(name);
+  pkg = db_legacy_get_pkg(name);
   if (pkg == 0)
   {
     fprintf(stderr, "%s\n", db_error());
@@ -97,8 +97,8 @@ int main(int ac, char* av[])
     exit(1);
   }
 #else
-//  get_pkg("byacc-1.9-i386-1");
-  get_pkg("tetex-2.0.2-i386-1");
+  get_pkg("byacc-1.9-i386-1");
+//  get_pkg("tetex-2.0.2-i386-1");
 //  add_pkg("byacc-1.9-i386-1");
 //  add_pkg("tetex-2.0.2-i386-1");
 //  del_pkg("tetex-2.0.2-i386-1");

@@ -89,14 +89,14 @@ extern struct db_pkg* db_get_pkg(gchar* name, gboolean files);
  * @param pkg \ref db_pkg object
  * @return 0 on success, 1 on error
  */
-extern gint db_add_legacy_pkg(struct db_pkg* pkg);
+extern gint db_legacy_add_pkg(struct db_pkg* pkg);
 
 /** Get package from legacy database.
  *
  * @param name Package name (something like: blah-1.0-i486-1)
  * @return 0 if not found, \ref db_pkg object on success
  */
-extern struct db_pkg* db_get_legacy_pkg(gchar* name);
+extern struct db_pkg* db_legacy_get_pkg(gchar* name);
 
 /** Free \ref db_pkg object.
  *

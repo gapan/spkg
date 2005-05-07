@@ -16,6 +16,7 @@
 
 #include "sql.h"
 #include "sys.h"
+#include "pkgname.h"
 
 #include "pkgdb.h"
 
@@ -414,9 +415,10 @@ gint db_rem_pkg(gchar* name)
 
 struct db_pkg* db_get_pkg(gchar* name, gboolean files)
 {
-  sql_query *q, *q1;
+  sql_query *q, *q1=0;
   struct db_pkg* p=0;
   gint pid;
+  gint old_hash = MAXHASH;
 
   _db_reset_error();
   if (name == 0)
@@ -469,7 +471,7 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   if (files == 0)
     return p;
   
-  q = sql_prep("SELECT hash,fid FROM pkg_%05d;", pid);
+  q = sql_prep("SELECT hash,fid FROM pkg_%05d ORDER BY hash;", pid);
   while (sql_step(q))
   { /* for each file that belongs to the package */
     gint hash, fid;
@@ -477,8 +479,14 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
     fid = sql_get_int(q, 1);
 
     /* get file from table */
-    /*XXX: group by hash for big packages */
-    q1 = sql_prep("SELECT path,link,rc FROM f_%03x WHERE id == %d;", hash, fid);
+    if (hash != old_hash)
+    {
+      if (q1)
+        sql_fini(q1);
+      q1 = sql_prep("SELECT path,link,rc FROM f_%03x WHERE id == ?;", hash);
+      old_hash = hash;
+    }
+    sql_set_int(q1, 1, fid);
     if (sql_step(q1))
     {
       struct db_file* f;
@@ -499,8 +507,9 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
       _db_set_error("can't retrieve package from the database (inconsistent database)", name);
       return 0;
     }
-    sql_fini(q1);
+    sql_rest(q1);
   }
+  sql_fini(q1);
   sql_fini(q);
 
   sql_exec("ROLLBACK TRANSACTION;");
@@ -509,7 +518,7 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   return p;
 }
 
-struct db_pkg* db_get_legacy_pkg(gchar* name)
+struct db_pkg* db_legacy_get_pkg(gchar* name)
 {
   gchar *tmpstr, *linktgt;
   FILE *fp, *fs, *f;
@@ -674,7 +683,7 @@ struct db_pkg* db_get_legacy_pkg(gchar* name)
 }
 
 /*XXX: todo */
-gint db_add_legacy_pkg(struct db_pkg* pkg)
+gint db_legacy_add_pkg(struct db_pkg* pkg)
 {
   GSList* l;
   FILE* pf;
@@ -791,7 +800,7 @@ gint db_sync_legacydb_to_fastpkgdb()
     printf("syncing %s\n", de->d_name);
     fflush(stdout);
 
-    p = db_get_legacy_pkg(de->d_name);
+    p = db_legacy_get_pkg(de->d_name);
     if (p == 0)
     {
       _db_set_error("can't synchronize database (invalid legacy pkg - %s)", de->d_name);
