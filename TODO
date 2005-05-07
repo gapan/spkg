@@ -1,9 +1,8 @@
 TODO
 ----
-- sql: implement context stack
-- pkgdb: port to the context stack
 - implement rm_rf and mkdir_p in C
+- pkgdb: optimizations and implement syncs
 
 Status
 ------
-- untgz: stable
+- untgz, sql: stable
