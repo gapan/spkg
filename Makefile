@@ -76,13 +76,16 @@ profile:
 install-strip: install
 	strip $(DESTDIR)$(PREFIX)/bin/fastpkg
 
-install: all
-	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/bin $(DESTDIR)$(PREFIX)/doc/fastpkg-$(VERSION)
+install: all docs
+	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/bin
 	install -o root -g bin -m 0755 fastpkg $(DESTDIR)$(PREFIX)/bin/
 	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/man/man1/
-	install -o root -g root -m 0644 fastpkg.1 $(DESTDIR)$(PREFIX)/man/man1/
+	install -o root -g root -m 0644 docs/fastpkg.1 $(DESTDIR)$(PREFIX)/man/man1/
 	gzip -9 $(DESTDIR)$(PREFIX)/man/man1/fastpkg.1
+	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/doc/fastpkg-$(VERSION)
+	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/doc/fastpkg-$(VERSION)/html
 	install -o root -g root -m 0644 README INSTALL HACKING NEWS TODO $(DESTDIR)$(PREFIX)/doc/fastpkg-$(VERSION)
+	install -o root -g root -m 0644 docs/html/* $(DESTDIR)$(PREFIX)/doc/fastpkg-$(VERSION)/html
 
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/fastpkg
