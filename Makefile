@@ -44,7 +44,7 @@ objs-fastpkg := main.o pkgtools.o untgz.o sys.o sql.o pkgdb.o pkgname.o
 # magic barrier
 
 export MAKEFLAGS += --no-print-directory -r
-CLEANFILES := .o fastpkg untgz sql pkgdb
+CLEANFILES := .o fastpkg untgz sql pkgdb pkgtools p.patch
 
 objs-fastpkg := $(addprefix .o/, $(objs-fastpkg))
 objs-all := $(sort $(objs-fastpkg))
@@ -61,6 +61,8 @@ untgz: .o/untgz-test.o .o/untgz.o
 sql: .o/sql-test.o .o/sql.o
 	$(CC) $^ $(LDFLAGS) -o $@
 pkgdb: .o/pkgdb-test.o .o/sql.o .o/pkgdb.o .o/sys.o .o/pkgname.o
+	$(CC) $^ $(LDFLAGS) -o $@
+pkgtools: .o/pkgtools-test.o .o/pkgtools.o .o/sql.o .o/pkgdb.o .o/sys.o .o/pkgname.o .o/untgz.o
 	$(CC) $^ $(LDFLAGS) -o $@
 
 .o/%.o: %.c
@@ -98,7 +100,7 @@ slackpkg:
 	rm -rf pkg
 	make install-strip PREFIX=/usr STATIC=yes DEBUG=no DESTDIR=./pkg
 	install -d -o root -g root -m 0755 ./pkg/install
-	install -o root -g root -m 0644 slack-desc ./pkg/install/
+	install -o root -g root -m 0644 docs/slack-desc ./pkg/install/
 	( cd pkg ; makepkg -l y -c n ../fastpkg-$(VERSION)-i486-1.tgz )
 	rm -rf pkg
 	make mrproper

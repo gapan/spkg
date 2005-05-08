@@ -17,23 +17,29 @@
 /** @brief Install package.
  * 
  * @param  pkgfile Package file.
- * @return 
+ * @param dryrun Don't touch filesystem or database.
+ * @param verbose Be verbose.
+ * @return 0 on success, 1 on error
  */
-extern gint installpkg(gchar* pkgfile);
+extern gint installpkg(gchar* pkgfile, gboolean dryrun, gboolean verbose);
 
 /** @brief Upgrade package.
  * 
  * @param  pkgfile Package file.
- * @return 
+ * @param dryrun Don't touch filesystem or database.
+ * @param verbose Be verbose.
+ * @return 0 on success, 1 on error
  */
-extern gint upgradepkg(gchar* pkgfile);
+extern gint upgradepkg(gchar* pkgfile, gboolean dryrun, gboolean verbose);
 
 /** @brief Remove package.
  * 
  * @param  name Package name.
- * @return 
+ * @param dryrun Don't touch filesystem or database.
+ * @param verbose Be verbose.
+ * @return 0 on success, 1 on error
  */
-extern gint removepkg(gchar* name);
+extern gint removepkg(gchar* name, gboolean dryrun, gboolean verbose);
 
 #endif
 

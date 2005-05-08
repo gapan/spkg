@@ -100,13 +100,13 @@ gint db_open(gchar* root)
   {
     gchar* tmpdir = g_strdup_printf("%s/%s", _db_topdir, *d);
     /* if it is not a directory, clean it and create it */
-    if (sys_file_type(tmpdir) != SYS_DIR)
+    if (sys_file_type(tmpdir,1) != SYS_DIR)
     {
       sys_rm_rf(tmpdir);
       sys_mkdir_p(tmpdir);
       chmod(tmpdir, 0755);
       /* if it is still not a directory, return with error */
-      if (sys_file_type(tmpdir) != SYS_DIR)
+      if (sys_file_type(tmpdir,1) != SYS_DIR)
       {
         _db_set_error("can't open package database (%s should be an accessible directory)", tmpdir);
         g_free(tmpdir);
@@ -119,7 +119,7 @@ gint db_open(gchar* root)
   /* check fastpkg db file */
   _db_dbroot = g_strdup_printf("%s/%s", _db_topdir, "fastpkg");
   _db_dbfile = g_strdup_printf("%s/%s", _db_dbroot, "fastpkg.db");
-  if (sys_file_type(_db_dbfile) != SYS_REG && sys_file_type(_db_dbfile) != SYS_NONE)
+  if (sys_file_type(_db_dbfile,0) != SYS_REG && sys_file_type(_db_dbfile,0) != SYS_NONE)
   {
     _db_set_error("can't open package database (%s is not accessible)", _db_dbfile);
     goto err1;
@@ -324,6 +324,7 @@ gint db_add_pkg(struct db_pkg* pkg)
   return 0;
 }
 
+/*XXX: optimize (hash grouping) */
 gint db_rem_pkg(gchar* name)
 {
   sql_query *q, *q1;
@@ -758,8 +759,8 @@ gint db_sync_fastpkgdb_to_legacydb()
   { /* for each package */
     struct db_pkg* pkg;
     gchar* name;
+
     name = sql_get_text(q,1);
-    
     pkg = db_get_pkg(name,1);
     
     /*XXX: save legacydb package entry */

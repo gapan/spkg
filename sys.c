@@ -14,10 +14,15 @@
 
 #include "sys.h"
 
-sys_ftype sys_file_type(gchar* path)
+sys_ftype sys_file_type(gchar* path, gboolean deref)
 {
   struct stat s;
-  if (lstat(path, &s) == 0)
+  gint rs;
+  if (deref)
+    rs = stat(path, &s);
+  else
+    rs = lstat(path, &s);
+  if (rs == 0)
   {
     if (S_ISREG(s.st_mode)) return SYS_REG;
     if (S_ISDIR(s.st_mode)) return SYS_DIR;

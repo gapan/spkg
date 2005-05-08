@@ -18,6 +18,10 @@
 #define PKGDB_DIR "var/log"
 /*! @endif */
 
+#define DB_OK     0 /**< ok */
+#define DB_ERROR  1 /**< error */
+#define DB_NOPKG  2 /**< package not found */
+
 /** File information structure. */
 struct db_file {
   gchar* path; /**< full path to the file */

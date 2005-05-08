@@ -17,7 +17,7 @@
 
 #include "pkgtools.h"
 
-gint installpkg(gchar* pkgfile)
+gint installpkg(gchar* pkgfile, gboolean dryrun, gboolean verbose)
 {
   gchar *name, *shortname;
   struct untgz_state* tgz;
@@ -25,7 +25,7 @@ gint installpkg(gchar* pkgfile)
   GSList* filelist = 0;
   
   /* check if file exist */
-  if (sys_file_type(pkgfile) != SYS_REG)
+  if (sys_file_type(pkgfile,1) != SYS_REG)
   {
     err(0,"package file does not exist: %s\n", pkgfile);
     return 1;
@@ -87,7 +87,7 @@ gint installpkg(gchar* pkgfile)
   return 0;
 }
 
-gint upgradepkg(gchar* pkgfile)
+gint upgradepkg(gchar* pkgfile, gboolean dryrun, gboolean verbose)
 {
   /* check package db */
   /* check target files */
@@ -95,7 +95,7 @@ gint upgradepkg(gchar* pkgfile)
   return 0;
 }
 
-gint removepkg(gchar* pkgfile)
+gint removepkg(gchar* pkgfile, gboolean dryrun, gboolean verbose)
 {
   /* check package db */
   /* check target files */

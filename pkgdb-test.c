@@ -10,8 +10,9 @@
 #include <stdio.h>
 
 #include "pkgdb.h"
+#define USED __attribute__((used))
 
-static void add_pkg(gchar* name)
+static USED void add_pkg(gchar* name)
 {
   struct db_pkg* pkg;
   printf("loading legacy pkg %s...\n", name);
@@ -31,7 +32,7 @@ static void add_pkg(gchar* name)
   }
 }
 
-static void get_pkg(gchar* name)
+static USED void get_pkg(gchar* name)
 {
   struct db_pkg* pkg;
   printf("getting pkg %s...\n", name);
@@ -68,7 +69,7 @@ static void get_pkg(gchar* name)
   }
 }
 
-static void del_pkg(gchar* name)
+static USED void del_pkg(gchar* name)
 {
   printf("removing pkg %s...\n", name);
   fflush(stdout);
@@ -97,11 +98,11 @@ int main(int ac, char* av[])
     exit(1);
   }
 #else
-  get_pkg("byacc-1.9-i386-1");
+//  get_pkg("byacc-1.9-i386-1");
 //  get_pkg("tetex-2.0.2-i386-1");
 //  add_pkg("byacc-1.9-i386-1");
 //  add_pkg("tetex-2.0.2-i386-1");
-//  del_pkg("tetex-2.0.2-i386-1");
+  del_pkg("tetex-2.0.2-i386-1");
 #endif
 
   return 0;

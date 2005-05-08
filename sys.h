@@ -30,9 +30,10 @@ typedef enum {
 /** Get type of the file.
  *
  * @param path File path.
+ * @param deref Dereference symlinks.
  * @return \ref sys_ftype
  */
-extern sys_ftype sys_file_type(gchar* path);
+extern sys_ftype sys_file_type(gchar* path, gboolean deref);
 
 /** Implementation of the rm -rf.
  *
