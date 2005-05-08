@@ -6,10 +6,8 @@
 |*----------------------------------------------------------------------*|
 |*  No copy/usage restrictions are imposed on anybody using this work.  *|
 \*----------------------------------------------------------------------*/
-#include <errno.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <unistd.h>
+#include <errno.h>
 #include <utime.h>
 #include <fcntl.h>
 

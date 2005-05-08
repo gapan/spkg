@@ -1,3 +1,11 @@
+/*----------------------------------------------------------------------*\
+|* fastpkg                                                              *|
+|*----------------------------------------------------------------------*|
+|* Slackware Linux Fast Package Management Tools                        *|
+|*                               designed by Ondøej (megi) Jirman, 2005 *|
+|*----------------------------------------------------------------------*|
+|*  No copy/usage restrictions are imposed on anybody using this work.  *|
+\*----------------------------------------------------------------------*/
 #include <string.h>
 
 #include "pkgname.h"

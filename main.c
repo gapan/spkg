@@ -8,9 +8,9 @@
 \*----------------------------------------------------------------------*/
 #include <stdlib.h>
 #include <stdio.h>
-#include "untgz.h"
+#include <unistd.h>
+
 #include "pkgtools.h"
-#include "pkgdb.h"
 
 /*XXX: remove (move to cli) */
 extern gint verbose;
@@ -115,19 +115,15 @@ int main(int ac, char* av[])
   if (f == 0)
     return 0;
 
-  if (db_open(""))
-    return 1;
-
 //  db_sync_legacydb_to_fastpkgdb();
 //  db_sync_fastpkgdb_to_legacydb();
   
   while (*f != 0)
   {
-    installpkg(*f);
+    installpkg(*f,1,1);
 //    printf("%s\n", *f);
     f++;
   }
 
-  db_close();
   return 0;
 }
