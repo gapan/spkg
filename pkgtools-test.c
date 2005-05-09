@@ -14,6 +14,6 @@
 
 int main(int ac, char* av[])
 {
-  installpkg("test-1.0-i486-1.tgz", 1, 1);
+  pkg_install("test-1.0-i486-1.tgz", 1, 1);
   return 0;
 }

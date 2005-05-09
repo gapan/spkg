@@ -17,17 +17,52 @@
 
 #include "pkgtools.h"
 
-gint installpkg(gchar* pkgfile, gboolean dryrun, gboolean verbose)
+/* private 
+ ************************************************************************/
+
+static gchar* _pkg_errstr = 0;
+
+static __inline__ void _pkg_reset_error()
+{
+  if (G_UNLIKELY(_pkg_errstr != 0))
+  {
+    g_free(_pkg_errstr);
+    _pkg_errstr = 0;
+  }
+}
+
+static void _pkg_set_error(const gchar* fmt, ...)
+{
+  va_list ap;
+
+  _pkg_reset_error();
+  va_start(ap, fmt);
+  _pkg_errstr = g_strdup_vprintf(fmt, ap);
+  va_end(ap);
+  _pkg_errstr = g_strdup_printf("error[pkg]: %s", _pkg_errstr);
+}
+
+/* public 
+ ************************************************************************/
+
+gchar* pkg_error()
+{
+  return _pkg_errstr;
+}
+
+gint pkg_install(gchar* pkgfile, gboolean dryrun, gboolean verbose)
 {
   gchar *name, *shortname;
   struct untgz_state* tgz;
   struct db_pkg* pkg;
   GSList* filelist = 0;
-  
+
+  _pkg_reset_error();
+
   /* check if file exist */
   if (sys_file_type(pkgfile,1) != SYS_REG)
   {
-    err(0,"package file does not exist: %s\n", pkgfile);
+    _pkg_set_error("package file does not exist: %s\n", pkgfile);
     return 1;
   }
 
@@ -35,14 +70,14 @@ gint installpkg(gchar* pkgfile, gboolean dryrun, gboolean verbose)
   if ((name = parse_pkgname(pkgfile,5)) == 0 
       || (shortname = parse_pkgname(pkgfile,1)) == 0)
   {
-    err(0,"package name is invalid: %s\n", pkgfile);
+    _pkg_set_error("package name is invalid: %s\n", pkgfile);
     return 1;
   }
 
   /* check if package is in the database */  
   if ((pkg = db_get_pkg(name,0)))
   {
-    err(0,"package is already installed: %s\n", name);
+    _pkg_set_error("package is already installed: %s\n", name);
     g_free(name);
     g_free(shortname);
     return 1;
@@ -52,7 +87,7 @@ gint installpkg(gchar* pkgfile, gboolean dryrun, gboolean verbose)
   tgz = untgz_open(pkgfile);
   if (tgz == 0)
   {
-    err(0,"can't open package: %s\n", pkgfile);
+    _pkg_set_error("can't open package: %s\n", pkgfile);
     g_free(name);
     g_free(shortname);
     return 1;
@@ -87,16 +122,18 @@ gint installpkg(gchar* pkgfile, gboolean dryrun, gboolean verbose)
   return 0;
 }
 
-gint upgradepkg(gchar* pkgfile, gboolean dryrun, gboolean verbose)
+gint pkg_upgrade(gchar* pkgfile, gboolean dryrun, gboolean verbose)
 {
+  _pkg_reset_error();
   /* check package db */
   /* check target files */
   /*  */
   return 0;
 }
 
-gint removepkg(gchar* pkgfile, gboolean dryrun, gboolean verbose)
+gint pkg_remove(gchar* pkgfile, gboolean dryrun, gboolean verbose)
 {
+  _pkg_reset_error();
   /* check package db */
   /* check target files */
   /*  */

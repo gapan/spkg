@@ -14,6 +14,13 @@
 
 #include <glib.h>
 
+/** Returns description of the error if one occured in the last pkg
+ * library call.
+ *
+ * @return Error string on error, 0 otherwise
+ */
+extern gchar* pkg_error();
+
 /** @brief Install package.
  * 
  * @param  pkgfile Package file.
@@ -21,7 +28,7 @@
  * @param verbose Be verbose.
  * @return 0 on success, 1 on error
  */
-extern gint installpkg(gchar* pkgfile, gboolean dryrun, gboolean verbose);
+extern gint pkg_install(gchar* pkgfile, gboolean dryrun, gboolean verbose);
 
 /** @brief Upgrade package.
  * 
@@ -30,7 +37,7 @@ extern gint installpkg(gchar* pkgfile, gboolean dryrun, gboolean verbose);
  * @param verbose Be verbose.
  * @return 0 on success, 1 on error
  */
-extern gint upgradepkg(gchar* pkgfile, gboolean dryrun, gboolean verbose);
+extern gint pkg_upgrade(gchar* pkgfile, gboolean dryrun, gboolean verbose);
 
 /** @brief Remove package.
  * 
@@ -39,7 +46,7 @@ extern gint upgradepkg(gchar* pkgfile, gboolean dryrun, gboolean verbose);
  * @param verbose Be verbose.
  * @return 0 on success, 1 on error
  */
-extern gint removepkg(gchar* name, gboolean dryrun, gboolean verbose);
+extern gint pkg_remove(gchar* name, gboolean dryrun, gboolean verbose);
 
 #endif
 

@@ -685,6 +685,7 @@ struct db_pkg* db_legacy_get_pkg(gchar* name)
 /*XXX: todo */
 gint db_legacy_add_pkg(struct db_pkg* pkg)
 {
+#if 0
   GSList* l;
   FILE* pf;
   FILE* sf;
@@ -720,6 +721,7 @@ gint db_legacy_add_pkg(struct db_pkg* pkg)
       fprintf(pf, "%s\n", f->path);
   }
 
+#endif
   return 0;
 }
 
