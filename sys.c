@@ -52,7 +52,7 @@ gint sys_rm_rf(gchar* path)
 gint sys_mkdir_p(gchar* path)
 {
   gint rval;
-  gchar* s = g_strdup_printf("/bin/mkdir -path %s", path);
+  gchar* s = g_strdup_printf("/bin/mkdir -p %s", path);
   rval = system(s);
   g_free(s);
   if (rval == 0)

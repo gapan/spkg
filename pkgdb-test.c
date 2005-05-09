@@ -91,7 +91,7 @@ int main(int ac, char* av[])
   }
   atexit(db_close);
   
-#if 0
+#if 1
   if (db_sync_legacydb_to_fastpkgdb())
   {
     fprintf(stderr, "%s\n", db_error());

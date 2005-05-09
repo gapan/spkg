@@ -222,7 +222,7 @@ gint db_add_pkg(struct db_pkg* pkg)
   
   /* check if pkg contains everthing required */
   if (pkg == 0 || pkg->name == 0 || pkg->shortname == 0 
-      || pkg->version == 0 || pkg->build == 0)
+      || pkg->version == 0 || pkg->build == 0 || pkg->files == 0)
   {
     _db_set_error("can't add package to the database (incomplete package structure)");
     return 1;
