@@ -31,7 +31,7 @@ ifeq ($(DEBUG),yes)
 CFLAGS +=  -ggdb3 -O0
 CPPFLAGS += -D__DEBUG=1
 else
-CFLAGS += -ggdb1 -O2 -march=i486 -mcpu=i686 # -fomit-frame-pointer
+CFLAGS += -ggdb1 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer
 endif
 ifeq ($(STATIC),yes)
 LDFLAGS += `pkg-config --variable=libdir sqlite3`/libsqlite3.a
@@ -51,7 +51,7 @@ objs-all := $(sort $(objs-fastpkg))
 dep-files := $(addprefix .dep/,$(addsuffix .d,$(basename $(notdir $(objs-all)))))
 
 # default
-all: untgz sql pkgdb fastpkg
+all: untgz sql pkgdb pkgtools fastpkg
 
 fastpkg: $(objs-fastpkg)
 	$(CC) $^ $(LDFLAGS) -o $@
