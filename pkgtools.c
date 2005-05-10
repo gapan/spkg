@@ -99,15 +99,22 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
     goto err1;
   }
 
-  /* open rollback script */
-  rollback = fopen("fastpkg-rollback.sh", "w");
-  if (rollback == 0)
-  {
-    _pkg_set_error("installation failed: can't create rollback script");
-    goto err2;
-  }
-  fprintf(rollback, "#!/bin/sh\n");
+  if (verbose)
+    printf("install: package file opened: %s\n", pkgfile);
 
+  /* open rollback script */
+  if (!dryrun)
+  {
+    rollback = fopen("fastpkg-rollback.sh", "w");
+    if (rollback == 0)
+    {
+      _pkg_set_error("installation failed: can't create rollback script");
+      goto err2;
+    }
+    fprintf(rollback, "#!/bin/sh\n");
+  }
+
+  /* alloc package object */
   pkg = db_alloc_pkg(name);
   pkg->location = g_strdup(pkgfile);
 
@@ -120,31 +127,53 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
       guchar* buf;
       gsize len;
       untgz_write_data(tgz,&buf,&len);
+      /*XXX: parse  package description */
       pkg->desc = buf;      
+      if (verbose)
+        printf("install: package description found\n");
+      continue;
+    }
+    else if (!strcmp(tgz->f_name, "install/doinst.sh"))
+    {
+//      guchar* buf;
+//      gsize len;
+//      untgz_write_data(tgz,&buf,&len);
+      /*XXX: parse out symlinks */
+      if (verbose)
+        printf("install: install script found\n");
+      continue;
     }
 
     gchar* path = g_strdup_printf("%s/%s", root, tgz->f_name);
-    gchar* spath = g_strdup_printf("%s/%s.install.%04x", root, tgz->f_name, stamp);
-
+//    gchar* spath = g_strdup_printf("%s/%s.install.%04x", root, tgz->f_name, stamp);
     pkg->files = g_slist_append(pkg->files, db_alloc_file(g_strdup(tgz->f_name), 0));
 
-    if (tgz->f_type == UNTGZ_DIR)
+    if (verbose)
+      printf("install: extracting: %s\n", path);
+
+    if (!dryrun)
     {
-      if (access(path, F_OK) != 0)
-        fprintf(rollback, "rmdir %s\n", path);
-      untgz_write_file(tgz,path);
+      if (tgz->f_type == UNTGZ_DIR)
+      {
+        if (access(path, F_OK) != 0)
+          fprintf(rollback, "rmdir %s\n", path);
+        untgz_write_file(tgz,path);
+      }
+      else
+      {
+        fprintf(rollback, "rm %s\n", path);
+        untgz_write_file(tgz,path);
+      }
     }
-    else
-    {
-      fprintf(rollback, "rm %s\n", path);
-      untgz_write_file(tgz,path);
-    }
-    g_free(spath);
+//    g_free(spath);
   }
   
   /* close rollback script */
-  fclose(rollback);
-  chmod("fastpkg-rollback.sh", 0755);
+  if (!dryrun)
+  {
+    fclose(rollback);
+    chmod("fastpkg-rollback.sh", 0755);
+  }
 
   /* error occured during extraction */
   if (tgz->errstr)
@@ -163,13 +192,18 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   /* run doinst sh */
 
   /* add package to the database */
-  if (db_add_pkg(pkg))
+  if (!dryrun)
   {
-    if (db_errno() == DB_EXIST)
-      _pkg_set_error("installation failed: can't add package to the database, package with the same name is already there (%s)", name);
-    else
-      _pkg_set_error("installation failed: can't add package to the database\n%s", db_error());
-    goto err3;
+    if (verbose)
+      printf("install: updating database with package: %s\n", name);
+    if (db_add_pkg(pkg))
+    {
+      if (db_errno() == DB_EXIST)
+        _pkg_set_error("installation failed: can't add package to the database, package with the same name is already there (%s)", name);
+      else
+        _pkg_set_error("installation failed: can't add package to the database\n%s", db_error());
+      goto err3;
+    }
   }
 
   db_free_pkg(pkg);

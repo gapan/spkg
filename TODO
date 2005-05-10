@@ -4,6 +4,11 @@ TODO
 - pkgdb: optimizations and implement sync to legacy db
 - pkgtools: implement install, upgrade, remove
 
+- maybe better transaction handling in sql (like checking if when leaving 
+  context tas are ended)
+- rollback api
+
+
 Status
 ------
 - untgz, sql: stable

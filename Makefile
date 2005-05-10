@@ -44,7 +44,7 @@ objs-fastpkg := main.o pkgtools.o untgz.o sys.o sql.o pkgdb.o pkgname.o
 # magic barrier
 
 export MAKEFLAGS += --no-print-directory -r
-CLEANFILES := .o fastpkg untgz sql pkgdb pkgtools p.patch
+CLEANFILES := .o fastpkg untgz sql pkgdb pkgtools p.patch .gdb.log
 
 objs-fastpkg := $(addprefix .o/, $(objs-fastpkg))
 objs-all := $(sort $(objs-fastpkg))
