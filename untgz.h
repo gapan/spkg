@@ -83,7 +83,7 @@ struct untgz_state {
  * @param tgzfile Path to the tgz archive.
  * @return Pointer to the \ref untgz_state object on success, 0 on error.
  */
-extern struct untgz_state* untgz_open(gchar* tgzfile);
+extern struct untgz_state* untgz_open(const gchar* tgzfile);
 
 /** Read next file header from the archive.
  *
@@ -98,6 +98,8 @@ extern gint untgz_get_header(struct untgz_state* s);
  *
  * If file is empty, len will be set to 0 and buf will be unchanged.
  * If file has no data (s->data == 0), do nothing.
+ *
+ * Buffer is appended with 0 byte. (zero terminated)
  *
  * @param s Pointer to the \ref untgz_state object.
  * @param buf Pointer to the pointer that will be updated with the address

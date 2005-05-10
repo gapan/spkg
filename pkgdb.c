@@ -27,6 +27,7 @@ static gchar* _db_topdir = 0;
 static gchar* _db_dbfile = 0;
 static gchar* _db_dbroot = 0;
 static gchar* _db_errstr = 0;
+static gint   _db_errno = 0;
 
 static __inline__ void _db_reset_error()
 {
@@ -35,27 +36,27 @@ static __inline__ void _db_reset_error()
     g_free(_db_errstr);
     _db_errstr = 0;
   }
+  _db_errno = DB_OK;
 }
 
-static void _db_set_error(const gchar* fmt, ...)
+#define _db_open_check(v) \
+  if (!_db_is_open) \
+  { \
+    _db_set_error(DB_CLOSED, "trying to access closed package database"); \
+    return v; \
+  }
+
+static void _db_set_error(gint errno, const gchar* fmt, ...)
 {
   va_list ap;
   _db_reset_error();
+  _db_errno = errno;
   va_start(ap, fmt);
   _db_errstr = g_strdup_vprintf(fmt, ap);
   va_end(ap);
   _db_errstr = g_strdup_printf("error[pkgdb]: %s", _db_errstr);
 }
 
-/*XXX: convert to memchunks? */
-static __inline__ struct db_file* _db_alloc_file(gchar* path, gchar* link)
-{
-  struct db_file* f;
-  f = g_new0(struct db_file, 1);
-  f->path = path;
-  f->link = link;
-  return f;
-}
 
 /* path hashing algorithm */
 #define MAXHASH 512
@@ -74,7 +75,7 @@ static __inline__ guint _db_path_hash(const gchar* path)
 /* public 
  ************************************************************************/
 
-gint db_open(gchar* root)
+gint db_open(const gchar* root)
 {
   gchar** d;
   gchar* checkdirs[] = {
@@ -86,7 +87,7 @@ gint db_open(gchar* root)
   _db_reset_error();
   if (_db_is_open)
   {
-    _db_set_error("can't open package database (it is already open)");
+    _db_set_error(DB_OPEN, "can't open package database (it is already open)");
     return 1;
   }
   
@@ -107,7 +108,7 @@ gint db_open(gchar* root)
       /* if it is still not a directory, return with error */
       if (sys_file_type(tmpdir,1) != SYS_DIR)
       {
-        _db_set_error("can't open package database (%s should be an accessible directory)", tmpdir);
+        _db_set_error(DB_OTHER, "can't open package database (%s should be an accessible directory)", tmpdir);
         g_free(tmpdir);
         goto err0;
       }
@@ -120,7 +121,7 @@ gint db_open(gchar* root)
   _db_dbfile = g_strdup_printf("%s/%s", _db_dbroot, "fastpkg.db");
   if (sys_file_type(_db_dbfile,0) != SYS_REG && sys_file_type(_db_dbfile,0) != SYS_NONE)
   {
-    _db_set_error("can't open package database (%s is not accessible)", _db_dbfile);
+    _db_set_error(DB_OTHER, "can't open package database (%s is not accessible)", _db_dbfile);
     goto err1;
   }
 
@@ -128,8 +129,8 @@ gint db_open(gchar* root)
   sql_push_context(SQL_ERRJUMP);
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
+    _db_set_error(DB_OTHER, "can't open package database (sql error)\n%s", sql_error());
     sql_pop_context();
-    _db_set_error("can't open package database (sql error)\n%s", sql_error());
     if (rollback)
     {
       sql_push_context(SQL_ERRIGNORE);
@@ -205,9 +206,38 @@ void db_close()
   _db_is_open = 0;
 }
 
+gint db_errno()
+{
+  return _db_errno;
+}
+
 gchar* db_error()
 {
   return _db_errstr;
+}
+
+struct db_pkg* db_alloc_pkg(gchar* name)
+{
+  struct db_pkg* p;
+  if (name == 0 || !parse_pkgname(name, 6))
+    return 0;
+    
+  p = g_new0(struct db_pkg, 1);
+  p->name = parse_pkgname(name, 5);
+  p->shortname = parse_pkgname(name, 1);
+  p->version = parse_pkgname(name, 2);
+  p->arch = parse_pkgname(name, 3);
+  p->build = parse_pkgname(name, 4);
+  return p;
+}
+
+struct db_file* db_alloc_file(gchar* path, gchar* link)
+{
+  struct db_file* f;
+  f = g_new0(struct db_file, 1);
+  f->path = path;
+  f->link = link;
+  return f;
 }
 
 gint db_add_pkg(struct db_pkg* pkg)
@@ -219,12 +249,13 @@ gint db_add_pkg(struct db_pkg* pkg)
   gint pid;
 
   _db_reset_error();
+  _db_open_check(1)
   
   /* check if pkg contains everthing required */
   if (pkg == 0 || pkg->name == 0 || pkg->shortname == 0 
       || pkg->version == 0 || pkg->build == 0 || pkg->files == 0)
   {
-    _db_set_error("can't add package to the database (incomplete package structure)");
+    _db_set_error(DB_OTHER, "can't add package to the database (incomplete package structure)");
     return 1;
   }
   
@@ -232,8 +263,8 @@ gint db_add_pkg(struct db_pkg* pkg)
   sql_push_context(SQL_ERRJUMP);
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
+    _db_set_error(DB_OTHER, "can't add package to the database (sql error)\n%s", sql_error());
     sql_pop_context();
-    _db_set_error("can't add package to the database (sql error)\n%s", sql_error());
     sql_push_context(SQL_ERRIGNORE);
     sql_exec("ROLLBACK TRANSACTION;");
     sql_pop_context();
@@ -248,8 +279,8 @@ gint db_add_pkg(struct db_pkg* pkg)
   q = sql_prep("SELECT id FROM packages WHERE name == '%q';", pkg->name);
   if (sql_step(q))
   { /* if package exists */
+    _db_set_error(DB_EXIST, "can't add package to the database (same package is already there - %s)", pkg->name);
     sql_fini(q);
-    _db_set_error("can't add package to the database (same package is already there - %s)", pkg->name);
     sql_exec("ROLLBACK TRANSACTION;");
     sql_pop_context();
     return 1;
@@ -332,9 +363,11 @@ gint db_rem_pkg(gchar* name)
   gint pid;
 
   _db_reset_error();
+  _db_open_check(1)
+
   if (name == 0)
   {
-    _db_set_error("can't remove package from the database (name not given)");
+    _db_set_error(DB_OTHER, "can't remove package from the database (name not given)");
     return 1;
   }
   
@@ -342,8 +375,8 @@ gint db_rem_pkg(gchar* name)
   sql_push_context(SQL_ERRJUMP);
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
+    _db_set_error(DB_OTHER, "can't remove package from the database (sql error)\n%s", sql_error());
     sql_pop_context();
-    _db_set_error("can't remove package from the database (sql error)\n%s", sql_error());
     sql_push_context(SQL_ERRIGNORE);
     sql_exec("ROLLBACK TRANSACTION;");
     sql_pop_context();
@@ -358,8 +391,8 @@ gint db_rem_pkg(gchar* name)
   q = sql_prep("SELECT id FROM packages WHERE name == '%q';", name);
   if (!sql_step(q))
   { /* if package does not exists */
+    _db_set_error(DB_NOTEX, "can't remove package from the database (package is not there - %s)", name);
     sql_fini(q);
-    _db_set_error("can't remove package from the database (package is not there - %s)", name);
     sql_exec("ROLLBACK TRANSACTION;");
     sql_pop_context();
     return 1;
@@ -393,8 +426,8 @@ gint db_rem_pkg(gchar* name)
     }
     else
     { /* inconsistent database */
+      _db_set_error(DB_OTHER, "can't remove package from the database (inconsistent database)");
       sql_exec("ROLLBACK TRANSACTION;");
-      _db_set_error("can't remove package from the database (inconsistent database)");
       sql_pop_context();
       g_free(pkgtab);
       g_free(ftab);
@@ -421,9 +454,11 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   gint old_hash = MAXHASH;
 
   _db_reset_error();
+  _db_open_check(0)
+
   if (name == 0)
   {
-    _db_set_error("can't retrieve package from the database (name not given)");
+    _db_set_error(DB_OTHER, "can't retrieve package from the database (name not given)");
     return 0;
   }
 
@@ -431,11 +466,11 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   sql_push_context(SQL_ERRJUMP);
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
+    _db_set_error(DB_OTHER, "can't retrieve package from the database (sql error)\n%s", sql_error());
     sql_pop_context();
     sql_push_context(SQL_ERRIGNORE);
     sql_exec("ROLLBACK TRANSACTION;");
     sql_pop_context();
-    _db_set_error("can't retrieve package from the database (sql error)\n%s", sql_error());
     db_free_pkg(p);
     return 0;
   }
@@ -447,11 +482,11 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
                    " usize, desc, location FROM packages WHERE name == '%q';", name);
   if (!sql_step(q))
   {
-    sql_fini(q);
+    _db_set_error(DB_NOTEX, "can't retrieve package from the database (package is not there - %s)", name);
+    sql_pop_context();
+    sql_push_context(SQL_ERRIGNORE);
     sql_exec("ROLLBACK TRANSACTION;");
     sql_pop_context();
-    db_free_pkg(p);
-    _db_set_error("can't retrieve package from the database (package is not there - %s)", name);
     return 0;
   }
 
@@ -468,8 +503,13 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   p->location = g_strdup(sql_get_text(q, 9));
   sql_fini(q);
 
+  /* caller don't want files list, so it's enough here */
   if (files == 0)
+  {
+    sql_exec("ROLLBACK TRANSACTION;");
+    sql_pop_context();
     return p;
+  }
   
   q = sql_prep("SELECT hash,fid FROM pkg_%05d ORDER BY hash;", pid);
   while (sql_step(q))
@@ -499,12 +539,12 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
     }
     else
     {
+      _db_set_error(DB_OTHER, "can't retrieve package from the database (inconsistent database)", name);
       sql_fini(q);
       sql_fini(q1);
       sql_exec("ROLLBACK TRANSACTION;");
       sql_pop_context();
       db_free_pkg(p);
-      _db_set_error("can't retrieve package from the database (inconsistent database)", name);
       return 0;
     }
     sql_rest(q1);
@@ -647,7 +687,7 @@ struct db_pkg* db_legacy_get_pkg(gchar* name)
       }
       break;
       case FILELIST:
-        p->files = g_slist_append(p->files, _db_alloc_file(g_strdup(ln),0));
+        p->files = g_slist_append(p->files, db_alloc_file(g_strdup(ln),0));
       break;
       case LINKLIST:
       {
@@ -658,7 +698,7 @@ struct db_pkg* db_legacy_get_pkg(gchar* name)
         ln[rm[3].rm_eo] = 0;
         tmpstr = g_strjoin("/", ln+rm[1].rm_so, ln+rm[3].rm_so, 0);
         linktgt = g_strdup(ln+rm[2].rm_so);
-        p->files = g_slist_append(p->files, _db_alloc_file(tmpstr, linktgt));
+        p->files = g_slist_append(p->files, db_alloc_file(tmpstr, linktgt));
       }
       break;
       default:
@@ -695,7 +735,7 @@ gint db_legacy_add_pkg(struct db_pkg* pkg)
   /* check if pkg contains everthing required */
   if (pkg == 0 || pkg->name == 0 || pkg->location == 0 || pkg->desc == 0 || pkg->files == 0)
   {
-    _db_set_error("can't add package to the legacy database (incomplete package structure)");
+    _db_set_error(DB_OTHER, "can't add package to the legacy database (incomplete package structure)");
     return 1;
   }
 
@@ -754,6 +794,7 @@ void db_free_pkg(struct db_pkg* pkg)
 
 gint db_sync_fastpkgdb_to_legacydb()
 {
+#if 0
   sql_query *q;
   q = sql_prep("SELECT name FROM packages;");
   while (sql_step(q))
@@ -768,7 +809,8 @@ gint db_sync_fastpkgdb_to_legacydb()
     db_free_pkg(pkg);
   }
   sql_fini(q);
-  return 0;
+#endif
+  return 1;
 }
 
 gint db_sync_legacydb_to_fastpkgdb()
@@ -779,12 +821,13 @@ gint db_sync_legacydb_to_fastpkgdb()
   gchar* tmpstr = g_strdup_printf("%s/%s", _db_topdir, "packages");
 
   _db_reset_error();
+  _db_open_check(1)
 
   d = opendir(tmpstr);
   g_free(tmpstr);
   if (d == NULL)
   {
-    _db_set_error("can't synchronize database (legacy database directory not found)");
+    _db_set_error(DB_OTHER, "can't synchronize database (legacy database directory not found)");
     return 1;
   }
   
@@ -805,14 +848,14 @@ gint db_sync_legacydb_to_fastpkgdb()
     p = db_legacy_get_pkg(de->d_name);
     if (p == 0)
     {
-      _db_set_error("can't synchronize database (invalid legacy pkg - %s)", de->d_name);
+      _db_set_error(DB_OTHER, "can't synchronize database (invalid legacy pkg - %s)", de->d_name);
       closedir(d);
       return 1;
     }
     db_add_pkg(p);
     if (_db_errstr)
     {
-      _db_set_error("can't synchronize database (db_add_pkg failed - %s)\n%s", de->d_name, _db_errstr);
+      _db_set_error(DB_OTHER, "can't synchronize database (db_add_pkg failed - %s)\n%s", de->d_name, _db_errstr);
       db_free_pkg(p);
       closedir(d);
       return 1;

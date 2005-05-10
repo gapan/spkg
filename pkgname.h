@@ -24,10 +24,10 @@
  *  @li 3 arch
  *  @li 4 build
  *  @li 5 fullname
- *  @li 6 check
+ *  @li 6 check (returns -1 if ok)
  * @return Requested package name element (g_malloced), 0 on error.
  */
-extern gchar* parse_pkgname(gchar* path, guint elem);
+extern gchar* parse_pkgname(const gchar* path, guint elem);
 
 #endif
 

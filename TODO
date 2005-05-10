@@ -1,7 +1,8 @@
 TODO
 ----
 - implement rm_rf and mkdir_p in C
-- pkgdb: optimizations and implement syncs
+- pkgdb: optimizations and implement sync to legacy db
+- pkgtools: implement install, upgrade, remove
 
 Status
 ------

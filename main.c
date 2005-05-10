@@ -120,8 +120,8 @@ int main(int ac, char* av[])
   
   while (*f != 0)
   {
-    pkg_install(*f,1,1);
-//    printf("%s\n", *f);
+//    pkg_install(*f,1,1);
+    printf("%s\n", *f);
     f++;
   }
 

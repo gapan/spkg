@@ -10,11 +10,9 @@
 
 #include "pkgname.h"
 
-gchar* parse_pkgname(gchar* path, guint elem)
+gchar* parse_pkgname(const gchar* path, guint elem)
 {
-  gchar* tmp, *tmp2;
-  gchar* name;
-  gchar* retval=0;
+  gchar *tmp, *tmp2, *name, *retval=0;
 
   if (path == 0)
     return 0;
@@ -31,7 +29,7 @@ gchar* parse_pkgname(gchar* path, guint elem)
     case 1: case 2: case 3: case 4: case 5: case 6:
     {
       gint i=0,j=0;
-      tmp = tmp==0?path:tmp+1;
+      tmp = tmp==0?(gchar*)path:tmp+1;
       name = g_strndup(tmp, strlen(tmp)-(g_str_has_suffix(path, ".tgz")?4:0));
       /* 3 dashes required */
       for (tmp=name; *tmp!=0; tmp++)

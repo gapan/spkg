@@ -14,7 +14,7 @@
 
 #include "sys.h"
 
-sys_ftype sys_file_type(gchar* path, gboolean deref)
+sys_ftype sys_file_type(const gchar* path, gboolean deref)
 {
   struct stat s;
   gint rs;
@@ -38,7 +38,7 @@ sys_ftype sys_file_type(gchar* path, gboolean deref)
 }
 
 /*XXX: implement them in C */
-gint sys_rm_rf(gchar* path)
+gint sys_rm_rf(const gchar* path)
 {
   gint rval;
   gchar* s = g_strdup_printf("/bin/rm -rf %s", path);
@@ -49,7 +49,7 @@ gint sys_rm_rf(gchar* path)
   return 1;
 }
 
-gint sys_mkdir_p(gchar* path)
+gint sys_mkdir_p(const gchar* path)
 {
   gint rval;
   gchar* s = g_strdup_printf("/bin/mkdir -p %s", path);

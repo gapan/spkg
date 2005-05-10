@@ -23,30 +23,33 @@ extern gchar* pkg_error();
 
 /** @brief Install package.
  * 
- * @param  pkgfile Package file.
+ * @param pkgfile Package file.
+ * @param root Root directory.
  * @param dryrun Don't touch filesystem or database.
  * @param verbose Be verbose.
  * @return 0 on success, 1 on error
  */
-extern gint pkg_install(gchar* pkgfile, gboolean dryrun, gboolean verbose);
+extern gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gboolean verbose);
 
-/** @brief Upgrade package.
+/** @brief Upgrade package <b>[not implemented]</b>.
  * 
- * @param  pkgfile Package file.
+ * @param pkgfile Package file.
+ * @param root Root directory.
  * @param dryrun Don't touch filesystem or database.
  * @param verbose Be verbose.
  * @return 0 on success, 1 on error
  */
-extern gint pkg_upgrade(gchar* pkgfile, gboolean dryrun, gboolean verbose);
+extern gint pkg_upgrade(const gchar* pkgfile, const gchar* root, gboolean dryrun, gboolean verbose);
 
-/** @brief Remove package.
+/** @brief Remove package <b>[not implemented]</b>.
  * 
- * @param  name Package name.
+ * @param name Package name.
+ * @param root Root directory.
  * @param dryrun Don't touch filesystem or database.
  * @param verbose Be verbose.
  * @return 0 on success, 1 on error
  */
-extern gint pkg_remove(gchar* name, gboolean dryrun, gboolean verbose);
+extern gint pkg_remove(const gchar* name, const gchar* root, gboolean dryrun, gboolean verbose);
 
 #endif
 

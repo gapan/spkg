@@ -167,7 +167,7 @@ static gchar* strnappend(gchar* dst, gchar* src, gsize size)
 /* public 
  ************************************************************************/
 
-struct untgz_state* untgz_open(gchar* tgzfile)
+struct untgz_state* untgz_open(const gchar* tgzfile)
 {
   struct untgz_state* s;
   gzFile *gzf;
@@ -316,7 +316,7 @@ gint untgz_write_data(struct untgz_state* s, guchar** buf, gsize* len)
   }
 
   remaining=s->f_size;
-  buffer = g_malloc(remaining);
+  buffer = g_malloc(remaining+1);
   while (G_LIKELY(remaining > 0))
   {
     b = read_next_block(s, 0);
@@ -327,6 +327,7 @@ gint untgz_write_data(struct untgz_state* s, guchar** buf, gsize* len)
     position += BLOCKSIZE;
   }
   s->data = 0;
+  buffer[s->f_size] = 0; /* zero terminate buffer */
   *buf = buffer;
   *len = s->f_size;
   return 0;

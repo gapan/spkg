@@ -19,8 +19,11 @@
 /*! @endif */
 
 #define DB_OK     0 /**< ok */
-#define DB_ERROR  1 /**< error */
-#define DB_NOPKG  2 /**< package not found */
+#define DB_CLOSED 1 /**< database is [already] closed (on any call except db_open) */
+#define DB_OPEN   2 /**< database is already open (when opening) */
+#define DB_OTHER  3 /**< other error */
+#define DB_NOTEX  4 /**< package not exist (when getting from db) */
+#define DB_EXIST  5 /**< other package with same name exist (when adding into db) */
 
 /** File information structure. */
 struct db_file {
@@ -53,7 +56,7 @@ struct db_pkg {
  * @param root root directory
  * @return 0 on success, 1 on error
  */
-extern gint db_open(gchar* root);
+extern gint db_open(const gchar* root);
 
 /** Close package database. 
  */
@@ -65,6 +68,30 @@ extern void db_close();
  * @return Error string on error, 0 otherwise
  */
 extern gchar* db_error();
+
+/** Returns the error number if error occured in the last pkgdb
+ * library call.
+ *
+ * @return Nonzero error number on error, 0 otherwise
+ */
+extern gint db_errno();
+
+/** Create package object.
+ *
+ * Package name is checked and parsed.
+ *
+ * @param name Package name (something like: blah-1.0-i486-1)
+ * @return 0 if invalid name, \ref db_pkg object on success
+ */
+extern struct db_pkg* db_alloc_pkg(gchar* name);
+
+/** Create file object.
+ *
+ * @param path File path. (it is not strduped)
+ * @param link File link (if it is symlink). (it is not strduped)
+ * @return \ref db_file object on success
+ */
+extern struct db_file* db_alloc_file(gchar* path, gchar* link);
 
 /** Add package to the database.
  *
@@ -95,7 +122,7 @@ extern struct db_pkg* db_get_pkg(gchar* name, gboolean files);
  */
 extern gint db_legacy_add_pkg(struct db_pkg* pkg);
 
-/** Get package from legacy database.
+/** Get package from legacy database <b>[not implemented]</b>.
  *
  * @param name Package name (something like: blah-1.0-i486-1)
  * @return 0 if not found, \ref db_pkg object on success
@@ -108,7 +135,7 @@ extern struct db_pkg* db_legacy_get_pkg(gchar* name);
  */
 extern void db_free_pkg(struct db_pkg* pkg);
 
-/** Recreate legacydb from fastpkgdb.
+/** Recreate legacydb from fastpkgdb <b>[not implemented]</b>.
  *
  * @return 0 on success, 1 on error
  */

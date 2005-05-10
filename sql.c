@@ -47,7 +47,6 @@ static void __sql_on_error(const gchar* func, const gchar* fmt, ...)
       exit(1);
     case SQL_ERRINFORM:
       fprintf(stderr, "%s\n", _sql_errstr);
-    break;
     case SQL_ERRIGNORE:
     break;
   }

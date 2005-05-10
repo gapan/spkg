@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <time.h>
+#include <string.h>
 
 #include "pkgname.h"
 #include "untgz.h"
@@ -50,79 +52,142 @@ gchar* pkg_error()
   return _pkg_errstr;
 }
 
-gint pkg_install(gchar* pkgfile, gboolean dryrun, gboolean verbose)
+gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gboolean verbose)
 {
   gchar *name, *shortname;
-  struct untgz_state* tgz;
-  struct db_pkg* pkg;
-  GSList* filelist = 0;
+  struct untgz_state* tgz=0;
+  struct db_pkg* pkg=0;
+  guint stamp = time(0)&0xffff;
+  FILE* rollback;
 
   _pkg_reset_error();
 
   /* check if file exist */
   if (sys_file_type(pkgfile,1) != SYS_REG)
   {
-    _pkg_set_error("package file does not exist: %s\n", pkgfile);
-    return 1;
+    _pkg_set_error("installation failed: package file does not exist (%s)", pkgfile);
+    goto err0;
   }
 
   /* parse package name from the file path */
   if ((name = parse_pkgname(pkgfile,5)) == 0 
       || (shortname = parse_pkgname(pkgfile,1)) == 0)
   {
-    _pkg_set_error("package name is invalid: %s\n", pkgfile);
-    return 1;
+    _pkg_set_error("installation failed: package name is invalid (%s)", pkgfile);
+    goto err0;
   }
 
   /* check if package is in the database */  
   if ((pkg = db_get_pkg(name,0)))
   {
-    _pkg_set_error("package is already installed: %s\n", name);
-    g_free(name);
-    g_free(shortname);
-    return 1;
+    _pkg_set_error("installation failed: package is already installed (%s)", name);
+    db_free_pkg(pkg);
+    goto err1;
   }
+  if (db_errno() != DB_NOTEX)
+  {
+    _pkg_set_error("installation failed: db_get_pkg failed (%s)\n%s", name, db_error());
+    goto err1;
+  }
+  /*XXX: check for shortname match */
 
   /* open tgz */
   tgz = untgz_open(pkgfile);
   if (tgz == 0)
   {
-    _pkg_set_error("can't open package: %s\n", pkgfile);
-    g_free(name);
-    g_free(shortname);
-    return 1;
+    _pkg_set_error("installation failed: can't open package file (%s)", pkgfile);
+    goto err1;
   }
 
-  /* for each file do extraction or check */
+  /* open rollback script */
+  rollback = fopen("fastpkg-rollback.sh", "w");
+  if (rollback == 0)
+  {
+    _pkg_set_error("installation failed: can't create rollback script");
+    goto err2;
+  }
+  fprintf(rollback, "#!/bin/sh\n");
+
+  pkg = db_alloc_pkg(name);
+  pkg->location = g_strdup(pkgfile);
+
+  /* for each file in package */
   while (untgz_get_header(tgz) == 0)
   {
-    /* if not dir transform name to the install.XXXXXX.filename */
-    /* add file to the rollback list */
-    /* add file to the update db list */
-    
-    untgz_write_file(tgz,0);
-    continue;
-    filelist = g_slist_append(filelist, g_strdup(tgz->f_name));
-    if (tgz->f_type == SYS_DIR)
-      printf("f: %-30s %6d %-10s %-10s\n", tgz->f_name, tgz->f_size, tgz->f_uname, tgz->f_gname);
+    /* check special files */
+    if (!strcmp(tgz->f_name, "install/slack-desc"))
+    {
+      guchar* buf;
+      gsize len;
+      untgz_write_data(tgz,&buf,&len);
+      pkg->desc = buf;      
+    }
+
+    gchar* path = g_strdup_printf("%s/%s", root, tgz->f_name);
+    gchar* spath = g_strdup_printf("%s/%s.install.%04x", root, tgz->f_name, stamp);
+
+    pkg->files = g_slist_append(pkg->files, db_alloc_file(g_strdup(tgz->f_name), 0));
+
+    if (tgz->f_type == UNTGZ_DIR)
+    {
+      if (access(path, F_OK) != 0)
+        fprintf(rollback, "rmdir %s\n", path);
+      untgz_write_file(tgz,path);
+    }
     else
-      printf("f: %-30s.install %6d %-10s %-10s\n", tgz->f_name, tgz->f_size, tgz->f_uname, tgz->f_gname);
-  }  
-  printf("s: %8d %8d\n", tgz->csize, tgz->usize);
+    {
+      fprintf(rollback, "rm %s\n", path);
+      untgz_write_file(tgz,path);
+    }
+    g_free(spath);
+  }
+  
+  /* close rollback script */
+  fclose(rollback);
+  chmod("fastpkg-rollback.sh", 0755);
+
+  /* error occured during extraction */
+  if (tgz->errstr)
+  {
+    _pkg_set_error("installation failed: package is corrupted (%s)", pkgfile);
+    goto err3;
+  }
+
+  pkg->usize = tgz->usize;
+  pkg->csize = tgz->csize;
   
   /* close tgz */
   untgz_close(tgz);
 
   /* run ldconfig */
   /* run doinst sh */
-  /* add package to the database */
 
+  /* add package to the database */
+  if (db_add_pkg(pkg))
+  {
+    if (db_errno() == DB_EXIST)
+      _pkg_set_error("installation failed: can't add package to the database, package with the same name is already there (%s)", name);
+    else
+      _pkg_set_error("installation failed: can't add package to the database\n%s", db_error());
+    goto err3;
+  }
+
+  db_free_pkg(pkg);
   g_free(name);
   g_free(shortname);
   return 0;
+ err3:
+  db_free_pkg(pkg);
+ err2:
+  untgz_close(tgz);
+ err1:
+  g_free(name);
+  g_free(shortname);
+ err0:
+  return 1;
 }
 
-gint pkg_upgrade(gchar* pkgfile, gboolean dryrun, gboolean verbose)
+gint pkg_upgrade(const gchar* pkgfile, const gchar* root, gboolean dryrun, gboolean verbose)
 {
   _pkg_reset_error();
   /* check package db */
@@ -131,7 +196,7 @@ gint pkg_upgrade(gchar* pkgfile, gboolean dryrun, gboolean verbose)
   return 0;
 }
 
-gint pkg_remove(gchar* pkgfile, gboolean dryrun, gboolean verbose)
+gint pkg_remove(const gchar* pkgfile, const gchar* root, gboolean dryrun, gboolean verbose)
 {
   _pkg_reset_error();
   /* check package db */

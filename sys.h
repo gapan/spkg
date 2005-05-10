@@ -33,21 +33,21 @@ typedef enum {
  * @param deref Dereference symlinks.
  * @return \ref sys_ftype
  */
-extern sys_ftype sys_file_type(gchar* path, gboolean deref);
+extern sys_ftype sys_file_type(const gchar* path, gboolean deref);
 
 /** Implementation of the rm -rf.
  *
  * @param path File path.
  * @return 0 on success, 1 on error
  */
-extern gint sys_rm_rf(gchar* path);
+extern gint sys_rm_rf(const gchar* path);
 
 /** Implementation of the mkdir -p.
  *
  * @param path Directory path.
  * @return 0 on success, 1 on error
  */
-extern gint sys_mkdir_p(gchar* path);
+extern gint sys_mkdir_p(const gchar* path);
 
 #endif
 
