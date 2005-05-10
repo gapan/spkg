@@ -105,6 +105,15 @@ slackpkg:
 	rm -rf pkg
 	make mrproper
 
+dist: docs
+	rm -rf fastpkg-$(VERSION)
+	mkdir -p fastpkg-$(VERSION)
+	tar c `tla inventory -s` | tar xC fastpkg-$(VERSION)
+	tla changelog > fastpkg-$(VERSION)/ChangeLog
+	cp -a docs/html fastpkg-$(VERSION)/docs
+	tar czf fastpkg-$(VERSION).tar.gz fastpkg-$(VERSION)
+	rm -rf fastpkg-$(VERSION)
+
 docs:
 	rm -rf docs/html
 	doxygen
@@ -123,5 +132,5 @@ clean:
 	-rm -rf $(CLEANFILES)
 
 mrproper:
-	-rm -rf $(CLEANFILES) .dep docs/html
+	-rm -rf $(CLEANFILES) .dep docs/html ChangeLog
 
