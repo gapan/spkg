@@ -134,7 +134,7 @@ struct file_index* _idx_open(guint32 hash)
     /* XXX: check writes */
     gchar zbuf[sizeof(header)] = {0};
     write(i->fd_idx, (void*)&header, sizeof(header));
-    for (j=0; j<(1024+1); j++)
+    for (j=0; j<1024; j++)
       write(i->fd_idx, zbuf, sizeof(header));
     i->size_idx = (1024+1)*sizeof(header);
   }
@@ -211,6 +211,7 @@ gint _idx_new_node(struct file_index* i)
       write(i->fd_idx, zbuf, sizeof(struct file_idx));
     new_size = i->size_idx + INDEX_CHUNK_SIZE*sizeof(struct file_idx);
     i->addr_idx = mremap(i->addr_idx, i->size_idx, new_size, MREMAP_MAYMOVE); /* XXX: check failure */
+    i->idx = i->addr_idx+sizeof(struct file_idx);
     i->size_idx = new_size;
   }
   id = i->len_idx++;
@@ -219,6 +220,8 @@ gint _idx_new_node(struct file_index* i)
 
 gint _idx_ins_node(struct file_index* i, gint n)
 {
+ i->idx[n].lid = n+1;
+ i->idx[n].rid = n-1;
 }
 
 /* public 
@@ -304,7 +307,7 @@ struct fdb_file* fdb_alloc_file(gchar* path, gchar* link)
 
 int main()
 {
-  gint fd,j;
+  gint fd,j,id;
   struct file_index* i;
   
   if (fdb_open("."))
@@ -313,10 +316,12 @@ int main()
     exit(1);
   }
   i = _idx_open(55);
-  
-  _idx_close(i,1);
   for (j=0; j<80000; j++)
-    _idx_new_node(i);
+  {
+    id = _idx_new_node(i);
+    _idx_ins_node(i, id);
+  }
+  _idx_close(i,1);
   fdb_close();
 
   return 0;
