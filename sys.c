@@ -59,3 +59,45 @@ gint sys_mkdir_p(const gchar* path)
     return 0;
   return 1;
 }
+
+gchar* sys_setcwd(const gchar* path)
+{
+  gchar pwd[2048];
+  
+  if (getcwd(pwd, 2048) == 0)
+    return 0;
+    
+  if (path)
+  {
+    if (sys_file_type(path, 1) != SYS_DIR)
+      return 0;
+    if (chdir(path) == -1)
+      return 0;
+  }
+  return g_strdup(pwd);
+}
+
+void sys_sigblock(sigset_t* sigs)
+{
+  gint rs;
+  sigset_t s;
+  sigfillset(&s);
+  rs = sigprocmask(SIG_SETMASK, &s, sigs);
+  if (rs == -1)
+  {
+    printf("panic: can't block signals\n");
+    exit(1);
+  }
+}
+
+void sys_sigunblock(sigset_t* sigs)
+{
+  gint rs;
+  rs = sigprocmask(SIG_SETMASK, sigs, 0);
+  if (rs == -1)
+  {
+    printf("panic: can't unblock signals\n");
+    exit(1);
+  }
+}
+

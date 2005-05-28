@@ -7,6 +7,7 @@
 |*  No copy/usage restrictions are imposed on anybody using this work.  *|
 \*----------------------------------------------------------------------*/
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <time.h>
@@ -16,6 +17,7 @@
 #include "untgz.h"
 #include "pkgdb.h"
 #include "sys.h"
+#include "taction.h"
 
 #include "pkgtools.h"
 
@@ -52,13 +54,22 @@ gchar* pkg_error()
   return _pkg_errstr;
 }
 
+/* install steps:
+ * - checks (pkg file exists, pkg name is valid, pkg is not in db)
+ * - open untgz
+ * - initialize file transaction
+ * - for each file in pkg do:
+ *   - check path for validity (not an absolute path, etc.)
+ *   - check for special file (install/doinst.sh, etc.)
+ *   - push file or dir to transaction log
+ * - finalize file transaction
+ */
+
 gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gboolean verbose)
 {
   gchar *name, *shortname;
   struct untgz_state* tgz=0;
   struct db_pkg* pkg=0;
-  guint stamp = time(0)&0xffff;
-  FILE* rollback;
 
   _pkg_reset_error();
 
@@ -89,7 +100,7 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
     _pkg_set_error("installation failed: db_get_pkg failed (%s)\n%s", name, db_error());
     goto err1;
   }
-  /*XXX: check for shortname match */
+  /*XXX: check for shortname match (maybe) */
 
   /* open tgz */
   tgz = untgz_open(pkgfile);
@@ -102,16 +113,14 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   if (verbose)
     printf("install: package file opened: %s\n", pkgfile);
 
-  /* open rollback script */
+  /* init transaction */
   if (!dryrun)
   {
-    rollback = fopen("fastpkg-rollback.sh", "w");
-    if (rollback == 0)
+    if (ta_initialize())
     {
-      _pkg_set_error("installation failed: can't create rollback script");
+      _pkg_set_error("installation failed: can't initialize transaction");
       goto err2;
     }
-    fprintf(rollback, "#!/bin/sh\n");
   }
 
   /* alloc package object */
@@ -121,18 +130,28 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   /* for each file in package */
   while (untgz_get_header(tgz) == 0)
   {
-    /* check special files */
+    /* check file path */
+    if (tgz->f_name[0] == '/')
+    {
+      /* some damned fucker created package specially to mess our system */
+      _pkg_set_error("installation failed: package contains files with absolute paths");
+      goto err3;
+    }
+    
+    /* check for special files */
     if (!strcmp(tgz->f_name, "install/slack-desc"))
     {
-      guchar* buf;
+      gchar *buf, *dname, *sdesc, *ldesc;
       gsize len;
-      untgz_write_data(tgz,&buf,&len);
-      /*XXX: parse  package description */
-      pkg->desc = buf;      
+      
+      untgz_write_data(tgz,(guchar**)&buf,&len);
+      parse_slackdesc(buf,shortname,&dname,&sdesc,&ldesc);
+      pkg->desc = buf;
       if (verbose)
         printf("install: package description found\n");
       continue;
     }
+#if 0
     else if (!strcmp(tgz->f_name, "install/doinst.sh"))
     {
 //      guchar* buf;
@@ -143,7 +162,7 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
         printf("install: install script found\n");
       continue;
     }
-
+#endif
     gchar* path = g_strdup_printf("%s/%s", root, tgz->f_name);
 //    gchar* spath = g_strdup_printf("%s/%s.install.%04x", root, tgz->f_name, stamp);
     pkg->files = g_slist_append(pkg->files, db_alloc_file(g_strdup(tgz->f_name), 0));
@@ -156,30 +175,29 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
       if (tgz->f_type == UNTGZ_DIR)
       {
         if (access(path, F_OK) != 0)
-          fprintf(rollback, "rmdir %s\n", path);
+          ta_add_action(TA_MOVE,path,0);
         untgz_write_file(tgz,path);
       }
       else
       {
-        fprintf(rollback, "rm %s\n", path);
+        ta_add_action(TA_MOVE,path,0);
         untgz_write_file(tgz,path);
       }
     }
 //    g_free(spath);
   }
   
-  /* close rollback script */
-  if (!dryrun)
-  {
-    fclose(rollback);
-    chmod("fastpkg-rollback.sh", 0755);
-  }
-
   /* error occured during extraction */
   if (tgz->errstr)
   {
     _pkg_set_error("installation failed: package is corrupted (%s)", pkgfile);
     goto err3;
+  }
+
+  /* finalize transaction */
+  if (!dryrun)
+  {
+    ta_finalize();
   }
 
   pkg->usize = tgz->usize;
@@ -188,8 +206,24 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   /* close tgz */
   untgz_close(tgz);
 
-  /* run ldconfig */
-  /* run doinst sh */
+  gchar* old_cwd = sys_setcwd(root);
+  if (old_cwd)
+  {
+#if 0
+    /* run ldconfig */
+    printf("install: running ldconfig\n");
+    if (system("/sbin/ldconfig -r ."))
+      printf("install: ldconfig failed\n");
+#endif
+    /* run doinst sh */
+    if (sys_file_type("install/doinst.sh",0) == SYS_REG)
+    {
+      printf("install: running doinst.sh\n");
+      if (system(". install/doinst.sh"))
+        printf("install: doinst.sh failed\n");
+      sys_setcwd(old_cwd);
+    }
+  }
 
   /* add package to the database */
   if (!dryrun)
@@ -211,6 +245,7 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   g_free(shortname);
   return 0;
  err3:
+  ta_rollback();
   db_free_pkg(pkg);
  err2:
   untgz_close(tgz);

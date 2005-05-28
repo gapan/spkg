@@ -4,10 +4,23 @@ TODO
 - pkgdb: optimizations and implement sync to legacy db
 - pkgtools: implement install, upgrade, remove
 
+- modify pkg structure to contain short desc long desc and pkg name
+
+- implement doinst.sh parser (parse out sym links)
+- implement slack-desc parser (parse out bullshit, short desc and long desc)
+- install/uninst.sh extension (executed after uninstallation)
+- install/depends extension (linuxpackages.net)
+
+Possible Improvements
+---------------------
+- rewrite pkgdb file database (use custom pascal like strings, hash indexing, etc.)
+- faster hashing function, hash cache, etc.
+- mmaping of file index
+
+Unnecessary
+-----------
 - maybe better transaction handling in sql (like checking if when leaving 
   context tas are ended)
-- rollback api
-
 
 Status
 ------

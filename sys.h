@@ -13,6 +13,7 @@
 #define __SYS_H
 
 #include <glib.h>
+#include <signal.h>
 
 /** File type. */
 typedef enum { 
@@ -48,6 +49,25 @@ extern gint sys_rm_rf(const gchar* path);
  * @return 0 on success, 1 on error
  */
 extern gint sys_mkdir_p(const gchar* path);
+
+/** Set cwd and return pwd.
+ *
+ * @param path new working directory. (0 if you want to get cwd)
+ * @return 0 on failure, pointer to pwd on success
+ */
+extern gchar* sys_setcwd(const gchar* path);
+
+/** Block all signals.
+ *
+ * @param sigs pointer to the place where will be stored original sigset_t
+ */
+extern void sys_sigblock(sigset_t* sigs);
+
+/** Unblock all signals.
+ *
+ * @param sigs pointer to the place where \ref sys_sigblock stored original sigset_t
+ */
+extern void sys_sigunblock(sigset_t* sigs);
 
 #endif
 

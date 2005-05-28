@@ -29,6 +29,16 @@
  */
 extern gchar* parse_pkgname(const gchar* path, guint elem);
 
+/** Parse slack-desc file from buffer into parts.
+ *
+ * @param slackdesc Buffer filled with contents of the raw slack-desc file.
+ * @param sname Short name of the package.
+ * @param sdesc Short description of the package.
+ * @param ldesc Long description of the package.
+ * @return 0 on success, 1 on error (i.e. not a slack-desc file)
+ */
+extern gint parse_slackdesc(const gchar* slackdesc, gchar* sname, gchar** sdesc, gchar** ldesc);
+
 #endif
 
 /*! @} */

@@ -38,33 +38,32 @@ source code guide
   |   sqlite3   |  |     zlib    |
   ---------------  ---------------
 
-installpkg
-----------
- - umask 022, setuid 0
- - fix /var/log/{packages,scripts,removed_packages,removed_scripts,setup}
- - make sure it is not link and it is directory with right perms
- - extract package description
- - extract doinst.sh symbolic links
-   warn mode:
-   - check symbolic links in the doinst.sh and test if locations, that are to 
-     be removed exist in the tree
-   - check all other tgz files for overwriting
- - extract files
- - ldconfig
- - doinst.sh
+pkg_install
+-----------
+ - check umask 022 and setuid 0
+ - check if package exist in db
+ - init ta
+ - for each file in archive:
+   - extract package description
+   - extract doinst.sh symbolic links
+   - check all tgz files for overwriting (including links)
+   - extract file
+   - add it to a transaction
+
+ - create symbolic links
  - update package database
+ - finalize transaction
+ - run ldconfig
+ - run doinst.sh
  - cleanup install/doinst.sh and slack-*
- - do all this with respect to ROOT env. variable
 
 upgradepkg
 ----------
- - installpkg
- - update db
- - remove oldpkg
 
 removepkg
 ---------
  - check if file is not used by other packages
+ - init ta
  - remove it (to temp dir)
  - updatedb
 

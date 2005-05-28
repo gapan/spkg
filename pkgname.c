@@ -85,3 +85,18 @@ gchar* parse_pkgname(const gchar* path, guint elem)
   g_free(name);
   return retval;
 }
+
+/* slack-desc format is 
+  <shortname>: <shortname> (desc) 
+  <shortname>: longdesc
+  <shortname>: longdesc
+  ...
+  other lines are discarded
+*/
+gint parse_slackdesc(const gchar* slackdesc, 
+                     gchar* sname,
+                     gchar** sdesc,
+                     gchar** ldesc)
+{
+  
+}

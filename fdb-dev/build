@@ -1,0 +1,2 @@
+#!/bin/sh
+gcc -o filedb filedb.c ../sys.c -D_GNU_SOURCE `pkg-config --cflags --libs glib-2.0` -I../

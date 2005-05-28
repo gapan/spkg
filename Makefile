@@ -39,7 +39,7 @@ else
 LDFLAGS += `pkg-config --libs sqlite3`
 endif
 
-objs-fastpkg := main.o pkgtools.o untgz.o sys.o sql.o pkgdb.o pkgname.o
+objs-fastpkg := main.o pkgtools.o untgz.o sys.o sql.o pkgdb.o pkgname.o taction.o
 
 # magic barrier
 
@@ -62,7 +62,7 @@ sql: .o/sql-test.o .o/sql.o
 	$(CC) $^ $(LDFLAGS) -o $@
 pkgdb: .o/pkgdb-test.o .o/sql.o .o/pkgdb.o .o/sys.o .o/pkgname.o
 	$(CC) $^ $(LDFLAGS) -o $@
-pkgtools: .o/pkgtools-test.o .o/pkgtools.o .o/sql.o .o/pkgdb.o .o/sys.o .o/pkgname.o .o/untgz.o
+pkgtools: .o/pkgtools-test.o .o/pkgtools.o .o/sql.o .o/pkgdb.o .o/sys.o .o/pkgname.o .o/untgz.o .o/taction.o
 	$(CC) $^ $(LDFLAGS) -o $@
 
 .o/%.o: %.c

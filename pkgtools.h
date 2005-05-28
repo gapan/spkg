@@ -21,7 +21,7 @@
  */
 extern gchar* pkg_error();
 
-/** @brief Install package.
+/** Install package.
  * 
  * @param pkgfile Package file.
  * @param root Root directory.
@@ -31,7 +31,7 @@ extern gchar* pkg_error();
  */
 extern gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gboolean verbose);
 
-/** @brief Upgrade package <b>[not implemented]</b>.
+/** Upgrade package <b>[not implemented]</b>.
  * 
  * @param pkgfile Package file.
  * @param root Root directory.
@@ -41,7 +41,7 @@ extern gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun
  */
 extern gint pkg_upgrade(const gchar* pkgfile, const gchar* root, gboolean dryrun, gboolean verbose);
 
-/** @brief Remove package <b>[not implemented]</b>.
+/** Remove package <b>[not implemented]</b>.
  * 
  * @param name Package name.
  * @param root Root directory.

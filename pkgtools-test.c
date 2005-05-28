@@ -16,13 +16,15 @@ const gchar* root = "./,,root";
 
 int main(int ac, char* av[])
 {
+  int i;
   db_open(root);
 
-  if (pkg_install("fastpkg-0.9.0-i486-1.tgz", root, 1, 1))
-    printf("%s\n", pkg_error());
-  
-  if (pkg_install("kdebase-3.3.2-i486-1.tgz", root, 1, 1))
-    printf("%s\n", pkg_error());
+  for (i=1;i<ac;i++)
+  {
+    printf("installing: %s\n", av[i]);
+    if (pkg_install(av[i], root, 0, 0))
+      printf("%s\n", pkg_error());
+  }
 
   db_close();
   return 0;
