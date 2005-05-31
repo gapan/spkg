@@ -350,6 +350,28 @@ static guint32 _ins_node(guint32 root, gchar* path, gchar* link, void* proot)
   return id;
 }
 
+static guint32 _get_node(gchar* path)
+{
+  struct file_idx *p;
+  guint hash = _hash(path);
+  guint32 root = _fdb.ihdr->hashmap[hash];
+
+  if (root == 0)
+    return 0;
+  for (p=_node(root); p!=NULL; )
+  {
+    gint cmp = strcmp(path, _pld(p)->data);
+    if (cmp < 0)
+      p = _node(p->lnk[0]);
+    else if (cmp > 0)
+      p = _node(p->lnk[1]);
+    else
+      return _id(p);
+  }
+  return 0;
+}
+
+
 /* public 
  ************************************************************************/
 
@@ -584,7 +606,7 @@ struct fdb_file* fdb_alloc_file(gchar* path, gchar* link)
 }
 #endif
 
-const gchar* files[] = {
+gchar* files[] = {
 "lib",
 "lib/cpp",
 "lib/evms",
@@ -678,9 +700,17 @@ int main()
     printf("%s\n", fdb_error());
     exit(1);
   }
+
   for (j=0; j<sizeof(files)/sizeof(files[0]); j++)
   {
-    fdb_add_file(files[j], 0);
+    id = fdb_add_file(files[j], 0);
+    printf("added: %u\n", id);
+  }
+
+  for (j=0; j<sizeof(files)/sizeof(files[0]); j++)
+  {
+    id = _get_node(files[j]);
+    printf("got: %u\n", id);
   }
   _print_index("index.dot");
   fdb_close();
