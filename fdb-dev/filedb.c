@@ -31,7 +31,7 @@ struct fdb {
   struct file_idx_hdr* ihdr; /* pointer to the index header */
   struct file_pld_hdr* phdr; /* pointer to the payload header */
   void* pptr; /* payload pointer */
-  gsize lastid; /* id count (count of files in database/next free file id) */
+  guint32 lastid; /* id count (count of files in database/next free file id) */
   /* ids start from 1 and ends in lastid */
 
   /* internal mmap and file info */
@@ -44,7 +44,7 @@ struct fdb {
 };
 
 static struct fdb _fdb = {0};
-static gchar zbuf[4096*4] = {0};
+static gchar zbuf[4096*64] = {0};
 
 static __inline__ void _fdb_reset_error()
 {
@@ -214,7 +214,7 @@ static void _print_subtree(FILE* f, guint32 id)
   else
     col = 2;
    
-  fprintf(f, "  s%u [style=filled, fillcolor=%s, label=\"<l>%u|{<c>%u|%d}|<r>%u\"];\n", id, fillcolors[col], n->lnk[0], id, n->bal, n->lnk[1]);
+  fprintf(f, "  s%u [style=filled, fillcolor=%s, label=\"<l>%u|<c>%u|<r>%u\"];\n", id, fillcolors[col], n->lnk[0], id, n->lnk[1]);
   if (n->lnk[0])
   {
     _print_subtree(f,n->lnk[0]);
@@ -244,7 +244,7 @@ static void _print_index(gchar* file)
     if (root)
     {
       _print_subtree(f, root);
-      fprintf(f, "  hash:h%u -> s%u\n", i, root);
+      fprintf(f, "  hash:h%u -> s%u;\n", i, root);
     }
   }
   fprintf(f, "}\n");
@@ -278,9 +278,13 @@ static guint32 _ins_node(guint32 root, gchar* path, gchar* link, void* proot)
     da[k++] = dir = cmp > 0;
   }
   
+  /* this will break every pointer from above */
   id = _alloc_node(path,link);
   i = _node(id);
   q->lnk[dir] = id;
+
+  if (y==0)
+    return id;
 
   for (p=y, k=0; p!=i; p=_node(p->lnk[da[k]]), k++)
     if (da[k] == 0)
@@ -564,16 +568,7 @@ guint32 fdb_add_file(gchar* path, gchar* link)
 {
   guint hash = _hash(path);
   guint32 id;
-  
-  if (_fdb.ihdr->hashmap[hash] == 0)
-  {
-    id = _alloc_node(path,link);
-    _fdb.ihdr->hashmap[hash] = id;
-  }
-  else
-  {
-    id = _ins_node(_fdb.ihdr->hashmap[hash], path, link, &_fdb.ihdr->hashmap[hash]);
-  }
+  id = _ins_node(_fdb.ihdr->hashmap[hash], path, link, &_fdb.ihdr->hashmap[hash]);
   return id;
 }
 
@@ -606,90 +601,7 @@ struct fdb_file* fdb_alloc_file(gchar* path, gchar* link)
 }
 #endif
 
-gchar* files[] = {
-"lib",
-"lib/cpp",
-"lib/evms",
-"lib/evms/libe2fsim.1.2.1.so",
-"lib/ld-2.3.4.so",
-"lib/ld-linux.so.2",
-"lib/libBrokenLocale-2.3.4.so",
-"lib/libBrokenLocale.so.1",
-"lib/libSegFault.so",
-"lib/libanl-2.3.4.so",
-"lib/libanl.so.1",
-"lib/libblkid.so.1",
-"lib/libblkid.so.1.0",
-"lib/libbz2.so.1",
-"lib/libbz2.so.1.0",
-"lib/libbz2.so.1.0.2",
-"lib/libc-2.3.4.so",
-"lib/libc.so.6",
-"lib/libcidn-2.3.4.so",
-"lib/libcidn.so.1",
-"lib/libcom_err.so.2",
-"lib/libcom_err.so.2.1",
-"lib/libcrypt-2.3.4.so",
-"lib/libcrypt.so.1",
-"lib/libdb-3.1.so",
-"lib/libdb-3.3.so",
-"lib/libdb-4.2.so",
-"lib/libdb.so.2",
-"lib/libdb.so.3",
-"lib/libdb1.so.2.1.3",
-"lib/libdb2.so.3",
-"lib/libdl-2.3.4.so",
-"lib/libdl.so.2",
-"lib/libe2p.so.2",
-"lib/libe2p.so.2.3",
-"lib/libext2fs.so.2",
-"lib/libext2fs.so.2.4",
-"lib/libgpm.so.1",
-"lib/libgpm.so.1.18.0",
-"lib/liblvm-10.so",
-"lib/liblvm-10.so.1",
-"lib/liblvm-10.so.1.0",
-"lib/libm-2.3.4.so",
-"lib/libm.so.6",
-"lib/libmemusage.so",
-"lib/libncurses.so.5",
-"lib/libncurses.so.5.4",
-"lib/libncursesw.so.5",
-"lib/libncursesw.so.5.4",
-"lib/libnsl-2.3.4.so",
-"lib/libnsl.so.1",
-"lib/libnss_compat-2.3.4.so",
-"lib/libnss_compat.so.2",
-"lib/libnss_dns-2.3.4.so",
-"lib/libnss_dns.so.2",
-"lib/libnss_files-2.3.4.so",
-"lib/libnss_files.so.2",
-"lib/libnss_hesiod-2.3.4.so",
-"lib/libnss_hesiod.so.2",
-"lib/libnss_nis-2.3.4.so",
-"lib/libnss_nis.so.2",
-"lib/libnss_nisplus-2.3.4.so",
-"lib/libnss_nisplus.so.2",
-"lib/libpcprofile.so",
-"lib/libproc-3.2.3.so",
-"lib/libpthread-0.10.so",
-"lib/libpthread.so.0",
-"lib/libresolv-2.3.4.so",
-"lib/libresolv.so.2",
-"lib/librt-2.3.4.so",
-"lib/librt.so.1",
-"lib/libss.so.2",
-"lib/libss.so.2.0",
-"lib/libtermcap.so.2",
-"lib/libtermcap.so.2.0.8",
-"lib/libthread_db-1.0.so",
-"lib/libthread_db.so.1",
-"lib/libutil-2.3.4.so",
-"lib/libutil.so.1",
-"lib/libuuid.so.1",
-"lib/libuuid.so.1.2",
-"lib/modules",
-};
+#include "files.c"
 
 int main()
 {
@@ -704,13 +616,13 @@ int main()
   for (j=0; j<sizeof(files)/sizeof(files[0]); j++)
   {
     id = fdb_add_file(files[j], 0);
-    printf("added: %u\n", id);
+    printf("added: %d\n", id);
   }
 
   for (j=0; j<sizeof(files)/sizeof(files[0]); j++)
   {
     id = _get_node(files[j]);
-    printf("got: %u\n", id);
+    printf("got: %d\n", id);
   }
   _print_index("index.dot");
   fdb_close();
