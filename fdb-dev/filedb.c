@@ -44,7 +44,7 @@ struct fdb {
 };
 
 static struct fdb _fdb = {0};
-static gchar zbuf[4096*64] = {0};
+static gchar zbuf[4096*4] = {0};
 
 static __inline__ void _fdb_reset_error()
 {
@@ -75,7 +75,7 @@ static void _fdb_set_error(const gchar* fmt, ...)
 #define MAXHASH 4
 static __inline__ guint _hash(const gchar* path)
 {
-#if 0
+#if 1
   guint h=0,i=0;
   gint primes[8] = {3, 5, 7, 11, 13, 17, 7/*19*/, 5/*23*/};
   while (*path!=0)
@@ -106,6 +106,7 @@ struct file_pld {
   /* data[plen+1] = 'link' + '\0' */
 };
 
+/*XXX: gross hack */
 struct file_idx { /* AVL tree leaf */
   guint32 lnk[2]; /* left file in the tree, 0 if none */
   guint32 off; /* offset to the payload file */
@@ -189,7 +190,6 @@ guint32 _alloc_node(gchar* path, gchar* link)
   id = ++_fdb.lastid;
   _fdb.idx[id-1].off = pld_off;
 
-  printf("** %s(path = '%s', link = '%s') = %d\n", __func__, path?path:"(NULL)", link?link:"(NULL)", id);
   return id;
 }
 
@@ -197,7 +197,6 @@ guint32 _alloc_node(gchar* path, gchar* link)
 static __inline__ struct file_idx* _node(guint32 id) { return id?_fdb.idx+id-1:NULL; }
 static __inline__ struct file_pld* _pld(struct file_idx* idx) { return idx?_fdb.addr_pld+idx->off:0; }
 static __inline__ guint32 _id(struct file_idx* idx) { return idx?idx-_fdb.idx+1:0; }
-#define AVL_MAX_HEIGHT 32
 
 static void _print_subtree(FILE* f, guint32 id)
 {
@@ -253,46 +252,37 @@ static void _print_index(gchar* file)
 }
 
 /* returns 1 if inserted, 0 if it already exists */
-static guint32 _ins_node(guint32 root, gchar* path, gchar* link)
+#define AVL_MAX_HEIGHT 64
+static guint32 _ins_node(guint32 root, gchar* path, gchar* link, void* proot)
 {
-  struct file_idx *y, *z;
-  struct file_idx *p, *q;
-  struct file_idx *n;
-  struct file_idx *i;
-  struct file_idx *w;
+  struct file_idx *y, *z; /* Top node to update balance factor, and parent. */
+  struct file_idx *p, *q; /* Iterator, and parent. */
+  struct file_idx *i;     /* Newly inserted node. */
+  struct file_idx *w;     /* New root of rebalanced subtree. */
   gint dir;
   guchar da[AVL_MAX_HEIGHT];
   gint k = 0;
   guint32 id;
-
-  printf("** %s(root = %d, path = '%s', link = '%s')\n", __func__, root, path?path:"(NULL)", link?link:"(NULL)");
-
-  /* root node is always present */
-  z = _node(root);
+  
+  /*XXX: gross hack */
+  z = (struct file_idx *)proot;
   y = _node(root);
   dir = 0;
   for (q=z, p=y; p!=NULL; q=p, p=_node(p->lnk[dir]))
   {
-    printf("  ** loop <-: y=%d z=%d p=%d q=%d dir=%d\n", _id(y), _id(z), _id(p), _id(q), dir);
     gint cmp = strcmp(path, _pld(p)->data);
-    printf("  ** loop   : strcmp('%s', '%s') = %d\n", path, _pld(p)->data, cmp==0?0:(cmp>0?1:-1));
     if (cmp == 0)
       return _id(p);
     if (p->bal != 0)
       z = q, y = p, k = 0;
     da[k++] = dir = cmp > 0;
-    printf("  ** loop ->: y=%d z=%d p=%d q=%d dir=%d\n", _id(y), _id(z), _id(p), _id(q), dir);
   }
   
   id = _alloc_node(path,link);
+  i = _node(id);
   q->lnk[dir] = id;
 
-  if (y == NULL)
-    return id;
-
-  return 0;
-
-  for (p = y, k = 0; p != n; p = _node(p->lnk[da[k]]), k++)
+  for (p=y, k=0; p!=i; p=_node(p->lnk[da[k]]), k++)
     if (da[k] == 0)
       p->bal--;
     else
@@ -310,7 +300,7 @@ static guint32 _ins_node(guint32 root, gchar* path, gchar* link)
     }
     else
     {
-      assert (x->bal == +1);
+      g_assert (x->bal == +1);
       w = _node(x->lnk[1]);
       x->lnk[1] = w->lnk[0];
       w->lnk[0] = _id(x);
@@ -337,7 +327,7 @@ static guint32 _ins_node(guint32 root, gchar* path, gchar* link)
     }
     else
     {
-      assert (x->bal == -1);
+      g_assert(x->bal == -1);
       w = _node(x->lnk[0]);
       x->lnk[0] = w->lnk[1];
       w->lnk[1] = _id(x);
@@ -353,10 +343,11 @@ static guint32 _ins_node(guint32 root, gchar* path, gchar* link)
     }
   }
   else
-    return _id(n);
+    return id;
+
   z->lnk[_id(y) != z->lnk[0]] = _id(w);
 
-  return _id(n);
+  return id;
 }
 
 /* public 
@@ -559,7 +550,7 @@ guint32 fdb_add_file(gchar* path, gchar* link)
   }
   else
   {
-    id = _ins_node(_fdb.ihdr->hashmap[hash], path, link);
+    id = _ins_node(_fdb.ihdr->hashmap[hash], path, link, &_fdb.ihdr->hashmap[hash]);
   }
   return id;
 }
@@ -593,6 +584,91 @@ struct fdb_file* fdb_alloc_file(gchar* path, gchar* link)
 }
 #endif
 
+const gchar* files[] = {
+"lib",
+"lib/cpp",
+"lib/evms",
+"lib/evms/libe2fsim.1.2.1.so",
+"lib/ld-2.3.4.so",
+"lib/ld-linux.so.2",
+"lib/libBrokenLocale-2.3.4.so",
+"lib/libBrokenLocale.so.1",
+"lib/libSegFault.so",
+"lib/libanl-2.3.4.so",
+"lib/libanl.so.1",
+"lib/libblkid.so.1",
+"lib/libblkid.so.1.0",
+"lib/libbz2.so.1",
+"lib/libbz2.so.1.0",
+"lib/libbz2.so.1.0.2",
+"lib/libc-2.3.4.so",
+"lib/libc.so.6",
+"lib/libcidn-2.3.4.so",
+"lib/libcidn.so.1",
+"lib/libcom_err.so.2",
+"lib/libcom_err.so.2.1",
+"lib/libcrypt-2.3.4.so",
+"lib/libcrypt.so.1",
+"lib/libdb-3.1.so",
+"lib/libdb-3.3.so",
+"lib/libdb-4.2.so",
+"lib/libdb.so.2",
+"lib/libdb.so.3",
+"lib/libdb1.so.2.1.3",
+"lib/libdb2.so.3",
+"lib/libdl-2.3.4.so",
+"lib/libdl.so.2",
+"lib/libe2p.so.2",
+"lib/libe2p.so.2.3",
+"lib/libext2fs.so.2",
+"lib/libext2fs.so.2.4",
+"lib/libgpm.so.1",
+"lib/libgpm.so.1.18.0",
+"lib/liblvm-10.so",
+"lib/liblvm-10.so.1",
+"lib/liblvm-10.so.1.0",
+"lib/libm-2.3.4.so",
+"lib/libm.so.6",
+"lib/libmemusage.so",
+"lib/libncurses.so.5",
+"lib/libncurses.so.5.4",
+"lib/libncursesw.so.5",
+"lib/libncursesw.so.5.4",
+"lib/libnsl-2.3.4.so",
+"lib/libnsl.so.1",
+"lib/libnss_compat-2.3.4.so",
+"lib/libnss_compat.so.2",
+"lib/libnss_dns-2.3.4.so",
+"lib/libnss_dns.so.2",
+"lib/libnss_files-2.3.4.so",
+"lib/libnss_files.so.2",
+"lib/libnss_hesiod-2.3.4.so",
+"lib/libnss_hesiod.so.2",
+"lib/libnss_nis-2.3.4.so",
+"lib/libnss_nis.so.2",
+"lib/libnss_nisplus-2.3.4.so",
+"lib/libnss_nisplus.so.2",
+"lib/libpcprofile.so",
+"lib/libproc-3.2.3.so",
+"lib/libpthread-0.10.so",
+"lib/libpthread.so.0",
+"lib/libresolv-2.3.4.so",
+"lib/libresolv.so.2",
+"lib/librt-2.3.4.so",
+"lib/librt.so.1",
+"lib/libss.so.2",
+"lib/libss.so.2.0",
+"lib/libtermcap.so.2",
+"lib/libtermcap.so.2.0.8",
+"lib/libthread_db-1.0.so",
+"lib/libthread_db.so.1",
+"lib/libutil-2.3.4.so",
+"lib/libutil.so.1",
+"lib/libuuid.so.1",
+"lib/libuuid.so.1.2",
+"lib/modules",
+};
+
 int main()
 {
   gint fd,j,id;
@@ -602,18 +678,9 @@ int main()
     printf("%s\n", fdb_error());
     exit(1);
   }
-  for (j=0; j<64; j++)
+  for (j=0; j<sizeof(files)/sizeof(files[0]); j++)
   {
-#define MAXLEN 20
-#define MINLEN 5
-    gchar buf[] = "abcdefghijklmnopqrstuvwxyz/";
-    gint size = MINLEN+rand()%(MAXLEN-MINLEN+1);
-    gchar path[MAXLEN+1] = {0};
-    gint i;
-    path[0] = '/';
-    for (i=1;i<size;i++)
-      path[i] = buf[rand()%(sizeof(buf)-1)];
-    fdb_add_file(path, 0);
+    fdb_add_file(files[j], 0);
   }
   _print_index("index.dot");
   fdb_close();
