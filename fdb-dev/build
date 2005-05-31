@@ -1,2 +1,10 @@
 #!/bin/sh
-gcc -O0 -ggdb3 -o filedb filedb.c ../sys.c -D_GNU_SOURCE `pkg-config --cflags --libs glib-2.0` -I../
+gcc -O0 -ggdb3 -o filedb filedb.c ../sys.c -D_GNU_SOURCE `pkg-config --cflags --libs glib-2.0` -I../ || exit
+#gcc -O3 -march=pentium4 -o filedb filedb.c ../sys.c -D_GNU_SOURCE `pkg-config --cflags --libs glib-2.0` -I../
+
+exit
+
+rm -rf var
+./filedb
+dot -Tpng -o index.png index.dot
+rm -f index.dot
