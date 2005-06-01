@@ -26,6 +26,16 @@ struct db_file {
   guint  padding:31; /**< just a padding to a dword */
 };
 
+struct file_pld {
+  guint16 rc;
+//  guint16 mode;
+  guint16 plen;
+  guint16 llen;
+  gchar data[];
+  /* data[0] = 'path' + '\0' */
+  /* data[plen+1] = 'link' + '\0' */
+};
+
 /** Open file database.
  *
  * @param root root directory
@@ -44,9 +54,12 @@ extern gint fdb_close();
  */
 extern gchar* fdb_error();
 
-extern guint32 fdb_add_file(gchar* path, gchar* link);
 
-extern guint32 _get_node(gchar* path);
+extern struct file_pld* fdb_get_file(guint32 id);
+
+extern guint32 fdb_get_file_id(gchar* path);
+
+extern guint32 fdb_add_file(gchar* path, gchar* link);
 
 #endif
 
