@@ -12,7 +12,14 @@ int main()
   }
 
   for (j=0; j<sizeof(files)/sizeof(files[0]); j++)
-    id = fdb_add_file(files[j], 0);
+  {
+    id = _get_node(files[j]);
+    if (id == 0)
+    {
+      printf("error\n");
+      break;
+    }
+  }
 
   fdb_close();
 

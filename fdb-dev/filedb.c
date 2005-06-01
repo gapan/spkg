@@ -22,13 +22,8 @@
 /* private 
  ************************************************************************/
 
-#if 1
 #define PLD_SIZE_LIMIT 64
 #define IDX_SIZE_LIMIT 32
-#else
-#define PLD_SIZE_LIMIT 1
-#define IDX_SIZE_LIMIT 1
-#endif
 
 struct fdb {
   gboolean is_open;
@@ -82,21 +77,39 @@ static void _fdb_set_error(const gchar* fmt, ...)
 #define MAXHASH 32
 static __inline__ guint _hash(const gchar* path)
 {
-#if 1
   guint h=0,i=0;
-  gint primes[8] = {3, 5, 7, 11, 13, 17, 7/*19*/, 5/*23*/};
+//  gint primes[8] = {3, 5, 7, 11, 13, 17, 7/*19*/, 5/*23*/};
+  gint primes[8] = {27137,19171,17313,11131,5771,3737,1313,2317};
   while (*path!=0)
   {
-    h += *path * primes[i&0x07];
-    path++; i++;
+    h += *path * primes[i++&0x07];
+    path++;
   }
-  return h%MAXHASH;
-#else
-  guint32 h=0, a=31415, b=27183;
-  for (;*path!=0;path++,a=a*b%(MAXHASH-1))
-    h = (a*h+*path)%MAXHASH;
   return h;
-#endif
+}
+
+/*
+static scnt = 0;
+static hcnt = 0;
+static void print()
+{
+  printf("faststrcmp: strcmp=%d, calls=%d, success=%1.4lf%%\n", scnt, hcnt, (double)100.0*(hcnt-scnt)/hcnt);
+}
+*/
+static __inline__ faststrcmp(const guint32 h1, const gchar* s1, const guint32 h2, const gchar* s2)
+{
+//  hcnt++;
+  if (h1<h2)
+    return -1;
+  else if (h1>h2)
+    return 1;
+  else
+  {
+/*    if (scnt == 0)
+      atexit(print);
+    scnt++;*/
+    return strcmp(s1,s2);
+  }
 }
 
 /* AVL binary tree
@@ -117,6 +130,7 @@ struct file_pld {
 struct file_idx { /* AVL tree leaf */
   guint32 lnk[2]; /* left file in the tree, 0 if none */
   guint32 off; /* offset to the payload file */
+  guint32 hash; /* full hash value of the file path */
   gint8   bal; /* balance value */
 };
 
@@ -232,7 +246,7 @@ static void _print_index(gchar* file)
 
 /* returns 1 if inserted, 0 if it already exists */
 #define AVL_MAX_HEIGHT 64
-static guint32 _ins_node(guint32 root, gchar* path, gchar* link, void* proot)
+static guint32 _ins_node(guint32 root, guint32 hash, gchar* path, gchar* link, void* proot)
 {
   struct file_idx *y, *z; /* Top node to update balance factor, and parent. */
   struct file_idx *p, *q; /* Iterator, and parent. */
@@ -249,7 +263,7 @@ static guint32 _ins_node(guint32 root, gchar* path, gchar* link, void* proot)
   dir = 0;
   for (q=z, p=y; p!=NULL; q=p, p=_node(p->lnk[dir]))
   {
-    gint cmp = strcmp(path, _pld(p)->data);
+    gint cmp = faststrcmp(hash, path, p->hash, _pld(p)->data);
     if (cmp == 0)
       return _id(p);
     if (p->bal != 0)
@@ -260,6 +274,7 @@ static guint32 _ins_node(guint32 root, gchar* path, gchar* link, void* proot)
   /* this will break every pointer from above */
   id = _alloc_node(path,link);
   i = _node(id);
+  i->hash = hash;
   q->lnk[dir] = id;
 
   if (y==0)
@@ -336,14 +351,14 @@ static guint32 _ins_node(guint32 root, gchar* path, gchar* link, void* proot)
 guint32 _get_node(gchar* path)
 {
   struct file_idx *p;
-  guint hash = _hash(path);
-  guint32 root = _fdb.ihdr->hashmap[hash];
+  guint32 hash = _hash(path);
+  guint32 root = _fdb.ihdr->hashmap[hash%MAXHASH];
 
   if (root == 0)
     return 0;
   for (p=_node(root); p!=NULL; )
   {
-    gint cmp = strcmp(path, _pld(p)->data);
+    gint cmp = faststrcmp(hash, path, p->hash, _pld(p)->data);
     if (cmp < 0)
       p = _node(p->lnk[0]);
     else if (cmp > 0)
@@ -550,7 +565,7 @@ guint32 fdb_add_file(gchar* path, gchar* link)
 {
   guint hash = _hash(path);
   guint32 id;
-  id = _ins_node(_fdb.ihdr->hashmap[hash], path, link, &_fdb.ihdr->hashmap[hash]);
+  id = _ins_node(_fdb.ihdr->hashmap[hash%MAXHASH], hash, path, link, &_fdb.ihdr->hashmap[hash%MAXHASH]);
   return id;
 }
 

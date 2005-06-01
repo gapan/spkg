@@ -1,2 +1,9 @@
 this is developmnet version of the new fastpkg database
 -------------------------------------------------------
+
+core algos are done
+
+todo:
+  - cleanup code
+  - implement access functions
+  - implement 'transactions'
