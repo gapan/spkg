@@ -44,6 +44,8 @@ extern gint fdb_close();
  */
 extern gchar* fdb_error();
 
+extern guint32 fdb_add_file(gchar* path, gchar* link);
+
 #endif
 
 /*! @} */

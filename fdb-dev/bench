@@ -1,0 +1,19 @@
+#!/bin/sh
+
+clean() {
+  rm -rf var
+  ./test-pre
+}
+
+run() {
+  time ./test-add
+}
+
+clean
+run
+clean
+run
+clean
+run
+clean
+run

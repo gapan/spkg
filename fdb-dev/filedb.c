@@ -22,6 +22,14 @@
 /* private 
  ************************************************************************/
 
+#if 1
+#define PLD_SIZE_LIMIT 64
+#define IDX_SIZE_LIMIT 32
+#else
+#define PLD_SIZE_LIMIT 1
+#define IDX_SIZE_LIMIT 1
+#endif
+
 struct fdb {
   gboolean is_open;
   gchar* dbdir;
@@ -44,7 +52,6 @@ struct fdb {
 };
 
 static struct fdb _fdb = {0};
-static gchar zbuf[4096*64] = {0};
 
 static __inline__ void _fdb_reset_error()
 {
@@ -72,7 +79,7 @@ static void _fdb_set_error(const gchar* fmt, ...)
   _fdb.errstr = g_strdup_printf("error[filedb]: %s", _fdb.errstr);
 }
 
-#define MAXHASH 4
+#define MAXHASH 32
 static __inline__ guint _hash(const gchar* path)
 {
 #if 1
@@ -126,7 +133,6 @@ struct file_idx_hdr {
 guint32 _alloc_node(gchar* path, gchar* link)
 {
   gsize required_idx_size, required_pld_size;
-  gsize size_pld, size_idx;
   gsize pld_off = sizeof(struct file_pld_hdr);
   guint32 id;
   struct file_pld* pld;
@@ -146,35 +152,8 @@ guint32 _alloc_node(gchar* path, gchar* link)
   required_pld_size = sizeof(struct file_pld_hdr) + sizeof(struct file_pld) + pld_off
                       + size_path+1 + size_link+1;
 
-  size_pld = _fdb.size_pld;
-  if (G_UNLIKELY(required_pld_size > size_pld))
-  {
-    msync(_fdb.addr_pld, _fdb.size_pld, MS_ASYNC);
-    lseek(_fdb.fd_pld, 0, SEEK_END);
-    /*XXX: limit this to a reasonable size */
-    while (required_pld_size > size_pld)
-    {
-      write(_fdb.fd_pld, zbuf, sizeof(zbuf));
-      size_pld += sizeof(zbuf);
-    }
-    _fdb.addr_pld = mremap(_fdb.addr_pld, _fdb.size_pld, size_pld, MREMAP_MAYMOVE); /* XXX: check failure */
-    _fdb.phdr = _fdb.addr_pld;
-    _fdb.size_pld = size_pld;
-  }
-
-  size_idx = _fdb.size_idx;
-  if (G_UNLIKELY(required_idx_size > size_idx))
-  {
-    msync(_fdb.addr_idx, _fdb.size_idx, MS_ASYNC);
-    lseek(_fdb.fd_idx, 0, SEEK_END);
-
-    write(_fdb.fd_idx, zbuf, sizeof(zbuf));
-    size_idx += sizeof(zbuf);
-    _fdb.addr_idx = mremap(_fdb.addr_idx, _fdb.size_idx, size_idx, MREMAP_MAYMOVE); /* XXX: check failure */
-    _fdb.idx = _fdb.addr_idx + sizeof(struct file_idx_hdr);
-    _fdb.ihdr = _fdb.addr_idx;
-    _fdb.size_idx = size_idx;
-  }
+  if (G_UNLIKELY(required_pld_size > _fdb.size_pld || required_idx_size > _fdb.size_idx))
+    return 0;
 
   /* add file to payload */
   pld = _fdb.addr_pld + pld_off;
@@ -387,6 +366,7 @@ gchar* fdb_error()
 gint fdb_open(const gchar* root)
 {
   gchar *path_idx, *path_pld;
+  gchar z = 0;
   gint j;
 
   if (_fdb.is_open)
@@ -447,9 +427,9 @@ gint fdb_open(const gchar* root)
   { /* empty idx file (create new) */
     struct file_idx_hdr head;
     /*XXX: check writes */
-    write(_fdb.fd_idx, zbuf, sizeof(zbuf));
-    lseek(_fdb.fd_idx, 0, SEEK_SET);
-    _fdb.size_idx = sizeof(zbuf);
+    lseek(_fdb.fd_idx, 1024*1024*IDX_SIZE_LIMIT-1, SEEK_SET);
+    write(_fdb.fd_idx, &z, 1);
+    _fdb.size_idx = 1024*1024*IDX_SIZE_LIMIT;
 
     /* create initial header */
     strcpy(head.magic, "FDB.PLINDEX");
@@ -458,12 +438,13 @@ gint fdb_open(const gchar* root)
       head.hashmap[j] = 0;
 
     /* write header */
+    lseek(_fdb.fd_idx, 0, SEEK_SET);
     write(_fdb.fd_idx, (void*)&head, sizeof(head));
   }
   else
   {
     struct file_idx_hdr head;
-    if (_fdb.size_idx % sizeof(zbuf) != 0)
+    if (_fdb.size_idx != IDX_SIZE_LIMIT*1024*1024)
     {
       _fdb_set_error("can't open filedb: invalid idx file (its size must be multiple of 4096)");
       goto err_3;
@@ -490,17 +471,18 @@ gint fdb_open(const gchar* root)
   {
     struct file_pld_hdr head;
 
-    write(_fdb.fd_pld, zbuf, sizeof(zbuf));
-    lseek(_fdb.fd_pld, 0, SEEK_SET);
-    _fdb.size_pld = sizeof(zbuf);
+    lseek(_fdb.fd_pld, 1024*1024*PLD_SIZE_LIMIT-1, SEEK_SET);
+    write(_fdb.fd_pld, &z, 1);
+    _fdb.size_pld = 1024*1024*PLD_SIZE_LIMIT;
 
     strcpy(head.magic, "FDB.PAYLOAD");
+    lseek(_fdb.fd_pld, 0, SEEK_SET);
     write(_fdb.fd_pld, (void*)&head, sizeof(head));
   }
   else
   {
     struct file_pld_hdr head;
-    if (_fdb.size_pld % sizeof(zbuf) != 0)
+    if (_fdb.size_pld != PLD_SIZE_LIMIT*1024*1024)
     {
       _fdb_set_error("can't open filedb: invalid pld file (its size must be multiple of 4096)");
       goto err_3;
@@ -554,8 +536,8 @@ gint fdb_close()
 
   ((struct file_idx_hdr*)_fdb.addr_idx)->lastid = _fdb.lastid;
 
-  msync(_fdb.addr_pld, _fdb.size_pld, MS_SYNC);
-  msync(_fdb.addr_idx, _fdb.size_idx, MS_SYNC);
+  msync(_fdb.addr_pld, _fdb.size_pld, MS_ASYNC);
+  msync(_fdb.addr_idx, _fdb.size_idx, MS_ASYNC);
   munmap(_fdb.addr_pld, _fdb.size_pld);
   munmap(_fdb.addr_idx, _fdb.size_idx);
 
@@ -600,32 +582,3 @@ struct fdb_file* fdb_alloc_file(gchar* path, gchar* link)
   return f;
 }
 #endif
-
-#include "files.c"
-
-int main()
-{
-  gint fd,j,id;
-  
-  if (fdb_open("."))
-  {
-    printf("%s\n", fdb_error());
-    exit(1);
-  }
-
-  for (j=0; j<sizeof(files)/sizeof(files[0]); j++)
-  {
-    id = fdb_add_file(files[j], 0);
-    printf("added: %d\n", id);
-  }
-
-  for (j=0; j<sizeof(files)/sizeof(files[0]); j++)
-  {
-    id = _get_node(files[j]);
-    printf("got: %d\n", id);
-  }
-  _print_index("index.dot");
-  fdb_close();
-
-  return 0;
-}
