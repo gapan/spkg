@@ -46,6 +46,8 @@ extern gchar* fdb_error();
 
 extern guint32 fdb_add_file(gchar* path, gchar* link);
 
+extern guint32 _get_node(gchar* path);
+
 #endif
 
 /*! @} */

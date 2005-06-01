@@ -1,7 +1,8 @@
 #!/bin/sh
-OPTS="-O3 -march=pentium4 -D_GNU_SOURCE `pkg-config --cflags --libs glib-2.0`  -I.."
+OPTS="-O2 -march=pentium4 -fomit-frame-pointer -D_GNU_SOURCE `pkg-config --cflags --libs glib-2.0`  -I.."
 #gcc -O0 -ggdb3 -o filedb filedb.c ../sys.c -D_GNU_SOURCE `pkg-config --cflags --libs glib-2.0` -I../ || exit
 gcc $OPTS -o test-add test-add.c filedb.c ../sys.c || exit
+gcc $OPTS -o test-get test-get.c filedb.c ../sys.c || exit
 gcc $OPTS -o test-pre test-pre.c filedb.c ../sys.c || exit
 
 exit

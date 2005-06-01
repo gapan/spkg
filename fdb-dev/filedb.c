@@ -333,7 +333,7 @@ static guint32 _ins_node(guint32 root, gchar* path, gchar* link, void* proot)
   return id;
 }
 
-static guint32 _get_node(gchar* path)
+guint32 _get_node(gchar* path)
 {
   struct file_idx *p;
   guint hash = _hash(path);

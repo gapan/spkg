@@ -6,7 +6,10 @@ clean() {
 }
 
 run() {
+  echo "***** ADD"
   time ./test-add
+  echo "***** GET"
+  time ./test-get
 }
 
 clean
