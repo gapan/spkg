@@ -4,11 +4,6 @@ OPTS="-O2 -march=i486 -mcpu=i686 -fomit-frame-pointer -D_GNU_SOURCE `pkg-config 
 gcc $OPTS -o test-add add.c filedb.c ../sys.c || exit
 gcc $OPTS -o test-get get.c filedb.c ../sys.c || exit
 gcc $OPTS -o test-pre pre.c filedb.c ../sys.c || exit
-#gcc $OPTS -S filedb.c -masm=intel || exit
 
-exit
-
-rm -rf var
-time ./filedb
 #dot -Tpng -o index.png index.dot
 #rm -f index.dot

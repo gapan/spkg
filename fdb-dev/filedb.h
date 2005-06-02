@@ -6,7 +6,7 @@
 |*----------------------------------------------------------------------*|
 |*  No copy/usage restrictions are imposed on anybody using this work.  *|
 \*----------------------------------------------------------------------*/
-/** @addtogroup pkgdb_api */
+/** @addtogroup filedb_api */
 /*! @{ */
 
 #ifndef __FILEDB_H
@@ -17,14 +17,6 @@
 /*! @if false */
 #define FILEDB_DIR "var/log/fastpkg/filedb"
 /*! @endif */
-
-/** File information structure. */
-struct db_file {
-  gchar* path; /**< full path to the file */
-  gchar* link; /**< path to the link target (if file is symlink or link) */
-  guint  dup:1; /**< true if file already exists in the archive */
-  guint  padding:31; /**< just a padding to a dword */
-};
 
 struct file_pld {
   guint16 rc;
@@ -54,11 +46,26 @@ extern gint fdb_close();
  */
 extern gchar* fdb_error();
 
-
+/** Get file from database.
+ *
+ * @param id File id.
+ * @return 0 on error, file_pld pointer on success
+ */
 extern struct file_pld* fdb_get_file(guint32 id);
 
+/** Get file id from database.
+ *
+ * @param path File path.
+ * @return 0 on error, fileid on success
+ */
 extern guint32 fdb_get_file_id(gchar* path);
 
+/** Add file to database.
+ *
+ * @param path File path.
+ * @param link Link target if file is symlink.
+ * @return 0 on error, fileid on success
+ */
 extern guint32 fdb_add_file(gchar* path, gchar* link);
 
 #endif
