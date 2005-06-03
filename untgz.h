@@ -6,6 +6,41 @@
 |*----------------------------------------------------------------------*|
 |*  No copy/usage restrictions are imposed on anybody using this work.  *|
 \*----------------------------------------------------------------------*/
+/**********************************************************************/
+/** @defgroup untgz_api UNTGZ Extraction API
+
+Untgz is implementation of the robust tgz archive browser/extractor.
+Every known error state is properly handled.
+
+@section assum Assumptions
+
+@li Archive was created with tar czf. 
+
+@section usage Typical usage
+
+@code
+#include "untgz.h"
+
+int main(int ac, char* av[])
+{
+  if (ac == 2)
+  {
+    struct untgz_state* tgz;
+    tgz = untgz_open(av[1]);
+    if (tgz == 0)
+      return 1;
+    while (untgz_get_header(tgz) == 0)
+      if (untgz_write_file(tgz,0))
+        break;
+    if (tgz->errstr)
+      printf("err: %s\n", tgz->errstr);
+    untgz_close(tgz);
+  }
+  return 0;
+}
+@endcode
+
+***********************************************************************/
 /** @addtogroup untgz_api */
 /*! @{ */
 

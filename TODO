@@ -1,6 +1,5 @@
 DEADLINES
 ---------
- - integrate group docs into respective header files
  - merge filedb with current pkgdb implementation (keep both working)
 
 TODO

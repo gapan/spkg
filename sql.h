@@ -6,6 +6,104 @@
 |*----------------------------------------------------------------------*|
 |*  No copy/usage restrictions are imposed on anybody using this work.  *|
 \*----------------------------------------------------------------------*/
+/**********************************************************************/
+/** @defgroup sql_api SQL Database API
+
+This is simplistic wrapper API for the sqlite3 database engine. It is
+optimized for the single connection at time oriented programming.
+
+@section assum Assumptions
+
+@li One connection at time
+@li Database is open when calling any func except \ref sql_open
+
+@section errs Error handling
+
+Basically, if error occured sql_errstr contains pointer to the error
+message, otherwise it is 0. \ref sql_error() is not preserved between
+calls to the sql library.
+
+All errors that are returned by the sqlite3 RDBMS are exceptional.
+Well designed program should never encounter an error from sql library.
+
+There are 4 user selectable error handling modes:
+<dl>
+ <dt>\ref SQL_ERREXIT [default]</dt>
+ <dd>Print error message to the stderr, close openned queries and 
+     call exit(1).</dd>
+
+ <dt>\ref SQL_ERRJUMP</dt>
+ <dd>Store error message to the \ref sql_error() and do a longjmp.</dd>
+
+ <dt>\ref SQL_ERRINFORM</dt>
+ <dd>Print error message to the stderr and store it to the \ref sql_error(), 
+     then return from function in which error occured.</dd>
+
+ <dt>\ref SQL_ERRIGNORE</dt>
+ <dd>Store error message to the \ref sql_error(), then return from function 
+     in which error occured.</dd>
+</dl>
+
+@section usage Typical usage
+
+Following code shows \ref sql_api usage.
+
+@code
+#include "sql.h"
+
+int main(int ac, char* av[])
+{
+  char* names[] = { "bob", "bill", "ben", 0 };
+  char** name;
+  sql_query* q;
+
+  sql_push_context(SQL_ERRJUMP);
+  if (setjmp(sql_errjmp) == 1)
+  { /* exception occured */
+    sql_pop_context();
+    fprintf(stderr, "%s\n", sql_error());
+    sql_close();
+    exit(1);
+  }
+
+  /* open database */
+  sql_open("test.db");
+
+  if (!sql_table_exist("tab"))
+  {
+    /* create table */
+    sql_exec("CREATE TABLE tab(id INTEGER PRIMARY KEY, name TEXT, age INTEGER DEFAULT 0);");
+
+    /* fill the table */
+    q = sql_prep("INSERT INTO tab(name) VALUES(?);");
+    name = names;
+    while (*name != 0)
+    {
+      sql_set_text(q, 1, *name);
+      sql_step(q);
+      sql_rest(q);
+      name++;
+    }
+    sql_fini(q);
+  }
+  /* update table */
+  sql_exec("UPDATE tab SET age = %d WHERE name == '%q';", 20, "bob");
+  sql_exec("UPDATE tab SET age = %d WHERE name == '%q';", 33, "bill");
+
+  /* query table */
+  q = sql_prep("SELECT id,name,age FROM tab;");
+  while (sql_step(q))
+    printf("%d: %s (%d)\n", sql_get_int(q,0), sql_get_text(q,1), sql_get_int(q,2));
+  sql_fini(q);
+
+  /* close database */
+  sql_pop_context();
+  sql_close();
+  return 0;
+}
+@endcode
+
+***********************************************************************/
 /** @addtogroup sql_api */
 /*! @{ */
 

@@ -6,6 +6,20 @@
 |*----------------------------------------------------------------------*|
 |*  No copy/usage restrictions are imposed on anybody using this work.  *|
 \*----------------------------------------------------------------------*/
+/**********************************************************************/
+/** @defgroup filedb_api File Database API
+
+Filedb is extremely fast file database for package manager. It can handle
+from 300,000 to 3,000,000 file requests per second on P4 1.5GHz. (add, get,
+rem)
+
+Basic operations on filedb are:
+
+@li Add file
+@li Get file
+@li Rem file
+
+***********************************************************************/
 /** @addtogroup filedb_api */
 /*! @{ */
 
