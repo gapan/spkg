@@ -1,13 +1,14 @@
 #include <stdio.h>
-
 #include "filedb.h"
-#include "files.c"
-
 #include "tsc.h"
+
+extern unsigned int files_cnt;
+extern char* files[];
 
 int main()
 {
   gint fd,j,id;
+  struct fdb_file f;
   
   start_timer(0);
   if (fdb_open("."))
@@ -19,7 +20,7 @@ int main()
   print_timer(0, "open");
 
   start_timer(0);
-  for (j=0; j<sizeof(files)/sizeof(files[0]); j++)
+  for (j=0; j<files_cnt; j++)
   {
     id = fdb_get_file_id(files[j]);
 

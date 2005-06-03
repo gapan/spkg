@@ -24,8 +24,11 @@
 /* private 
  ************************************************************************/
 
-#define PLD_SIZE_LIMIT 64
-#define IDX_SIZE_LIMIT 32
+#define PLD_SIZE_LIMIT 32
+#define IDX_SIZE_LIMIT 16
+#define MAXHASH 32
+#define PARANOID_CHECKS 0
+#define SHOW_STATS 0
 
 struct fdb {
   gboolean is_open;
@@ -76,7 +79,6 @@ static void _fdb_set_error(const gchar* fmt, ...)
   _fdb.errstr = g_strdup_printf("error[filedb]: %s", _fdb.errstr);
 }
 
-#define MAXHASH 32
 static __inline__ guint _hash(const gchar* path)
 {
   guint h=0,i=0;
@@ -95,14 +97,22 @@ static __inline__ gint faststrcmp(const guint32 h1, const gchar* s1, const guint
     return -1;
   else if (h1>h2)
     return 1;
-  else
-    return strcmp(s1,s2);
+  return strcmp(s1,s2);
 }
 
 /* AVL binary tree
  ************************************************************************/
 
 /* ondisk data structures */
+struct file_pld {
+  guint16 rc;
+  guint16 mode;
+  guint16 plen;
+  guint16 llen;
+  gchar data[];
+  /* data[0] = 'path' + '\0' */
+  /* data[plen+1] = 'link' + '\0' */
+};
 
 /*XXX: gross hack */
 struct file_idx { /* AVL tree leaf */
@@ -123,11 +133,13 @@ struct file_idx_hdr {
   guint32 hashmap[MAXHASH];
 };
 
-static guint32 _alloc_node(gchar* path, gchar* link)
+static guint32 _alloc_node(struct fdb_file* file)
 {
   guint32 size_path, size_link, pld_entry_size;
   struct file_pld* pld;
   guint32 id;
+  gchar* path = file->path;
+  gchar* link = file->link;
 
   size_path = strlen(path);
   size_link = link?strlen(link):0;
@@ -135,11 +147,10 @@ static guint32 _alloc_node(gchar* path, gchar* link)
 
   pld_entry_size = sizeof(struct file_pld) + size_path+1 + size_link+1;
 
-#if 0
+#if (PARANOID_CHECKS == 1)
   /* calculate required sizes of the idx and pld files */
-  guint32 required_idx_size, required_pld_size;
-  required_idx_size = sizeof(struct file_idx_hdr) + id*sizeof(struct file_idx);
-  required_pld_size = _fdb.newoff + pld_entry_size;
+  guint32 required_idx_size = sizeof(struct file_idx_hdr) + id*sizeof(struct file_idx);
+  guint32 required_pld_size = _fdb.newoff + pld_entry_size;
   if (G_UNLIKELY(required_pld_size > _fdb.size_pld || required_idx_size > _fdb.size_idx))
     return 0;
 #endif
@@ -153,6 +164,7 @@ static guint32 _alloc_node(gchar* path, gchar* link)
   pld->rc = 1;
   pld->plen = size_path;
   pld->llen = size_link;
+  pld->mode = file->mode;
   strcpy(pld->data, path);
   if (G_UNLIKELY(size_link))
     strcpy(pld->data+size_path+1, link);
@@ -166,7 +178,7 @@ static __inline__ guint32 _id(struct file_idx* idx) { return idx?idx-_fdb.idx+1:
 
 /* returns 1 if inserted, 0 if it already exists */
 #define AVL_MAX_HEIGHT 32
-static guint32 _ins_node(guint32 root, guint32 hash, gchar* path, gchar* link, void* proot)
+static guint32 _ins_node(struct fdb_file* file)
 {
   struct file_idx *y, *z; /* Top node to update balance factor, and parent. */
   struct file_idx *p, *q; /* Iterator, and parent. */
@@ -176,15 +188,18 @@ static guint32 _ins_node(guint32 root, guint32 hash, gchar* path, gchar* link, v
   guchar da[AVL_MAX_HEIGHT];
   gint k = 0;
   guint32 id;
-  
+  gchar* path = file->path;
+  guint32 hash = _hash(path);
+  guint32 shash = hash%MAXHASH;
+
   /*XXX: gross hack */
-  z = (struct file_idx *)proot;
-  y = _node(root);
+  z = (struct file_idx *)&_fdb.ihdr->hashmap[shash]; /* root node pointer */
+  y = _node(_fdb.ihdr->hashmap[shash]); /* root node pointer */
   dir = 0;
   for (q=z, p=y; p!=NULL; q=p, p=_node(p->lnk[dir]))
   {
     gint cmp = faststrcmp(hash, path, p->hash, _pld(p)->data);
-    if (cmp == 0)
+    if (G_UNLIKELY(cmp == 0))
       return _id(p);
     if (p->bal != 0)
       z = q, y = p, k = 0;
@@ -192,7 +207,11 @@ static guint32 _ins_node(guint32 root, guint32 hash, gchar* path, gchar* link, v
   }
   
   /* this will break every pointer from above */
-  id = _alloc_node(path,link);
+  id = _alloc_node(file);
+#if (PARANOID_CHECKS == 1)
+  if (G_UNLIKELY(id == 0))
+    return 0;
+#endif
   i = _node(id);
   i->hash = hash;
   q->lnk[dir] = id;
@@ -201,10 +220,12 @@ static guint32 _ins_node(guint32 root, guint32 hash, gchar* path, gchar* link, v
     return id;
 
   for (p=y, k=0; p!=i; p=_node(p->lnk[da[k]]), k++)
+  {
     if (da[k] == 0)
       p->bal--;
     else
       p->bal++;
+  }
 
   if (y->bal == -2)
   {
@@ -458,6 +479,14 @@ gint fdb_close()
   _fdb.ihdr->lastid = _fdb.lastid;
   _fdb.phdr->newoff = _fdb.newoff;
 
+#if SHOW_STATS == 1
+  guint32 is = (_fdb.lastid*sizeof(struct file_idx)+sizeof(struct file_idx_hdr));
+  guint32 ps = _fdb.newoff;
+  printf("** filedb: pld size = %u kB (%1.1lf%%), idx size = %u kB (%1.1lf%%) (%u files)\n", 
+    ps/1024, 100.0*ps/(1024*1024*PLD_SIZE_LIMIT),
+    is/1024, 100.0*is/(1024*1024*IDX_SIZE_LIMIT), _fdb.lastid);
+#endif
+
   msync(_fdb.addr_pld, _fdb.size_pld, MS_ASYNC);
   msync(_fdb.addr_idx, _fdb.size_idx, MS_ASYNC);
   munmap(_fdb.addr_pld, _fdb.size_pld);
@@ -468,12 +497,14 @@ gint fdb_close()
   return 0;
 }
 
-guint32 fdb_add_file(gchar* path, gchar* link)
+guint32 fdb_add_file(struct fdb_file* file)
 {
-  guint hash = _hash(path);
-  guint32 id;
-  id = _ins_node(_fdb.ihdr->hashmap[hash%MAXHASH], hash, path, link, &_fdb.ihdr->hashmap[hash%MAXHASH]);
-  return id;
+  if (file == 0 || file->path == 0)
+  {
+    _fdb_set_error("can't add file: invalid argument of the function");
+    return 0;
+  }
+  return _ins_node(file);
 }
 
 guint32 fdb_get_file_id(gchar* path)
@@ -497,7 +528,17 @@ guint32 fdb_get_file_id(gchar* path)
   return 0;
 }
 
-struct file_pld* fdb_get_file(guint32 id)
+gint fdb_get_file(guint32 id, struct fdb_file* file)
 {
-  return _pld(_node(id));
+  struct file_pld* pld = _pld(_node(id));
+  if (pld == 0)
+  {
+    _fdb_set_error("can't get file: invalid file id");
+    return 1;
+  }
+  file->path = pld->data;
+  file->link = pld->llen?pld->data+pld->plen+1:0;
+  file->mode = pld->mode;
+  return 0;
 }
+

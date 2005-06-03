@@ -1,9 +1,11 @@
 #!/bin/sh
 OPTS="-O2 -march=i486 -mcpu=i686 -fomit-frame-pointer -D_GNU_SOURCE `pkg-config --cflags --libs glib-2.0`  -I.."
 #gcc -O0 -ggdb3 -o filedb filedb.c ../sys.c -D_GNU_SOURCE `pkg-config --cflags --libs glib-2.0` -I../ || exit
-gcc $OPTS -o test-add add.c filedb.c ../sys.c || exit
-gcc $OPTS -o test-get get.c filedb.c ../sys.c || exit
-gcc $OPTS -o test-pre pre.c filedb.c ../sys.c || exit
+#gcc -c files.c
+gcc $OPTS -o test-add add.c ../filedb.c ../sys.c files.o || exit
+gcc $OPTS -o test-get get.c ../filedb.c ../sys.c files.o || exit
+gcc $OPTS -o test-pre pre.c ../filedb.c ../sys.c || exit
+#gcc $OPTS -o test-sql sql-bench.c ../sql.c `pkg-config --libs --cflags sqlite3` || exit
 
 #dot -Tpng -o index.png index.dot
 #rm -f index.dot
