@@ -227,7 +227,6 @@ gint db_add_pkg(struct db_pkg* pkg)
     _db_set_error(DB_OTHER, "can't add package to the database (incomplete package structure)");
     return 1;
   }
-  
   /* sql error handler */
   sql_push_context(SQL_ERRJUMP);
   if (setjmp(sql_errjmp) == 1)
@@ -254,30 +253,41 @@ gint db_add_pkg(struct db_pkg* pkg)
   }
   sql_fini(q);
 
+  guint fi_size = g_slist_length(pkg->files);
+  guint32 *fi_array = g_malloc(sizeof(guint32)*fi_size);
+  guint i = 0;
+
+  fdb_open(_db_dbroot);
   for (l=pkg->files; l!=0; l=l->next)
   { /* for each file */
     struct db_file* f = l->data;
     struct fdb_file fdb;
     fdb.path = f->path;
     fdb.link = f->link;    
+    fdb.mode = f->mode;    
     f->id = fdb_add_file(&fdb);
     f->refs = fdb.refs;
+    fi_array[i++] = f->id;
   }
+  fdb_close();
 
   /* add pkg to the pacakge table */
-  q = sql_prep("INSERT INTO packages(name, shortname, version, arch, build, csize, usize, desc, location)"
-               " VALUES(?,?,?,?,?,?,?,?,?);");
+  q = sql_prep("INSERT INTO packages(name, shortname, version, arch, build, csize, usize, desc, location, files)"
+               " VALUES(?,?,?,?,?,?,?,?,?,?);");
   sql_set_text(q, 1, pkg->name);
   sql_set_text(q, 2, pkg->shortname);
   sql_set_text(q, 3, pkg->version);
   sql_set_text(q, 4, pkg->arch);
   sql_set_text(q, 5, pkg->build);
+  sql_set_int(q, 6, pkg->csize);
+  sql_set_int(q, 7, pkg->usize);
   sql_set_text(q, 8, pkg->desc);
   sql_set_text(q, 9, pkg->location);
-  sql_set_int(q, 7, pkg->usize);
-  sql_set_int(q, 6, pkg->csize);
+  sql_set_blob(q, 10, fi_array, fi_size*sizeof(*fi_array));
   sql_step(q);
   sql_fini(q);
+
+  g_free(fi_array);
 
   sql_exec("COMMIT TRANSACTION;");
   sql_pop_context();
@@ -313,7 +323,7 @@ gint db_rem_pkg(gchar* name)
   sql_exec("BEGIN EXCLUSIVE TRANSACTION;");
 
   /* check if package is in db */
-  q = sql_prep("SELECT id FROM packages WHERE name == '%q';", name);
+  q = sql_prep("SELECT id,files FROM packages WHERE name == '%q';", name);
   if (!sql_step(q))
   { /* if package does not exists */
     _db_set_error(DB_NOTEX, "can't remove package from the database (package is not there - %s)", name);
@@ -323,12 +333,19 @@ gint db_rem_pkg(gchar* name)
     return 1;
   }
   pid = sql_get_int(q, 0);
+
+  guint fi_size = sql_get_size(q, 1)/sizeof(guint32);
+  guint32 *fi_array = (guint32*)sql_get_blob(q, 1);
+  guint i;
+  fdb_open(_db_dbroot);
+  for (i=0; i<fi_size; i++)
+    fdb_del_file(fi_array[i]);
+  fdb_close();
+  
   sql_fini(q);
 
   /* remove package from packages table */
   sql_exec("DELETE FROM packages WHERE id == %d;", pid);
-  
-  /* XXX: remove files from filedb */
 
   sql_exec("COMMIT TRANSACTION;");
 
@@ -368,7 +385,7 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   sql_exec("BEGIN EXCLUSIVE TRANSACTION;");
 
   q = sql_prep("SELECT id, name, shortname, version, arch, build, csize,"
-                   " usize, desc, location FROM packages WHERE name == '%q';", name);
+                   " usize, desc, location, files FROM packages WHERE name == '%q';", name);
   if (!sql_step(q))
   {
     _db_set_error(DB_NOTEX, "can't retrieve package from the database (package is not there - %s)", name);
@@ -390,6 +407,10 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   p->usize = sql_get_int(q, 7);
   p->desc = g_strdup(sql_get_text(q, 8));
   p->location = g_strdup(sql_get_text(q, 9));
+
+  guint fi_size = sql_get_size(q, 10)/sizeof(guint32);
+  guint32 *fi_array = (guint32*)sql_get_blob(q, 10);
+
   sql_fini(q);
 
   /* caller don't want files list, so it's enough here */
@@ -400,7 +421,20 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
     return p;
   }
   
-  /* XXX: get files from filedb */
+  fdb_open(_db_dbroot);
+  guint i;
+  struct fdb_file f;
+  for (i=0; i<fi_size; i++)
+  {
+    fdb_get_file(fi_array[i], &f);
+    struct db_file* file = g_new0(struct db_file, 1);
+    file->path = g_strdup(f.path);
+    file->link = f.link?g_strdup(f.link):0;
+    file->mode = f.mode;
+    file->id = fi_array[i];
+    g_slist_append(p->files, file);
+  }
+  fdb_close();
 
   sql_exec("ROLLBACK TRANSACTION;");
   sql_pop_context();
@@ -689,7 +723,7 @@ gint db_sync_legacydb_to_fastpkgdb()
     if (!strcmp(de->d_name,".") || !strcmp(de->d_name,".."))
       continue;
 
-    printf("syncing %s\n", de->d_name);
+//    printf("syncing %s\n", de->d_name);
     fflush(stdout);
 
     p = db_legacy_get_pkg(de->d_name);

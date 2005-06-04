@@ -35,7 +35,7 @@ with same path
 #include <glib.h>
 
 /** File database directory */
-#define FILEDB_DIR "var/log/fastpkg/filedb"
+#define FILEDB_DIR "filedb"
 
 /** File data stored in database. */
 struct fdb_file {

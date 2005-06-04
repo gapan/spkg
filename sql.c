@@ -318,6 +318,24 @@ gchar* sql_get_text(sql_query* query, guint col)
   return 0;
 }
 
+const void* sql_get_blob(sql_query* query, guint col)
+{
+  _sql_reset_error();
+  if (col < sqlite3_data_count(query))
+    return sqlite3_column_blob(query, col);
+  _sql_on_error("column out of range (%d)", col);
+  return 0;
+}
+
+guint sql_get_size(sql_query* query, guint col)
+{
+  _sql_reset_error();
+  if (col < sqlite3_data_count(query))
+    return (guint)sqlite3_column_bytes(query, col);
+  _sql_on_error("column out of range (%d)", col);
+  return 0;
+}
+
 gint64 sql_get_int64(sql_query* query, guint col)
 {
   _sql_reset_error();
@@ -346,6 +364,12 @@ gint sql_set_text(sql_query* query, gint par, const gchar* val)
 {
   _sql_reset_error();
   return sqlite3_bind_text(query, par, val, -1, SQLITE_STATIC); /*XXX: TRANSIENT? */
+}
+
+gint sql_set_blob(sql_query* query, gint par, void* val, guint len)
+{
+  _sql_reset_error();
+  return sqlite3_bind_blob(query, par, val, len, SQLITE_STATIC); /*XXX: TRANSIENT? */
 }
 
 gint sql_set_int64(sql_query* query, gint par, gint64 val)

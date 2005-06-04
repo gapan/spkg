@@ -26,7 +26,7 @@
 #define IDX_SIZE_LIMIT 8
 #define MAXHASH (1024*128)
 #define PARANOID_CHECKS 0
-#define SHOW_STATS 1
+#define SHOW_STATS 0
 
 struct fdb {
   gboolean is_open;
@@ -116,7 +116,7 @@ struct file_idx { /* AVL tree leaf */
   guint32 lnk[2]; /* left file in the tree, 0 if none */
   guint32 off; /* offset to the payload file */
   guint32 hash; /* full hash value of the file path */
-  guint8  refs;
+  guint16 refs;
   gint8   bal; /* balance value */
 };
 
@@ -529,6 +529,8 @@ gint fdb_close()
   msync(_fdb.addr_idx, _fdb.size_idx, MS_ASYNC);
   munmap(_fdb.addr_pld, _fdb.size_pld);
   munmap(_fdb.addr_idx, _fdb.size_idx);
+  close(_fdb.fd_pld);
+  close(_fdb.fd_idx);
 
   g_free(_fdb.dbdir);
   memset(&_fdb, 0, sizeof(_fdb));

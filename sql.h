@@ -233,6 +233,22 @@ extern gint sql_get_int(sql_query* query, guint col);
  */
 extern gchar* sql_get_text(sql_query* query, guint col);
 
+/** Get blob from the specified column of the current row.
+ *
+ * @param query SQL query.
+ * @param col Column position. Counts from 0.
+ * @return pointer to the blob (may not return)
+ */
+extern const void* sql_get_blob(sql_query* query, guint col);
+
+/** Get blob size from the specified column of the current row.
+ *
+ * @param query SQL query.
+ * @param col Column position. Counts from 0.
+ * @return blob size (may not return)
+ */
+extern guint sql_get_size(sql_query* query, guint col);
+
 /** Get integer from the specified column of the current row.
  *
  * @param query SQL query.
@@ -266,6 +282,16 @@ extern gint sql_set_int(sql_query* query, gint par, gint val);
  * @return 1 on error, 0 on success (may not return)
  */
 extern gint sql_set_text(sql_query* query, gint par, const gchar* val);
+
+/** Set positional argument to the specified value.
+ *
+ * @param query SQL query.
+ * @param par Parameter position. Counts from 1.
+ * @param val Blob pointer.
+ * @param len Blob size in bytes.
+ * @return 1 on error, 0 on success (may not return)
+ */
+extern gint sql_set_blob(sql_query* query, gint par, void* val, guint len);
 
 /** Set positional argument to the specified value.
  *

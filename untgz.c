@@ -242,7 +242,7 @@ gint untgz_get_header(struct untgz_state* s)
         b = read_next_block(s, 0);
         if (b == 0)
           throw_error(s, "%d: corrupted tgz archive (missing longlink data block)", s->blockid);
-        s->f_link = strnappend(s->f_link, b->b, BLOCKSIZE);
+        s->f_link = strnappend(s->f_link, (gchar*)b->b, BLOCKSIZE);
         remaining = remaining<=BLOCKSIZE?0:remaining-BLOCKSIZE;
       }
       continue;
@@ -254,7 +254,7 @@ gint untgz_get_header(struct untgz_state* s)
         b = read_next_block(s, 0);
         if (b == 0)
           throw_error(s, "%d: corrupted tgz archive (missing longname data block)", s->blockid);
-        s->f_name = strnappend(s->f_name, b->b, BLOCKSIZE);
+        s->f_name = strnappend(s->f_name, (gchar*)b->b, BLOCKSIZE);
         remaining = remaining<=BLOCKSIZE?0:remaining-BLOCKSIZE;
       }
       continue;

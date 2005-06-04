@@ -13,10 +13,10 @@ export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
 DESTDIR :=
 PREFIX := /usr/local
-DEBUG := yes
+DEBUG := no
 PROFILE := no
 STATIC := yes
-VERSION := 0.9.0
+VERSION := 0.9.1
 
 CC := gcc
 
@@ -53,7 +53,8 @@ objs-all := $(sort $(objs-fastpkg))
 dep-files := $(addprefix .dep/,$(addsuffix .d,$(basename $(notdir $(objs-all)))))
 
 # default
-all: untgz sql pkgdb pkgtools fastpkg
+all: fastpkg
+tests: untgz sql pkgdb pkgtools
 
 fastpkg: $(objs-fastpkg)
 	$(CC) $^ $(LDFLAGS) -o $@

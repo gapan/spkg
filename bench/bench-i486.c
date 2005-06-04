@@ -11,13 +11,13 @@ int main()
   struct fdb_file f;
   
   nice(-10);
-  unlink("var/log/fastpkg/filedb/idx");
-  unlink("var/log/fastpkg/filedb/pld");
+  unlink("filedb/idx");
+  unlink("filedb/pld");
   
   if (fdb_open("."))
   {
     printf("%s\n", fdb_error());
-    exit(1);
+    return 1;
   }
 
   i=0;
