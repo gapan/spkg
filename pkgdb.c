@@ -408,18 +408,17 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   p->desc = g_strdup(sql_get_text(q, 8));
   p->location = g_strdup(sql_get_text(q, 9));
 
-  guint fi_size = sql_get_size(q, 10)/sizeof(guint32);
-  guint32 *fi_array = (guint32*)sql_get_blob(q, 10);
-
-  sql_fini(q);
-
   /* caller don't want files list, so it's enough here */
   if (files == 0)
   {
+    sql_fini(q);
     sql_exec("ROLLBACK TRANSACTION;");
     sql_pop_context();
     return p;
   }
+
+  guint fi_size = sql_get_size(q, 10)/sizeof(guint32);
+  guint32 *fi_array = (guint32*)sql_get_blob(q, 10);
   
   fdb_open(_db_dbroot);
   guint i;
@@ -435,6 +434,8 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
     g_slist_append(p->files, file);
   }
   fdb_close();
+
+  sql_fini(q);
 
   sql_exec("ROLLBACK TRANSACTION;");
   sql_pop_context();
