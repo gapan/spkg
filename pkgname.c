@@ -100,3 +100,11 @@ gint parse_slackdesc(const gchar* slackdesc,
 {
   
 }
+
+gint parse_pkgdb(const gchar* buffer, gsize len,
+                 gchar* name,
+                 GSlist** links,
+                 GSlist** files)
+{
+  
+}

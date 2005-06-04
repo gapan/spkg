@@ -16,6 +16,7 @@
 #include "sql.h"
 #include "sys.h"
 #include "pkgname.h"
+#include "filedb.h"
 
 #include "pkgdb.h"
 
@@ -55,21 +56,6 @@ static void _db_set_error(gint errno, const gchar* fmt, ...)
   _db_errstr = g_strdup_vprintf(fmt, ap);
   va_end(ap);
   _db_errstr = g_strdup_printf("error[pkgdb]: %s", _db_errstr);
-}
-
-
-/* path hashing algorithm */
-#define MAXHASH 512
-static __inline__ guint _db_path_hash(const gchar* path)
-{
-  guint h=0,i=0;
-  gint primes[8] = {3, 5, 7, 11, 13, 17, 7/*19*/, 5/*23*/};
-  while (*path!=0)
-  {
-    h += *path * primes[i&0x07];
-    path++; i++;
-  }
-  return h%MAXHASH;
 }
 
 /* public 
@@ -160,26 +146,12 @@ gint db_open(const gchar* root)
       " csize INTEGER,"
       " usize INTEGER,"
       " desc TEXT,"
-      " location TEXT "
+      " location TEXT,"
+      " files BLOB "
       ");"
     );
   }
 
-  if (!sql_table_exist("f_000"))
-  {
-    gint i;
-    for (i=0; i<MAXHASH; i++)
-    {
-      sql_exec( 
-        "CREATE TABLE f_%03x ("
-        " id INTEGER PRIMARY KEY,"
-        " path TEXT NOT NULL,"
-        " link TEXT DEFAULT NULL,"
-        " rc INTEGER NOT NULL DEFAULT 1 " /* ref count */
-        ");", i
-      );
-    }
-  }
   sql_exec("COMMIT TRANSACTION;");
 
   sql_pop_context();
@@ -242,11 +214,8 @@ struct db_file* db_alloc_file(gchar* path, gchar* link)
 
 gint db_add_pkg(struct db_pkg* pkg)
 {
-  sql_query *q, *q1;
+  sql_query *q;
   GSList* l;
-  gchar* pkgtab=0;
-  gchar* ftab=0;
-  gint pid;
 
   _db_reset_error();
   _db_open_check(1)
@@ -268,8 +237,6 @@ gint db_add_pkg(struct db_pkg* pkg)
     sql_push_context(SQL_ERRIGNORE);
     sql_exec("ROLLBACK TRANSACTION;");
     sql_pop_context();
-    g_free(ftab);
-    g_free(pkgtab);
     return 1;
   }
 
@@ -287,6 +254,16 @@ gint db_add_pkg(struct db_pkg* pkg)
   }
   sql_fini(q);
 
+  for (l=pkg->files; l!=0; l=l->next)
+  { /* for each file */
+    struct db_file* f = l->data;
+    struct fdb_file fdb;
+    fdb.path = f->path;
+    fdb.link = f->link;    
+    f->id = fdb_add_file(&fdb);
+    f->rc = fdb.refs;
+  }
+
   /* add pkg to the pacakge table */
   q = sql_prep("INSERT INTO packages(name, shortname, version, arch, build, csize, usize, desc, location)"
                " VALUES(?,?,?,?,?,?,?,?,?);");
@@ -300,68 +277,18 @@ gint db_add_pkg(struct db_pkg* pkg)
   sql_set_int(q, 7, pkg->usize);
   sql_set_int(q, 6, pkg->csize);
   sql_step(q);
-  pid = sql_rowid();
   sql_fini(q);
-
-  pkgtab = g_strdup_printf("pkg_%05d", pid);
-
-  /* if table exists clean it */
-  if (sql_table_exist(pkgtab))
-    sql_exec("DROP TABLE %s;", pkgtab);
-
-  sql_exec("CREATE TABLE %s ( hash INTEGER NOT NULL, fid INTEGER NOT NULL );", pkgtab);
-  q1 = sql_prep("INSERT INTO %s(hash, fid) VALUES(?,?);", pkgtab);
-  for (l=pkg->files; l!=0; l=l->next)
-  { /* for each file */
-    struct db_file* f = l->data;
-    gint rc, fid;
-    guint hash;
-    
-    hash = _db_path_hash(f->path);
-    ftab = g_strdup_printf("f_%03x", hash);
-
-    /* if file is already in db, update refcount, otherwise add it with refcount = 1 */
-    q = sql_prep("SELECT id,rc FROM %s WHERE path == '%q';", ftab, f->path);
-    if (sql_step(q))
-    { /* file is already in db */
-      fid = sql_get_int(q, 0);
-      rc = sql_get_int(q, 1);
-      sql_fini(q);
-      sql_exec("UPDATE %s SET rc = %d WHERE id == %d;", ftab, rc+1, fid);
-    }
-    else
-    { /* file is not in db */
-      sql_fini(q);
-      if (f->link)
-        sql_exec("INSERT INTO %s(path,link) VALUES('%q','%q');", ftab, f->path, f->link);
-      else
-        sql_exec("INSERT INTO %s(path) VALUES('%q');", ftab, f->path);
-      fid = sql_rowid();
-    }
-    g_free(ftab);ftab=0;
-
-    /* update package filemap table */
-    sql_set_int(q1, 1, hash);
-    sql_set_int(q1, 2, fid);
-    sql_step(q1);
-    sql_rest(q1);
-  }
-  sql_fini(q1);
 
   sql_exec("COMMIT TRANSACTION;");
   sql_pop_context();
-  g_free(pkgtab);
   return 0;
 }
 
-/*XXX: optimize (hash grouping) */
 gint db_rem_pkg(gchar* name)
 {
-  sql_query *q, *q1;
-  gchar* pkgtab=0;
-  gchar* ftab=0;
+  sql_query *q;
   gint pid;
-
+  
   _db_reset_error();
   _db_open_check(1)
 
@@ -380,8 +307,6 @@ gint db_rem_pkg(gchar* name)
     sql_push_context(SQL_ERRIGNORE);
     sql_exec("ROLLBACK TRANSACTION;");
     sql_pop_context();
-    g_free(ftab);
-    g_free(pkgtab);
     return 1;
   }
 
@@ -402,42 +327,8 @@ gint db_rem_pkg(gchar* name)
 
   /* remove package from packages table */
   sql_exec("DELETE FROM packages WHERE id == %d;", pid);
-  pkgtab = g_strdup_printf("pkg_%05d", pid);
-
-  q = sql_prep("SELECT hash,fid FROM %s;", pkgtab);
-  while (sql_step(q))
-  { /* for each file map */
-    gint rc, fid, hash;
-
-    hash = sql_get_int(q, 0);
-    fid = sql_get_int(q, 1);
-    ftab = g_strdup_printf("f_%03x", hash);
-
-    /* if file is already in db, update refcount, otherwise add it with refcount = 1 */
-    q1 = sql_prep("SELECT rc FROM %s WHERE id == %d;", ftab, fid);
-    if (sql_step(q1))
-    { /* file is in db */
-      rc = sql_get_int(q1, 0);
-      sql_fini(q1);
-      if (rc == 1)
-        sql_exec("DELETE FROM %s WHERE id == %d;", ftab, fid);
-      else
-        sql_exec("UPDATE %s SET rc = %d WHERE id == %d;", ftab, rc-1, fid);
-    }
-    else
-    { /* inconsistent database */
-      _db_set_error(DB_OTHER, "can't remove package from the database (inconsistent database)");
-      sql_exec("ROLLBACK TRANSACTION;");
-      sql_pop_context();
-      g_free(pkgtab);
-      g_free(ftab);
-      return 1;
-    }
-    g_free(ftab);ftab=0;
-  }
-  sql_fini(q);
-
-  sql_exec("DROP TABLE %s;", pkgtab);
+  
+  /* XXX: remove files from filedb */
 
   sql_exec("COMMIT TRANSACTION;");
 
@@ -448,10 +339,9 @@ gint db_rem_pkg(gchar* name)
 
 struct db_pkg* db_get_pkg(gchar* name, gboolean files)
 {
-  sql_query *q, *q1=0;
+  sql_query *q;
   struct db_pkg* p=0;
   gint pid;
-  gint old_hash = MAXHASH;
 
   _db_reset_error();
   _db_open_check(0)
@@ -511,46 +401,7 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
     return p;
   }
   
-  q = sql_prep("SELECT hash,fid FROM pkg_%05d ORDER BY hash;", pid);
-  while (sql_step(q))
-  { /* for each file that belongs to the package */
-    gint hash, fid;
-    hash = sql_get_int(q, 0);
-    fid = sql_get_int(q, 1);
-
-    /* get file from table */
-    if (hash != old_hash)
-    {
-      if (q1)
-        sql_fini(q1);
-      q1 = sql_prep("SELECT path,link,rc FROM f_%03x WHERE id == ?;", hash);
-      old_hash = hash;
-    }
-    sql_set_int(q1, 1, fid);
-    if (sql_step(q1))
-    {
-      struct db_file* f;
-      f = g_new0(struct db_file, 1);
-      f->path = g_strdup(sql_get_text(q1, 0));
-      if (!sql_get_null(q1, 1))
-        f->link = g_strdup(sql_get_text(q1, 1));
-      f->dup = sql_get_int(q1, 2) > 1 ? 1 : 0;
-      p->files = g_slist_append(p->files, f);
-    }
-    else
-    {
-      _db_set_error(DB_OTHER, "can't retrieve package from the database (inconsistent database)", name);
-      sql_fini(q);
-      sql_fini(q1);
-      sql_exec("ROLLBACK TRANSACTION;");
-      sql_pop_context();
-      db_free_pkg(p);
-      return 0;
-    }
-    sql_rest(q1);
-  }
-  sql_fini(q1);
-  sql_fini(q);
+  /* XXX: get files from filedb */
 
   sql_exec("ROLLBACK TRANSACTION;");
   sql_pop_context();

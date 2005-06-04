@@ -10,7 +10,7 @@
 /** @defgroup filedb_api File Database API
 
 Filedb is extremely fast file database for package manager. It can handle
-from 300,000 to 3,000,000 file requests per second on P4 1.5GHz. (add, get,
+from 300,000 to 1,000,000 file requests per second on P4 1.5GHz. (add, get,
 rem)
 
 Basic operations on filedb are:
@@ -18,6 +18,12 @@ Basic operations on filedb are:
 @li Add file
 @li Get file
 @li Rem file
+
+@section add Add file
+
+It is necessary to go through database and find file
+with same path
+
 
 ***********************************************************************/
 /** @addtogroup filedb_api */
@@ -36,6 +42,7 @@ struct fdb_file {
   gchar* path;  /**< File path. [required] */
   gchar* link;  /**< Target of the symlink. [optional] */
   guint16 mode; /**< File mode. */
+  guint16 refs; /**< Reference count. */
 };
 
 /** Returns description of the error if one occured in the last filedb
@@ -77,6 +84,21 @@ extern guint32 fdb_get_file_id(gchar* path);
  * @return 0 on error, file_pld pointer on success
  */
 extern gint fdb_get_file(guint32 id, struct fdb_file* file);
+
+/** Get file from database.
+ *
+ * @param id File id.
+ * @param file Pointer to the file information object to be filled.
+ * @return 0 on error, file_pld pointer on success
+ */
+extern gint fdb_get_file(guint32 id, struct fdb_file* file);
+
+/** Delete file from database.
+ *
+ * @param id File id.
+ * @return 0 on success, 1 on error
+ */
+extern gint fdb_del_file(guint32 id);
 
 #endif
 

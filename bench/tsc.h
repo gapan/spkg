@@ -1,4 +1,3 @@
-#include <sys/time.h>
 #include <asm/msr.h>
 
 #define TPS 1000000000ull

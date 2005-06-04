@@ -132,5 +132,5 @@ clean:
 	-rm -rf $(CLEANFILES)
 
 mrproper:
-	-rm -rf $(CLEANFILES) .dep docs/html ChangeLog
+	-rm -rf $(CLEANFILES) .dep docs/html docs/man ChangeLog
 
