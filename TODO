@@ -1,11 +1,9 @@
-DEADLINES
----------
- - merge filedb with current pkgdb implementation (keep both working)
-
 TODO
 ----
+- implement sync to legacy db
 - implement rm_rf and mkdir_p in C
-- pkgdb: optimizations and implement sync to legacy db
+- implement filedb transactions
+
 - pkgtools: implement install, upgrade, remove
 
 - modify pkg structure to contain short desc long desc and pkg name
@@ -15,16 +13,10 @@ TODO
 - install/uninst.sh extension (executed after uninstallation)
 - install/depends extension (linuxpackages.net)
 
-Possible Improvements
----------------------
-- rewrite pkgdb file database (use custom pascal like strings, hash indexing, etc.)
-- faster hashing function, hash cache, etc.
-- mmaping of file index
-
 Unnecessary
 -----------
 - maybe better transaction handling in sql (like checking if when leaving 
-  context tas are ended)
+  context ta is ended)
 
 Status
 ------
