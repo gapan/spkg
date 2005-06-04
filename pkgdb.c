@@ -261,7 +261,7 @@ gint db_add_pkg(struct db_pkg* pkg)
     fdb.path = f->path;
     fdb.link = f->link;    
     f->id = fdb_add_file(&fdb);
-    f->rc = fdb.refs;
+    f->refs = fdb.refs;
   }
 
   /* add pkg to the pacakge table */
@@ -333,7 +333,6 @@ gint db_rem_pkg(gchar* name)
   sql_exec("COMMIT TRANSACTION;");
 
   sql_pop_context();
-  g_free(pkgtab);
   return 0;
 }
 
@@ -666,7 +665,6 @@ gint db_sync_fastpkgdb_to_legacydb()
 
 gint db_sync_legacydb_to_fastpkgdb()
 {
-  gint i;
   DIR* d;
   struct dirent* de;
   gchar* tmpstr = g_strdup_printf("%s/%s", _db_topdir, "packages");
@@ -683,8 +681,6 @@ gint db_sync_legacydb_to_fastpkgdb()
   }
   
   sql_exec("DELETE FROM packages;");
-  for (i=0; i<MAXHASH; i++)
-    sql_exec("DELETE FROM f_%03x;", i);
 
   while ((de = readdir(d)) != NULL)
   {

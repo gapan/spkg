@@ -141,11 +141,11 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
     /* check for special files */
     if (!strcmp(tgz->f_name, "install/slack-desc"))
     {
-      gchar *buf, *dname, *sdesc, *ldesc;
+      gchar *buf, *sdesc, *ldesc;
       gsize len;
       
       untgz_write_data(tgz,(guchar**)&buf,&len);
-      parse_slackdesc(buf,shortname,&dname,&sdesc,&ldesc);
+      parse_slackdesc(buf,shortname,&sdesc,&ldesc);
       pkg->desc = buf;
       if (verbose)
         printf("install: package description found\n");

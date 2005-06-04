@@ -32,11 +32,11 @@
 
 /** File information structure. */
 struct db_file {
-  guint32 id;
-  guint16 rc; /**< true if file already exists in the archive */
-  gchar* path; /**< full path to the file */
-  gchar* link; /**< path to the link target (if file is symlink or link) */
-  guint16 mode;
+  guint32 id;   /**< filedb file id */
+  guint16 refs; /**< true if file already exists in the archive */
+  gchar* path;  /**< full path to the file */
+  gchar* link;  /**< path to the link target (if file is symlink or link) */
+  guint16 mode; /**< file mode */
 };
 
 /** Package information structure. */

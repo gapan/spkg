@@ -98,13 +98,13 @@ gint parse_slackdesc(const gchar* slackdesc,
                      gchar** sdesc,
                      gchar** ldesc)
 {
-  
+  return 1;
 }
 
 gint parse_pkgdb(const gchar* buffer, gsize len,
                  gchar* name,
-                 GSlist** links,
-                 GSlist** files)
+                 GSList** links,
+                 GSList** files)
 {
-  
+  return 1;
 }

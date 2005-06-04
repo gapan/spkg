@@ -493,7 +493,6 @@ gint fdb_open(const gchar* root)
   g_free(path_pld);
 
   return 0;
- err_5:
   munmap(_fdb.addr_pld, _fdb.size_pld);
  err_4:
   munmap(_fdb.addr_idx, _fdb.size_idx);
