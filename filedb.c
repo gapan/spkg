@@ -398,7 +398,8 @@ gint fdb_open(const gchar* root)
   
   if (_fdb.size_idx == 0)
   { /* empty idx file (create new) */
-    struct file_idx_hdr head = {{0}};
+    struct file_idx_hdr head;
+    memset(&head, 0, sizeof(head));
     /*XXX: check writes */
     lseek(_fdb.fd_idx, 1024*1024*IDX_SIZE_LIMIT-1, SEEK_SET);
     write(_fdb.fd_idx, &z, 1);
@@ -441,7 +442,8 @@ gint fdb_open(const gchar* root)
   /* read header of the payload file */
   if (_fdb.size_pld == 0)
   {
-    struct file_pld_hdr head = {{0}};
+    struct file_pld_hdr head;
+    memset(&head, 0, sizeof(head));
 
     lseek(_fdb.fd_pld, 1024*1024*PLD_SIZE_LIMIT-1, SEEK_SET);
     write(_fdb.fd_pld, &z, 1);

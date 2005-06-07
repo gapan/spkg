@@ -166,6 +166,7 @@ void db_close()
   g_free(_db_dbfile);
   g_free(_db_topdir);
   g_free(_db_dbroot);
+  g_blow_chunks();
   _db_is_open = 0;
 }
 
