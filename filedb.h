@@ -85,14 +85,6 @@ extern guint32 fdb_get_file_id(gchar* path);
  */
 extern gint fdb_get_file(guint32 id, struct fdb_file* file);
 
-/** Get file from database.
- *
- * @param id File id.
- * @param file Pointer to the file information object to be filled.
- * @return 0 on error, file_pld pointer on success
- */
-extern gint fdb_get_file(guint32 id, struct fdb_file* file);
-
 /** Delete file from database.
  *
  * @param id File id.

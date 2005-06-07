@@ -101,3 +101,14 @@ void sys_sigunblock(sigset_t* sigs)
   }
 }
 
+gchar* sys_dirname(const gchar* path)
+{
+  /*XXX: unimplemented */
+  return path;
+}
+
+gchar* sys_basename(const gchar* path)
+{
+  /*XXX: unimplemented */
+  return path;
+}

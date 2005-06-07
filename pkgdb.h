@@ -55,6 +55,9 @@ struct db_pkg {
   gchar* desc;       /**< package description */
   
   GSList* files;     /**< list of the files in the package */
+
+  /* internals */
+  gint id;           /**< unique package id */
 };
 
 /** Open package database.
@@ -128,7 +131,7 @@ extern struct db_pkg* db_get_pkg(gchar* name, gboolean files);
  */
 extern gint db_legacy_add_pkg(struct db_pkg* pkg);
 
-/** Get package from legacy database <b>[not implemented]</b>.
+/** Get package from legacy database.
  *
  * @param name Package name (something like: blah-1.0-i486-1)
  * @return 0 if not found, \ref db_pkg object on success
@@ -141,7 +144,19 @@ extern struct db_pkg* db_legacy_get_pkg(gchar* name);
  */
 extern void db_free_pkg(struct db_pkg* pkg);
 
-/** Recreate legacydb from fastpkgdb <b>[not implemented]</b>.
+/** Get packages list from the database.
+ *
+ * @return packages list, 0 on error
+ */
+extern GSList* db_get_packages();
+
+/** Free packages list returned by \ref db_get_packages().
+ *
+ * @param pkgs Packages list returned by \ref db_get_packages()
+ */
+extern void db_free_packages(GSList* pkgs);
+
+/** Recreate legacydb from fastpkgdb.
  *
  * @return 0 on success, 1 on error
  */

@@ -12,6 +12,8 @@
 #include "pkgdb.h"
 #define USED __attribute__((used))
 
+#include "bench/tsc.h"
+
 static USED void add_pkg(gchar* name)
 {
   struct db_pkg* pkg;
@@ -80,6 +82,9 @@ static USED void del_pkg(gchar* name)
   }
 }
 
+#define TEST_SYNC_TO_DB 1
+#define TEST_SYNC_FROM_DB 1
+
 int main(int ac, char* av[])
 {
   printf("opening db...\n");
@@ -91,18 +96,28 @@ int main(int ac, char* av[])
   }
   atexit(db_close);
   
-#if 1
+  nice(-10);
+
+#if TEST_SYNC_TO_DB == 1
+  start_timer(0);
   if (db_sync_legacydb_to_fastpkgdb())
   {
     fprintf(stderr, "%s\n", db_error());
     exit(1);
   }
-#else
-//  get_pkg("byacc-1.9-i386-1");
-//  get_pkg("tetex-2.0.2-i386-1");
-//  add_pkg("byacc-1.9-i386-1");
-//  add_pkg("tetex-2.0.2-i386-1");
-  del_pkg("tetex-2.0.2-i386-1");
+  stop_timer(0);
+  print_timer(0, "db_sync_legacydb_to_fastpkgdb()");
+#endif
+
+#if TEST_SYNC_FROM_DB == 1
+  start_timer(0);
+  if (db_sync_fastpkgdb_to_legacydb())
+  {
+    fprintf(stderr, "%s\n", db_error());
+    exit(1);
+  }
+  stop_timer(0);
+  print_timer(0, "db_sync_fastpkgdb_to_legacydb()");
 #endif
 
   return 0;

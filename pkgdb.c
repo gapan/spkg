@@ -431,12 +431,11 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
     file->link = f.link?g_strdup(f.link):0;
     file->mode = f.mode;
     file->id = fi_array[i];
-    g_slist_append(p->files, file);
+    p->files = g_slist_append(p->files, file);
   }
   fdb_close();
 
   sql_fini(q);
-
   sql_exec("ROLLBACK TRANSACTION;");
   sql_pop_context();
 
@@ -607,22 +606,36 @@ struct db_pkg* db_legacy_get_pkg(gchar* name)
   return p;
 }
 
-/*XXX: todo */
 gint db_legacy_add_pkg(struct db_pkg* pkg)
 {
-#if 0
   GSList* l;
   FILE* pf;
   FILE* sf;
+  gchar *ppath, *spath;
+  gint ret = 1;
 
   _db_reset_error();
+  _db_open_check(1)
 
   /* check if pkg contains everthing required */
-  if (pkg == 0 || pkg->name == 0 || pkg->location == 0 || pkg->desc == 0 || pkg->files == 0)
+  if (pkg == 0 || pkg->name == 0 || pkg->files == 0)
   {
     _db_set_error(DB_OTHER, "can't add package to the legacy database (incomplete package structure)");
     return 1;
   }
+
+  ppath = g_strdup_printf("%s/%s.%s", _db_dbroot, "packages", pkg->name);
+  spath = g_strdup_printf("%s/%s.%s", _db_dbroot, "scripts", pkg->name);
+/*XXX: real code
+  ppath = g_strdup_printf("%s/%s/%s", _db_topdir, "packages", pkg->name);
+  spath = g_strdup_printf("%s/%s/%s", _db_topdir, "scripts", pkg->name);
+*/
+  pf = fopen(ppath, "w");
+  if (pf == 0)
+    goto err_0;
+  sf = fopen(spath, "w");
+  if (sf == 0)
+    goto err_1;
 
   /* construct header */
   fprintf(pf,
@@ -632,22 +645,34 @@ gint db_legacy_add_pkg(struct db_pkg* pkg)
     "PACKAGE LOCATION:          %s\n"
     "PACKAGE DESCRIPTION:\n"
     "%s",
-    pkg->name, pkg->csize, pkg->usize, pkg->location, pkg->desc
+    pkg->name, pkg->csize, pkg->usize, pkg->location?pkg->location:"", pkg->desc?pkg->desc:""
   );
   
   /* construct filelist and script for links creation */
   fprintf(pf, "FILE LIST:\n");
+  
   for (l=pkg->files; l!=0; l=l->next)
   {
     struct db_file* f = l->data;
     if (f->link)
-      fprintf(pf, "%s -> %s\n", f->path, f->link);
+    {
+      gchar* bn = sys_dirname(f->path);
+      gchar* dn = sys_basename(f->path);
+      fprintf(sf, "( cd %s ; rm -rf %s )\n"
+                  "( cd %s ; ln -sf %s %s )\n", dn, bn, dn, f->link, bn);
+    }
     else
       fprintf(pf, "%s\n", f->path);
   }
 
-#endif
-  return 0;
+  ret = 0;
+  fclose(sf);
+ err_1:
+  fclose(pf);
+ err_0:
+  g_free(ppath);
+  g_free(spath);
+  return ret;
 }
 
 void db_free_pkg(struct db_pkg* pkg)
@@ -677,25 +702,114 @@ void db_free_pkg(struct db_pkg* pkg)
   g_free(p);
 }
 
+void db_free_packages(GSList* pkgs)
+{
+  GSList* l;
+  if (pkgs == 0)
+    return;
+  for (l=pkgs; l!=0; l=l->next)
+    db_free_pkg(l->data);
+  g_slist_free(pkgs);
+}
+
+GSList* db_get_packages()
+{
+  sql_query *q;
+  GSList *pkgs=0;
+
+  _db_reset_error();
+  _db_open_check(0)
+  
+  /* sql error handler */
+  sql_push_context(SQL_ERRJUMP);
+  if (setjmp(sql_errjmp) == 1)
+  { /* sql exception occured */
+    _db_set_error(DB_OTHER, "can't get packages from the database (sql error)\n%s", sql_error());
+    sql_pop_context();
+    sql_push_context(SQL_ERRIGNORE);
+    sql_exec("ROLLBACK TRANSACTION;");
+    sql_pop_context();
+    db_free_packages(pkgs);
+    return 0;
+  }
+
+  sql_exec("BEGIN EXCLUSIVE TRANSACTION;");
+
+  q = sql_prep("SELECT id, name, shortname, version, arch, build, csize,"
+                   " usize, desc, location FROM packages ORDER BY name;");
+  while(sql_step(q))
+  {
+    struct db_pkg* p;
+    p = g_new0(struct db_pkg, 1);
+    p->id = sql_get_int(q, 0);
+    p->name = g_strdup(sql_get_text(q, 1));
+    p->shortname = g_strdup(sql_get_text(q, 2));
+    p->version = g_strdup(sql_get_text(q, 3));
+    p->arch = g_strdup(sql_get_text(q, 4));
+    p->build = g_strdup(sql_get_text(q, 5));
+    p->csize = sql_get_int(q, 6);
+    p->usize = sql_get_int(q, 7);
+    p->desc = g_strdup(sql_get_text(q, 8));
+    p->location = g_strdup(sql_get_text(q, 9));
+
+    pkgs = g_slist_append(pkgs, p);
+  }
+
+  sql_exec("ROLLBACK TRANSACTION;");
+  sql_pop_context();
+  return pkgs;
+}
+
 gint db_sync_fastpkgdb_to_legacydb()
 {
-#if 0
-  sql_query *q;
-  q = sql_prep("SELECT name FROM packages;");
-  while (sql_step(q))
-  { /* for each package */
-    struct db_pkg* pkg;
-    gchar* name;
+  GSList *pkgs, *l;
+  gint ret = 1;
 
-    name = sql_get_text(q,1);
-    pkg = db_get_pkg(name,1);
-    
-    /*XXX: save legacydb package entry */
-    db_free_pkg(pkg);
+  _db_reset_error();
+  _db_open_check(1)
+
+  pkgs = db_get_packages();
+  if (pkgs == 0)
+  {
+    gchar* err = g_strdup(db_error());
+    _db_set_error(DB_OTHER, "can't synchronize database (internal error)\n%s", err);
+    g_free(err);
+    goto err_0;
   }
-  sql_fini(q);
-#endif
-  return 1;
+ 
+  for (l=pkgs; l!=0; l=l->next)
+  { /* for each package */
+    struct db_pkg* pkg = l->data;
+    struct db_pkg* p;
+
+/*XXX: debug code */
+//    printf("syncing %s\n", pkg->name);
+//    fflush(stdout);
+/*XXX: debug code */
+
+    p = db_get_pkg(pkg->name,1);
+    if (p == 0)
+    {
+      gchar* err = g_strdup(db_error());
+      _db_set_error(DB_OTHER, "can't synchronize database (internal error)\n%s", err);
+      g_free(err);
+      goto err_1;
+    }
+    if (db_legacy_add_pkg(p))
+    {
+      gchar* err = g_strdup(db_error());
+      _db_set_error(DB_OTHER, "can't synchronize database (internal error)\n%s", err);
+      g_free(err);
+      goto err_1;
+    }
+    db_free_pkg(p);
+  }
+
+  ret = 0;
+ err_1:
+  db_free_packages(pkgs);
+ err_0:
+  return ret;
 }
 
 gint db_sync_legacydb_to_fastpkgdb()
@@ -703,6 +817,7 @@ gint db_sync_legacydb_to_fastpkgdb()
   DIR* d;
   struct dirent* de;
   gchar* tmpstr = g_strdup_printf("%s/%s", _db_topdir, "packages");
+  gint ret = 1;
 
   _db_reset_error();
   _db_open_check(1)
@@ -712,7 +827,7 @@ gint db_sync_legacydb_to_fastpkgdb()
   if (d == NULL)
   {
     _db_set_error(DB_OTHER, "can't synchronize database (legacy database directory not found)");
-    return 1;
+    goto err_0;
   }
   
   sql_exec("DELETE FROM packages;");
@@ -724,27 +839,33 @@ gint db_sync_legacydb_to_fastpkgdb()
     if (!strcmp(de->d_name,".") || !strcmp(de->d_name,".."))
       continue;
 
+/*XXX: debug code */
 //    printf("syncing %s\n", de->d_name);
-    fflush(stdout);
+//    fflush(stdout);
+/*XXX: debug code */
 
     p = db_legacy_get_pkg(de->d_name);
     if (p == 0)
     {
-      _db_set_error(DB_OTHER, "can't synchronize database (invalid legacy pkg - %s)", de->d_name);
-      closedir(d);
-      return 1;
+      gchar* err = g_strdup(db_error());
+      _db_set_error(DB_OTHER, "can't synchronize database (internal error)\n%s", err);
+      g_free(err);
+      goto err_1;
     }
-    db_add_pkg(p);
-    if (_db_errstr)
+    if (db_add_pkg(p))
     {
-      _db_set_error(DB_OTHER, "can't synchronize database (db_add_pkg failed - %s)\n%s", de->d_name, _db_errstr);
+      gchar* err = g_strdup(db_error());
+      _db_set_error(DB_OTHER, "can't synchronize database (internal error)\n%s", err);
+      g_free(err);
       db_free_pkg(p);
-      closedir(d);
-      return 1;
+      goto err_1;
     }
     db_free_pkg(p);
   }
 
+  ret = 0;
+ err_1:
   closedir(d);
-  return 0;
+ err_0:
+  return ret;
 }

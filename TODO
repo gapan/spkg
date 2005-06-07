@@ -1,5 +1,6 @@
 TODO
 ----
+- implement sys_basename and sys_dirname
 - implement sync to legacy db
 - implement rm_rf and mkdir_p in C
 - implement filedb transactions

@@ -23,7 +23,7 @@ CC := gcc
 CPPFLAGS := -D_GNU_SOURCE '-DFASTPKG_VERSION="$(VERSION)"' -I. \
   `pkg-config --cflags glib-2.0 sqlite3`
 CFLAGS := -pipe -Wall
-LDFLAGS := `pkg-config --libs glib-2.0` -lz
+LDFLAGS := `pkg-config --libs glib-2.0` -lz # -static
 ifeq ($(PROFILE),yes)
 CFLAGS += -pg
 LDFLAGS += -pg
