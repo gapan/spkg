@@ -6,28 +6,18 @@
 #|----------------------------------------------------------------------|#
 #|  No copy/usage restrictions are imposed on anybody using this work.  |#
 #\----------------------------------------------------------------------/#
-.PHONY: clean mrproper all install install-strip uninstall slackpkg docs \
-profile
-
-export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
-
 DESTDIR :=
 PREFIX := /usr/local
 DEBUG := no
-PROFILE := no
-STATIC := yes
+STATIC := no
 VERSION := 0.9.1
 
 CC := gcc
-
-CPPFLAGS := -D_GNU_SOURCE '-DFASTPKG_VERSION="$(VERSION)"' -I. \
-  `pkg-config --cflags glib-2.0 sqlite3`
+AR := ar
+CPPFLAGS := -Iinclude -D_GNU_SOURCE -DFASTPKG_VERSION='"$(VERSION)"' \
+  $(shell pkg-config --cflags glib-2.0 sqlite3)
 CFLAGS := -pipe -Wall
-LDFLAGS := `pkg-config --libs glib-2.0` -lz # -static
-ifeq ($(PROFILE),yes)
-CFLAGS += -pg
-LDFLAGS += -pg
-endif
+LDFLAGS := -lz $(shell pkg-config --libs glib-2.0 sqlite3)
 ifeq ($(DEBUG),yes)
 CFLAGS +=  -ggdb3 -O0
 CPPFLAGS += -D__DEBUG=1
@@ -35,52 +25,44 @@ else
 CFLAGS += -ggdb1 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer
 endif
 ifeq ($(STATIC),yes)
-LDFLAGS += `pkg-config --variable=libdir sqlite3`/libsqlite3.a
-else
-LDFLAGS += `pkg-config --libs sqlite3`
+LDFLAGS += -static
 endif
 
 objs-fastpkg := main.o pkgtools.o untgz.o sys.o sql.o filedb.o pkgdb.o \
   pkgname.o taction.o
 
 # magic barrier
-
+.PHONY: clean mrproper all install install-strip uninstall slackpkg docs
 export MAKEFLAGS += --no-print-directory -r
-CLEANFILES := .o fastpkg untgz sql pkgdb pkgtools p.patch .gdb.log
 
-objs-fastpkg := $(addprefix .o/, $(objs-fastpkg))
+objs-fastpkg := $(addprefix .build/, $(objs-fastpkg))
 objs-all := $(sort $(objs-fastpkg))
-dep-files := $(addprefix .dep/,$(addsuffix .d,$(basename $(notdir $(objs-all)))))
+dep-files := $(addprefix .build/,$(addsuffix .d,$(basename $(notdir $(objs-all)))))
 
 # default
+vpath %.c src
+
 all: fastpkg
-tests: untgz sql pkgdb pkgtools
 
-fastpkg: $(objs-fastpkg)
-	$(CC) $^ $(LDFLAGS) -o $@
-
-untgz: .o/untgz-test.o .o/untgz.o
-	$(CC) $^ $(LDFLAGS) -o $@
-sql: .o/sql-test.o .o/sql.o
-	$(CC) $^ $(LDFLAGS) -o $@
-pkgdb: .o/pkgdb-test.o .o/sql.o .o/pkgdb.o .o/sys.o .o/pkgname.o .o/filedb.o
-	$(CC) $^ $(LDFLAGS) -o $@
-pkgtools: .o/pkgtools-test.o .o/pkgtools.o .o/sql.o .o/pkgdb.o .o/sys.o .o/pkgname.o .o/untgz.o .o/taction.o .o/filedb.o
+fastpkg: .build/libfastpkg.a
 	$(CC) $^ $(LDFLAGS) -o $@
 
-.o/%.o: %.c
-	@mkdir -p .o
+.build/libfastpkg.a: $(objs-fastpkg)
+	$(AR) rcs $@ $^
+
+.build/%.o: %.c
+	@mkdir -p .build
 	$(CC) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
 
-# profiling
-profile:
-	make clean
-	make PROFILE=yes DEBUG=no
+# generate deps
+.build/%.d: %.c
+	@mkdir -p .build
+	$(CC) -MM -MG -MP -MF $@ -MT ".build/$(<F:.c=.o) $@" $(CPPFLAGS) $<
+ifneq ($(dep-files),)
+-include $(dep-files)
+endif
 
 # installation
-install-strip: install
-	strip $(DESTDIR)$(PREFIX)/bin/fastpkg
-
 install: all docs
 	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/bin
 	install -o root -g bin -m 0755 fastpkg $(DESTDIR)$(PREFIX)/bin/
@@ -101,12 +83,11 @@ uninstall:
 slackpkg:
 	make clean
 	rm -rf pkg
-	make install-strip PREFIX=/usr STATIC=yes DEBUG=no DESTDIR=./pkg
+	make install PREFIX=/usr STATIC=no DEBUG=no DESTDIR=./pkg
 	install -d -o root -g root -m 0755 ./pkg/install
 	install -o root -g root -m 0644 docs/slack-desc ./pkg/install/
 	( cd pkg ; makepkg -l y -c n ../fastpkg-$(VERSION)-i486-1.tgz )
 	rm -rf pkg
-	make mrproper
 
 dist: docs
 	rm -rf fastpkg-$(VERSION)
@@ -119,21 +100,10 @@ dist: docs
 
 docs:
 	rm -rf docs/html
-	doxygen
+	doxygen docs/Doxyfile
 
-# generate deps
-vpath %.c .
-.dep/%.d: %.c
-	@mkdir -p .dep
-	@$(CC) -MM -MG -MP -MF $@ -MT ".o/$(<F:.c=.o) $@" $(CPPFLAGS) $<
-ifneq ($(dep-files),)
--include $(dep-files)
-endif
-
-# cleansing
 clean:
-	-rm -rf $(CLEANFILES)
+	-rm -rf .build/*.o .build/*.a fastpkg
 
 mrproper:
-	-rm -rf $(CLEANFILES) .dep docs/html docs/man ChangeLog
-
+	-rm -rf .build fastpkg docs/html

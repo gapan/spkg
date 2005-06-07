@@ -10,6 +10,7 @@ TODO
 - install/uninst.sh extension (executed after uninstallation)
 - install/depends extension (linuxpackages.net)
 - finish readmes
+- fix manpage
 
 Status
 ------------------------------

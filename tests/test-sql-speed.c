@@ -13,7 +13,7 @@
 
 #include "files.c"
 
-#include "tsc.h"
+#include "bench.h"
 
 int main(int ac, char* av[])
 {

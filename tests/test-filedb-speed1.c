@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "filedb.h"
-#include "tsc.h"
+#include "bench.h"
 
 extern unsigned int files_cnt;
 extern char* files[];
