@@ -17,10 +17,9 @@ int main(int ac, char* av[])
   char** name;
   sql_query* q;
 
-  sql_push_context(SQL_ERRJUMP);
+  sql_push_context(SQL_ERRJUMP, 0);
   if (setjmp(sql_errjmp) == 1)
   { /* exception occured */
-    sql_pop_context();
     fprintf(stderr, "%s\n", sql_error());
     sql_close();
     exit(1);
@@ -28,6 +27,11 @@ int main(int ac, char* av[])
 
   /* open database */
   sql_open("test.db");
+
+  sql_exec("PRAGMA temp_store = MEMORY;");
+  sql_exec("PRAGMA synchronous = OFF;");
+
+  sql_transaction_begin();
 
   if (!sql_table_exist("tab"))
   {
@@ -57,7 +61,9 @@ int main(int ac, char* av[])
   sql_fini(q);
 
   /* close database */
-  sql_pop_context();
+  sql_pop_context(1);
+
   sql_close();
+
   return 0;
 }

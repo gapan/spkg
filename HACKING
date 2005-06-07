@@ -1,3 +1,5 @@
+OUTDATED!!!
+
 source code guide
 -----------------
   sql.{c,h}: Simplified sqlite3 interface with better error handling.

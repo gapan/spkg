@@ -12,6 +12,9 @@
 
 #include "sql.h"
 
+//#define trace() do { printf("trace[sql]: %s\n", __func__); } while(0)
+#define trace() do { } while (0)
+
 /* private
  ************************************************************************/
 
@@ -25,7 +28,8 @@ static void __sql_on_error(const gchar* func, const gchar* fmt, ...)
   va_list ap;
   gchar* errhead;
   gchar* errtail;
-  
+  trace();  
+
   /* store error message */
   errhead = g_strdup_printf("error[%s]: ", func);
   va_start(ap, fmt);
@@ -108,41 +112,99 @@ static __inline__ gint _sql_context_fini_all_queries()
 
 struct sql_context {
   jmp_buf errjmp;
+  gboolean transact;
   sql_erract erract;
   sql_query* queries[SQL_OPEN_QUERIES_LIMIT];
 };
 
 static struct sql_context _sql_context_stack[SQL_CONTEXT_STACK_LIMIT];
 static gint _sql_context_stack_pos = 0;
+static gboolean _sql_context_transact = 0;
 
 static sql* _sql_db=0;
+static gboolean _sql_transaction = 0;
 
 /* public 
  ************************************************************************/
 
 jmp_buf sql_errjmp;
 
-gint sql_push_context(sql_erract act)
+gint sql_transaction_begin()
 {
+  gint rs;
+  trace();  
+  
+  if (_sql_transaction)
+    return 1;
+  rs = sqlite3_exec(_sql_db,"BEGIN EXCLUSIVE TRANSACTION;",0,0,0);
+  if (rs != SQLITE_OK)
+    return 1;
+  _sql_transaction = 1;
+  _sql_context_transact = 1;
+  return 0;
+}
+
+gint sql_transaction_end(gboolean commit)
+{
+  gint rs;
+  trace();  
+
+  if (!_sql_transaction)
+    return 1;
+  if (commit)
+  {
+    rs = sqlite3_exec(_sql_db,"COMMIT TRANSACTION;",0,0,0);
+    if (rs != SQLITE_OK)
+      return 1;
+  }
+  else
+  {
+    rs = sqlite3_exec(_sql_db,"ROLLBACK TRANSACTION;",0,0,0);
+    if (rs != SQLITE_OK)
+      return 1;
+  }
+  _sql_transaction = 0;
+  _sql_context_transact = 0;
+  return 0;
+}
+
+gint sql_push_context(sql_erract act, gboolean begin)
+{
+  trace();  
   if (_sql_context_stack_pos < SQL_CONTEXT_STACK_LIMIT)
   {
+    _sql_context_stack[_sql_context_stack_pos].transact = _sql_context_transact;
     _sql_context_stack[_sql_context_stack_pos].erract = _sql_context_erract;
     _sql_context_stack[_sql_context_stack_pos].errjmp[0] = sql_errjmp[0];
     memcpy(_sql_context_stack[_sql_context_stack_pos].queries, _sql_context_queries, sizeof(_sql_context_queries));
     memset(_sql_context_queries, 0, sizeof(_sql_context_queries));
     _sql_context_stack_pos++;
     _sql_context_erract = act;
+    _sql_context_transact = 0;
+    if (begin)
+    { /* begin transaction in new context */
+      if (sql_transaction_begin())
+        return 1;
+    }
     return 0;
   }
   return 1;
 }
 
-gint sql_pop_context()
+gint sql_pop_context(gboolean commit)
 {
+  trace();  
+  /* if transaction was executed in contex that is being popped, end it */
+  if (_sql_context_transact)
+  {
+    if (sql_transaction_end(commit))
+      return 1;
+  }
   if (_sql_context_stack_pos > 0)
   {
     _sql_context_stack_pos--;
     _sql_context_erract = _sql_context_stack[_sql_context_stack_pos].erract;
+    _sql_context_transact = _sql_context_stack[_sql_context_stack_pos].transact;
     sql_errjmp[0] = _sql_context_stack[_sql_context_stack_pos].errjmp[0];
     _sql_context_fini_all_queries();
     memcpy(_sql_context_queries, _sql_context_stack[_sql_context_stack_pos].queries, sizeof(_sql_context_queries));
@@ -160,6 +222,7 @@ gint sql_open(const gchar* file)
 {
   gint rs;
   sql* db=0;
+  trace();  
 
   _sql_reset_error();
   if (_sql_db != 0)
@@ -182,12 +245,20 @@ gint sql_open(const gchar* file)
 gint sql_close()
 {
   gint rs;
+  trace();  
 
   _sql_reset_error();
+  if (_sql_db == 0)
+  {
+    fprintf(stderr, "panic: database can't be closed! (because it was not opened)\n");
+    return 1;
+  }
+
   /* unroll contexts up to toplevel one */
-  while (sql_pop_context() == 0);
+  while (sql_pop_context(0) == 0);
   /* cleanup toplevel context */
   _sql_context_fini_all_queries();
+
   rs = sqlite3_close(_sql_db);
   _sql_db = 0;
   if (rs != SQLITE_OK)

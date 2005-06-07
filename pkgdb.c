@@ -68,7 +68,6 @@ gint db_open(const gchar* root)
     "packages", "scripts", "removed_packages", "removed_scripts", "setup", 
     "fastpkg", 0
   };
-  gboolean rollback=0;
   
   _db_reset_error();
   if (_db_is_open)
@@ -112,25 +111,19 @@ gint db_open(const gchar* root)
   }
 
   /* setup sql error handling */
-  sql_push_context(SQL_ERRJUMP);
+  sql_push_context(SQL_ERRJUMP,0);
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
     _db_set_error(DB_OTHER, "can't open package database (sql error)\n%s", sql_error());
-    sql_pop_context();
-    if (rollback)
-    {
-      sql_push_context(SQL_ERRIGNORE);
-      sql_exec("ROLLBACK TRANSACTION;");
-      sql_pop_context();
-    }
+    sql_close();
     goto err2;
   }
 
+  /* open sql database */
   sql_open(_db_dbfile);
   sql_exec("PRAGMA temp_store = MEMORY;");
   sql_exec("PRAGMA synchronous = OFF;");
-  sql_exec("BEGIN EXCLUSIVE TRANSACTION;");
-  rollback=1;
+  sql_transaction_begin();
 
   /* if package table does not exist create it */
   if (!sql_table_exist("packages"))
@@ -152,9 +145,7 @@ gint db_open(const gchar* root)
     );
   }
 
-  sql_exec("COMMIT TRANSACTION;");
-
-  sql_pop_context();
+  sql_pop_context(1);
   _db_is_open = 1;
   return 0;
 
@@ -228,27 +219,20 @@ gint db_add_pkg(struct db_pkg* pkg)
     return 1;
   }
   /* sql error handler */
-  sql_push_context(SQL_ERRJUMP);
+  sql_push_context(SQL_ERRJUMP,1);
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
     _db_set_error(DB_OTHER, "can't add package to the database (sql error)\n%s", sql_error());
-    sql_pop_context();
-    sql_push_context(SQL_ERRIGNORE);
-    sql_exec("ROLLBACK TRANSACTION;");
-    sql_pop_context();
+    sql_pop_context(0);
     return 1;
   }
-
-  sql_exec("BEGIN EXCLUSIVE TRANSACTION;");
 
   /* check if package already exists in db */
   q = sql_prep("SELECT id FROM packages WHERE name == '%q';", pkg->name);
   if (sql_step(q))
   { /* if package exists */
     _db_set_error(DB_EXIST, "can't add package to the database (same package is already there - %s)", pkg->name);
-    sql_fini(q);
-    sql_exec("ROLLBACK TRANSACTION;");
-    sql_pop_context();
+    sql_pop_context(0);
     return 1;
   }
   sql_fini(q);
@@ -289,8 +273,7 @@ gint db_add_pkg(struct db_pkg* pkg)
 
   g_free(fi_array);
 
-  sql_exec("COMMIT TRANSACTION;");
-  sql_pop_context();
+  sql_pop_context(1);
   return 0;
 }
 
@@ -309,27 +292,20 @@ gint db_rem_pkg(gchar* name)
   }
   
   /* sql error handler */
-  sql_push_context(SQL_ERRJUMP);
+  sql_push_context(SQL_ERRJUMP,1);
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
     _db_set_error(DB_OTHER, "can't remove package from the database (sql error)\n%s", sql_error());
-    sql_pop_context();
-    sql_push_context(SQL_ERRIGNORE);
-    sql_exec("ROLLBACK TRANSACTION;");
-    sql_pop_context();
+    sql_pop_context(0);
     return 1;
   }
-
-  sql_exec("BEGIN EXCLUSIVE TRANSACTION;");
 
   /* check if package is in db */
   q = sql_prep("SELECT id,files FROM packages WHERE name == '%q';", name);
   if (!sql_step(q))
   { /* if package does not exists */
     _db_set_error(DB_NOTEX, "can't remove package from the database (package is not there - %s)", name);
-    sql_fini(q);
-    sql_exec("ROLLBACK TRANSACTION;");
-    sql_pop_context();
+    sql_pop_context(0);
     return 1;
   }
   pid = sql_get_int(q, 0);
@@ -347,9 +323,7 @@ gint db_rem_pkg(gchar* name)
   /* remove package from packages table */
   sql_exec("DELETE FROM packages WHERE id == %d;", pid);
 
-  sql_exec("COMMIT TRANSACTION;");
-
-  sql_pop_context();
+  sql_pop_context(1);
   return 0;
 }
 
@@ -369,30 +343,21 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   }
 
   /* sql error handler */
-  sql_push_context(SQL_ERRJUMP);
+  sql_push_context(SQL_ERRJUMP,1);
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
     _db_set_error(DB_OTHER, "can't retrieve package from the database (sql error)\n%s", sql_error());
-    sql_pop_context();
-    sql_push_context(SQL_ERRIGNORE);
-    sql_exec("ROLLBACK TRANSACTION;");
-    sql_pop_context();
+    sql_pop_context(0);
     db_free_pkg(p);
     return 0;
   }
-
-  /* make sure db access is atomic */
-  sql_exec("BEGIN EXCLUSIVE TRANSACTION;");
 
   q = sql_prep("SELECT id, name, shortname, version, arch, build, csize,"
                    " usize, desc, location, files FROM packages WHERE name == '%q';", name);
   if (!sql_step(q))
   {
     _db_set_error(DB_NOTEX, "can't retrieve package from the database (package is not there - %s)", name);
-    sql_pop_context();
-    sql_push_context(SQL_ERRIGNORE);
-    sql_exec("ROLLBACK TRANSACTION;");
-    sql_pop_context();
+    sql_pop_context(0);
     return 0;
   }
 
@@ -411,9 +376,7 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   /* caller don't want files list, so it's enough here */
   if (files == 0)
   {
-    sql_fini(q);
-    sql_exec("ROLLBACK TRANSACTION;");
-    sql_pop_context();
+    sql_pop_context(0);
     return p;
   }
 
@@ -435,10 +398,7 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   }
   fdb_close();
 
-  sql_fini(q);
-  sql_exec("ROLLBACK TRANSACTION;");
-  sql_pop_context();
-
+  sql_pop_context(0);
   return p;
 }
 
@@ -721,19 +681,14 @@ GSList* db_get_packages()
   _db_open_check(0)
   
   /* sql error handler */
-  sql_push_context(SQL_ERRJUMP);
+  sql_push_context(SQL_ERRJUMP,1);
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
     _db_set_error(DB_OTHER, "can't get packages from the database (sql error)\n%s", sql_error());
-    sql_pop_context();
-    sql_push_context(SQL_ERRIGNORE);
-    sql_exec("ROLLBACK TRANSACTION;");
-    sql_pop_context();
+    sql_pop_context(0);
     db_free_packages(pkgs);
     return 0;
   }
-
-  sql_exec("BEGIN EXCLUSIVE TRANSACTION;");
 
   q = sql_prep("SELECT id, name, shortname, version, arch, build, csize,"
                    " usize, desc, location FROM packages ORDER BY name;");
@@ -755,8 +710,7 @@ GSList* db_get_packages()
     pkgs = g_slist_append(pkgs, p);
   }
 
-  sql_exec("ROLLBACK TRANSACTION;");
-  sql_pop_context();
+  sql_pop_context(0);
   return pkgs;
 }
 
@@ -830,6 +784,7 @@ gint db_sync_legacydb_to_fastpkgdb()
     goto err_0;
   }
   
+  /*XXX: unchecked sql library call */
   sql_exec("DELETE FROM packages;");
 
   while ((de = readdir(d)) != NULL)

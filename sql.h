@@ -131,7 +131,7 @@ typedef sqlite3_stmt sql_query;
  * sql_error() is set to 0.
  */
 typedef enum { 
-  SQL_ERREXIT,   /**< print error to stderr, fini all queries, \ref sql_close() and exit */
+  SQL_ERREXIT=0,   /**< print error to stderr, fini all queries, \ref sql_close() and exit */
   SQL_ERRJUMP,   /**< longjump to \ref sql_errjmp */
   SQL_ERRINFORM, /**< print error to stderr and set \ref sql_error() */
   SQL_ERRIGNORE  /**< set \ref sql_error() */
@@ -162,15 +162,31 @@ extern gchar* sql_error();
 /** Push context and set error action.
  *
  * @param act Error action.
+ * @param begin Whether to begin transaction in new context.
  * @return 1 if we are on the top of the context stack, 0 on success
  */
-extern gint sql_push_context(sql_erract act);
+extern gint sql_push_context(sql_erract act, gboolean begin);
 
 /** Restore previous context.
  *
+ * @param commit Whether to commit transaction that was started 
+ *        in the current context.
  * @return 1 if we have reached toplevel context, 0 on success
  */
-extern gint sql_pop_context();
+extern gint sql_pop_context(gboolean commit);
+
+/** Begin transaction.
+ *
+ * @return 1 on error, 0 on success
+ */
+extern gint sql_transaction_begin();
+
+/** End transaction.
+ *
+ * @param commit If transaction shoud be commited set this to 1.
+ * @return 1 on error, 0 on success
+ */
+extern gint sql_transaction_end(gboolean commit);
 
 /** Execute SQL statement on the currently open database.
  *

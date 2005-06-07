@@ -45,13 +45,6 @@ struct fdb_file {
   guint16 refs; /**< Reference count. */
 };
 
-/** Returns description of the error if one occured in the last filedb
- * library call.
- *
- * @return Error string on error, 0 otherwise
- */
-extern gchar* fdb_error();
-
 /** Open file database.
  *
  * @param root root directory
@@ -62,6 +55,13 @@ extern gint fdb_open(const gchar* root);
 /** Close file database. 
  */
 extern gint fdb_close();
+
+/** Returns description of the error if one occured in the last filedb
+ * library call.
+ *
+ * @return Error string on error, 0 otherwise
+ */
+extern gchar* fdb_error();
 
 /** Add file to database.
  *
