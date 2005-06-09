@@ -1,5 +1,5 @@
-fastpkg - rychlı balíèkovací mana¾er pro Slackware Linux
---------------------------------------------------------
+spkg - rychlı balíèkovací mana¾er pro Slackware Linux
+-----------------------------------------------------
 
 Popis
 -----
@@ -60,12 +60,12 @@ Platnı øádek je øádek zaèínající textem: "<název>:"
 
 Pøíklad platného souboru slack-desc:
 
-fastpkg: fastpkg (fast package manager)
-fastpkg: Fastpkg is The Fastest Package Managment Tool on the world.
-fastpkg: Written by Ondrej Jirman <megous@megous.com>
+spkg: spkg (fast package manager)
+spkg: spkg is The Fastest Package Managment Tool on the world.
+spkg: Written by Ondrej Jirman <megous@megous.com>
 
-Fastpkg
--------
+spkg
+----
 Hlavním úkolem balíèkového mana¾eru je udr¾ovat databázi nainstalovanıch
 balíèkù a k nim pøíslu¹ejících souborù. 
 

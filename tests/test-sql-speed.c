@@ -1,29 +1,26 @@
 /*----------------------------------------------------------------------*\
-|* fastpkg                                                              *|
+|* spkg - Slackware Linux Fast Package Management Tools                 *|
+|*                                      designed by Ondøej Jirman, 2005 *|
 |*----------------------------------------------------------------------*|
-|* Slackware Linux Fast Package Management Tools                        *|
-|*                               designed by Ondøej (megi) Jirman, 2005 *|
-|*----------------------------------------------------------------------*|
-|*  No copy/usage restrictions are imposed on anybody using this work.  *|
+|*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
 #include <stdlib.h>
 #include <stdio.h>
-
 #include "sql.h"
-
-#include "files.c"
-
 #include "bench.h"
+
+extern unsigned int files_cnt;
+extern char* files[];
 
 int main(int ac, char* av[])
 {
   sql_query* q;
   int j;
 
-  sql_push_context(SQL_ERRJUMP);
+  sql_push_context(SQL_ERRJUMP,0);
   if (setjmp(sql_errjmp) == 1)
   { /* exception occured */
-    sql_pop_context();
+    sql_pop_context(0);
     fprintf(stderr, "%s\n", sql_error());
     sql_close();
     exit(1);
@@ -41,7 +38,7 @@ int main(int ac, char* av[])
   reset_timer(2);
   reset_timer(3);
   q = sql_prep("INSERT INTO tab(path) VALUES(?);");
-  for (j=0; j<sizeof(files)/sizeof(files[0]); j++)
+  for (j=0; j<files_cnt; j++)
   {
     continue_timer(0);
     sql_set_text(q, 1, files[j]);
@@ -61,7 +58,7 @@ int main(int ac, char* av[])
   sql_exec("COMMIT TRANSACTION;");
 
   /* close database */
-  sql_pop_context();
+  sql_pop_context(0);
   sql_close();
   return 0;
 }

@@ -1,10 +1,8 @@
 /*----------------------------------------------------------------------*\
-|* fastpkg                                                              *|
+|* spkg - Slackware Linux Fast Package Management Tools                 *|
+|*                                      designed by Ondøej Jirman, 2005 *|
 |*----------------------------------------------------------------------*|
-|* Slackware Linux Fast Package Management Tools                        *|
-|*                               designed by Ondøej (megi) Jirman, 2005 *|
-|*----------------------------------------------------------------------*|
-|*  No copy/usage restrictions are imposed on anybody using this work.  *|
+|*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
 #include <stdlib.h>
 #include <stdio.h>
@@ -107,7 +105,7 @@ int main(int ac, char* av[])
     exit(1);
   }
   
-  context = g_option_context_new("- Slackware Linux(TM) Package Management Tool v." FASTPKG_VERSION);
+  context = g_option_context_new("- Slackware Linux(TM) Package Management Tool v." SPKG_VERSION);
   g_option_context_add_main_entries(context, entries, 0);
   g_option_context_parse(context, &ac, &av, &error);
 
@@ -115,8 +113,8 @@ int main(int ac, char* av[])
   if (f == 0)
     return 0;
 
-//  db_sync_legacydb_to_fastpkgdb();
-//  db_sync_fastpkgdb_to_legacydb();
+//  db_sync_from_legacydb();
+//  db_sync_to_legacydb();
   
   while (*f != 0)
   {

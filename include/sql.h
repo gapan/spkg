@@ -1,12 +1,9 @@
 /*----------------------------------------------------------------------*\
-|* fastpkg                                                              *|
+|* spkg - Slackware Linux Fast Package Management Tools                 *|
+|*                                      designed by Ondøej Jirman, 2005 *|
 |*----------------------------------------------------------------------*|
-|* Slackware Linux Fast Package Management Tools                        *|
-|*                               designed by Ondøej (megi) Jirman, 2005 *|
-|*----------------------------------------------------------------------*|
-|*  No copy/usage restrictions are imposed on anybody using this work.  *|
+|*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
-/**********************************************************************/
 /** @defgroup sql_api SQL Database API
 
 This is simplistic wrapper API for the sqlite3 database engine. It is
@@ -103,7 +100,7 @@ int main(int ac, char* av[])
 }
 @endcode
 
-***********************************************************************/
+\*----------------------------------------------------------------------*/
 /** @addtogroup sql_api */
 /*! @{ */
 

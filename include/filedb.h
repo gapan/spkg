@@ -1,12 +1,9 @@
 /*----------------------------------------------------------------------*\
-|* fastpkg                                                              *|
+|* spkg - Slackware Linux Fast Package Management Tools                 *|
+|*                                      designed by Ondøej Jirman, 2005 *|
 |*----------------------------------------------------------------------*|
-|* Slackware Linux Fast Package Management Tools                        *|
-|*                               designed by Ondøej (megi) Jirman, 2005 *|
-|*----------------------------------------------------------------------*|
-|*  No copy/usage restrictions are imposed on anybody using this work.  *|
+|*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
-/**********************************************************************/
 /** @defgroup filedb_api File Database API
 
 Filedb is extremely fast file database for package manager. It can handle
@@ -24,8 +21,7 @@ Basic operations on filedb are:
 It is necessary to go through database and find file
 with same path
 
-
-***********************************************************************/
+\*----------------------------------------------------------------------*/
 /** @addtogroup filedb_api */
 /*! @{ */
 

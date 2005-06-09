@@ -1,4 +1,11 @@
 #!/bin/sh
+#/----------------------------------------------------------------------\#
+#| spkg - Slackware Linux Fast Package Management Tools                 |#
+#|                                      designed by Ondøej Jirman, 2005 |#
+#|----------------------------------------------------------------------|#
+#|          No copy/usage restrictions are imposed on anybody.          |#
+#\----------------------------------------------------------------------/#
+
 OPTS="-O2 -march=i486 -mtune=i686 -fomit-frame-pointer -D_GNU_SOURCE `pkg-config --cflags --libs glib-2.0`  -I.."
 OPTS="-O2 -march=i486 -mcpu=i686 -fomit-frame-pointer -D_GNU_SOURCE `pkg-config --cflags --libs glib-2.0`  -I.."
 #gcc -O0 -ggdb3 -o filedb filedb.c ../sys.c -D_GNU_SOURCE `pkg-config --cflags --libs glib-2.0` -I../ || exit

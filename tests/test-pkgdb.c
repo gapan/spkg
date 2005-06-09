@@ -1,18 +1,17 @@
 /*----------------------------------------------------------------------*\
-|* fastpkg                                                              *|
+|* spkg - Slackware Linux Fast Package Management Tools                 *|
+|*                                      designed by Ondøej Jirman, 2005 *|
 |*----------------------------------------------------------------------*|
-|* Slackware Linux Fast Package Management Tools                        *|
-|*                               designed by Ondøej (megi) Jirman, 2005 *|
-|*----------------------------------------------------------------------*|
-|*  No copy/usage restrictions are imposed on anybody using this work.  *|
+|*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include "pkgdb.h"
 #define USED __attribute__((used))
 
-#include "bench/tsc.h"
+#include "bench.h"
 
 static USED void add_pkg(gchar* name)
 {
@@ -100,24 +99,24 @@ int main(int ac, char* av[])
 
 #if TEST_SYNC_TO_DB == 1
   start_timer(0);
-  if (db_sync_legacydb_to_fastpkgdb())
+  if (db_sync_from_legacydb())
   {
     fprintf(stderr, "%s\n", db_error());
     exit(1);
   }
   stop_timer(0);
-  print_timer(0, "db_sync_legacydb_to_fastpkgdb()");
+  print_timer(0, "db_sync_from_legacydb()");
 #endif
 
 #if TEST_SYNC_FROM_DB == 1
   start_timer(0);
-  if (db_sync_fastpkgdb_to_legacydb())
+  if (db_sync_to_legacydb())
   {
     fprintf(stderr, "%s\n", db_error());
     exit(1);
   }
   stop_timer(0);
-  print_timer(0, "db_sync_fastpkgdb_to_legacydb()");
+  print_timer(0, "db_sync_to_legacydb()");
 #endif
 
   return 0;

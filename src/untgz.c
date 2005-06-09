@@ -1,10 +1,8 @@
 /*----------------------------------------------------------------------*\
-|* fastpkg                                                              *|
+|* spkg - Slackware Linux Fast Package Management Tools                 *|
+|*                                      designed by Ondøej Jirman, 2005 *|
 |*----------------------------------------------------------------------*|
-|* Slackware Linux Fast Package Management Tools                        *|
-|*                               designed by Ondøej (megi) Jirman, 2005 *|
-|*----------------------------------------------------------------------*|
-|*  No copy/usage restrictions are imposed on anybody using this work.  *|
+|*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
 #include <string.h>
 #include <errno.h>
@@ -298,7 +296,7 @@ gint untgz_get_header(struct untgz_state* s)
   return 0;
 }
 
-gint untgz_write_data(struct untgz_state* s, guchar** buf, gsize* len)
+gint untgz_write_data(struct untgz_state* s, gchar** buf, gsize* len)
 {
   guchar* buffer=0;  
   union tar_block* b;

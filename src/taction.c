@@ -1,10 +1,8 @@
 /*----------------------------------------------------------------------*\
-|* fastpkg                                                              *|
+|* spkg - Slackware Linux Fast Package Management Tools                 *|
+|*                                      designed by Ondøej Jirman, 2005 *|
 |*----------------------------------------------------------------------*|
-|* Slackware Linux Fast Package Management Tools                        *|
-|*                               designed by Ondøej (megi) Jirman, 2005 *|
-|*----------------------------------------------------------------------*|
-|*  No copy/usage restrictions are imposed on anybody using this work.  *|
+|*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,7 +62,7 @@ gint ta_finalize()
 
   for (l=_ta_taction.actions; l!=0; l=l->next)
   {
-    struct action* a = l->data;
+//    struct action* a = l->data;
     
   }
 
@@ -86,7 +84,7 @@ gint ta_rollback()
 
   for (l=_ta_taction.actions; l!=0; l=l->next)
   {
-    struct action* a = l->data;
+//    struct action* a = l->data;
     
   }
   _ta_taction.active = 0;

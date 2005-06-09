@@ -1,5 +1,12 @@
+/*----------------------------------------------------------------------*\
+|* spkg - Slackware Linux Fast Package Management Tools                 *|
+|*                                      designed by Ondøej Jirman, 2005 *|
+|*----------------------------------------------------------------------*|
+|*          No copy/usage restrictions are imposed on anybody.          *|
+\*----------------------------------------------------------------------*/
 #include <asm/msr.h>
 
+/* tics per second (this is constant for my 1GHz athlon) */
 #define TPS 1000000000ull
 #define CNT 8
 

@@ -1,14 +1,12 @@
 TODO
 ----
-- implement filedb transactions
+- implement doinst.sh parser (parse out sym links)
+- implement slack-desc parser (parse out bullshit, short desc and long desc)
+- modify pkg structure to contain short desc long desc and pkg name
 - implement sys_basename and sys_dirname
 - reimplement sys_rm_rf and sys_mkdir_p in C
 - pkgtools: implement install, upgrade, remove
-- modify pkg structure to contain short desc long desc and pkg name
-- implement doinst.sh parser (parse out sym links)
-- implement slack-desc parser (parse out bullshit, short desc and long desc)
-- install/uninst.sh extension (executed after uninstallation)
-- install/depends extension (linuxpackages.net)
+- implement filedb transactions
 - finish readmes
 - fix manpage
 
@@ -21,3 +19,4 @@ Status
 | filedb   | 80%        | 10%
 | pkgdb    | 80%        | 30%
 | pkgtools | 10%        | 0%
+------------------------------

@@ -3,7 +3,7 @@
 #---------------------------------------------------------------------------
 # Project related configuration options
 #---------------------------------------------------------------------------
-PROJECT_NAME           = fastpkg
+PROJECT_NAME           = spkg
 PROJECT_NUMBER         = 1.0.0
 OUTPUT_DIRECTORY       = docs
 CREATE_SUBDIRS         = NO

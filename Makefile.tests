@@ -1,0 +1,43 @@
+#/----------------------------------------------------------------------\#
+#| spkg - Slackware Linux Fast Package Management Tools                 |#
+#|                                      designed by Ondøej Jirman, 2005 |#
+#|----------------------------------------------------------------------|#
+#|          No copy/usage restrictions are imposed on anybody.          |#
+#\----------------------------------------------------------------------/#
+
+testdir = tests
+
+compiled-tests = \
+  test-filedb-i486 \
+  test-filedb-speed1 \
+  test-filedb-speed2 \
+  test-pkgdb \
+  test-pkgtools \
+  test-sql-speed \
+  test-sql \
+  test-untgz
+
+test-filedb-i486 test-filedb-speed1 test-filedb-speed2 test-sql-speed: test-files.so
+
+.PHONY: tests
+tests: $(compiled-tests)
+
+vpath %.c $(testdir) .build
+objs-tests = $(foreach t,$(compiled-tests),.build/$(t).o)
+
+$(compiled-tests): .build/$$@.o .build/libspkg.a
+	$(CC) $(LDFLAGS) $^ -o $@
+
+test-files.so: .build/test-files.o
+	$(CC) $(LDFLAGS) -shared $^ -o $@
+
+.build/test-files.o: .build/test-files.c
+
+.build/test-files.c:
+	( echo "char* files[] = {" ; \
+	  ( cd / ; find usr | sed 's/.*/"\0",/' ) ; \
+	  echo "}; unsigned int files_cnt = sizeof(files)/sizeof(files[0]);" \
+	) > $@
+
+tests-clean:
+	rm -f $(compiled-tests) .build/test-files.c test-files.so

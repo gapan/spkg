@@ -1,16 +1,13 @@
 /*----------------------------------------------------------------------*\
-|* fastpkg                                                              *|
+|* spkg - Slackware Linux Fast Package Management Tools                 *|
+|*                                      designed by Ondøej Jirman, 2005 *|
 |*----------------------------------------------------------------------*|
-|* Slackware Linux Fast Package Management Tools                        *|
-|*                               designed by Ondøej (megi) Jirman, 2005 *|
-|*----------------------------------------------------------------------*|
-|*  No copy/usage restrictions are imposed on anybody using this work.  *|
+|*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
-/**********************************************************************/
 /** @defgroup pkgdb_api Package Database API
 
 
-***********************************************************************/
+\*----------------------------------------------------------------------*/
 /** @addtogroup pkgdb_api */
 /*! @{ */
 
@@ -156,17 +153,17 @@ extern GSList* db_get_packages();
  */
 extern void db_free_packages(GSList* pkgs);
 
-/** Recreate legacydb from fastpkgdb.
+/** Synchronize legacy databse with spkg database.
  *
  * @return 0 on success, 1 on error
  */
-extern gint db_sync_fastpkgdb_to_legacydb();
+extern gint db_sync_to_legacydb();
 
-/** Recreate fastpkgdb from legacydb.
+/** Synchronize spkg databse with legacy database.
  *
  * @return 0 on success, 1 on error
  */
-extern gint db_sync_legacydb_to_fastpkgdb();
+extern gint db_sync_from_legacydb();
  
 
 #endif

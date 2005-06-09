@@ -1,10 +1,8 @@
 /*----------------------------------------------------------------------*\
-|* fastpkg                                                              *|
+|* spkg - Slackware Linux Fast Package Management Tools                 *|
+|*                                      designed by Ondøej Jirman, 2005 *|
 |*----------------------------------------------------------------------*|
-|* Slackware Linux Fast Package Management Tools                        *|
-|*                               designed by Ondøej (megi) Jirman, 2005 *|
-|*----------------------------------------------------------------------*|
-|*  No copy/usage restrictions are imposed on anybody using this work.  *|
+|*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
@@ -144,7 +142,7 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
       gchar *buf, *sdesc, *ldesc;
       gsize len;
       
-      untgz_write_data(tgz,(guchar**)&buf,&len);
+      untgz_write_data(tgz,&buf,&len);
       parse_slackdesc(buf,shortname,&sdesc,&ldesc);
       pkg->desc = buf;
       if (verbose)

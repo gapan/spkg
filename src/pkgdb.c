@@ -1,10 +1,8 @@
 /*----------------------------------------------------------------------*\
-|* fastpkg                                                              *|
+|* spkg - Slackware Linux Fast Package Management Tools                 *|
+|*                                      designed by Ondøej Jirman, 2005 *|
 |*----------------------------------------------------------------------*|
-|* Slackware Linux Fast Package Management Tools                        *|
-|*                               designed by Ondøej (megi) Jirman, 2005 *|
-|*----------------------------------------------------------------------*|
-|*  No copy/usage restrictions are imposed on anybody using this work.  *|
+|*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
 #include <stdlib.h>
 #include <stdio.h>
@@ -66,7 +64,7 @@ gint db_open(const gchar* root)
   gchar** d;
   gchar* checkdirs[] = {
     "packages", "scripts", "removed_packages", "removed_scripts", "setup", 
-    "fastpkg", 0
+    "spkgdb", 0
   };
   
   _db_reset_error();
@@ -80,7 +78,7 @@ gint db_open(const gchar* root)
     root = "";
 
   _db_topdir = g_strdup_printf("%s/%s", root, PKGDB_DIR);
-  /* check legacy and fastpkg db dirs */
+  /* check legacy and spkg db dirs */
   for (d = checkdirs; *d != 0; d++)
   {
     gchar* tmpdir = g_strdup_printf("%s/%s", _db_topdir, *d);
@@ -101,9 +99,9 @@ gint db_open(const gchar* root)
     g_free(tmpdir);
   }
 
-  /* check fastpkg db file */
-  _db_dbroot = g_strdup_printf("%s/%s", _db_topdir, "fastpkg");
-  _db_dbfile = g_strdup_printf("%s/%s", _db_dbroot, "fastpkg.db");
+  /* check spkg db file */
+  _db_dbroot = g_strdup_printf("%s/%s", _db_topdir, "spkg");
+  _db_dbfile = g_strdup_printf("%s/%s", _db_dbroot, "spkg.db");
   if (sys_file_type(_db_dbfile,0) != SYS_REG && sys_file_type(_db_dbfile,0) != SYS_NONE)
   {
     _db_set_error(DB_OTHER, "can't open package database (%s is not accessible)", _db_dbfile);
@@ -715,7 +713,7 @@ GSList* db_get_packages()
   return pkgs;
 }
 
-gint db_sync_fastpkgdb_to_legacydb()
+gint db_sync_to_legacydb()
 {
   GSList *pkgs, *l;
   gint ret = 1;
@@ -767,7 +765,7 @@ gint db_sync_fastpkgdb_to_legacydb()
   return ret;
 }
 
-gint db_sync_legacydb_to_fastpkgdb()
+gint db_sync_from_legacydb()
 {
   DIR* d;
   struct dirent* de;

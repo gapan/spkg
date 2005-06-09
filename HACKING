@@ -17,8 +17,8 @@ source code guide
     - implementation of rm -rf and mkdir -p
     
   pkgdb.{c,h}: Interface to the package database.
-    - routines to modify fastpkg database
-    - routines to convert between legacy and fastpkg databases
+    - routines to modify spkg database
+    - routines to convert between legacy and spkg databases
 
   --------------------------------
   |         cli frontend         |

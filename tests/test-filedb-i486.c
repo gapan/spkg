@@ -1,3 +1,9 @@
+/*----------------------------------------------------------------------*\
+|* spkg - Slackware Linux Fast Package Management Tools                 *|
+|*                                      designed by Ondøej Jirman, 2005 *|
+|*----------------------------------------------------------------------*|
+|*          No copy/usage restrictions are imposed on anybody.          *|
+\*----------------------------------------------------------------------*/
 #include <stdio.h>
 #include <unistd.h>
 #include "filedb.h"
@@ -7,7 +13,7 @@ extern char* files[];
 
 int main()
 {
-  gint fd,j,id,i;
+  gint j,id,i;
   struct fdb_file f;
   
   nice(-10);

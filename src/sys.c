@@ -1,10 +1,8 @@
 /*----------------------------------------------------------------------*\
-|* fastpkg                                                              *|
+|* spkg - Slackware Linux Fast Package Management Tools                 *|
+|*                                      designed by Ondøej Jirman, 2005 *|
 |*----------------------------------------------------------------------*|
-|* Slackware Linux Fast Package Management Tools                        *|
-|*                               designed by Ondøej (megi) Jirman, 2005 *|
-|*----------------------------------------------------------------------*|
-|*  No copy/usage restrictions are imposed on anybody using this work.  *|
+|*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
@@ -104,11 +102,11 @@ void sys_sigunblock(sigset_t* sigs)
 gchar* sys_dirname(const gchar* path)
 {
   /*XXX: unimplemented */
-  return path;
+  return (gchar*)path;
 }
 
 gchar* sys_basename(const gchar* path)
 {
   /*XXX: unimplemented */
-  return path;
+  return (gchar*)path;
 }

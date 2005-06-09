@@ -1,4 +1,11 @@
 #!/bin/sh
+#/----------------------------------------------------------------------\#
+#| spkg - Slackware Linux Fast Package Management Tools                 |#
+#|                                      designed by Ondøej Jirman, 2005 |#
+#|----------------------------------------------------------------------|#
+#|          No copy/usage restrictions are imposed on anybody.          |#
+#\----------------------------------------------------------------------/#
+
 PKG=kdebase-3.3.2-i486-1.tgz
 
 clean() { rm -rf ',,root' ; }

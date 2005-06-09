@@ -1,12 +1,9 @@
 /*----------------------------------------------------------------------*\
-|* fastpkg                                                              *|
+|* spkg - Slackware Linux Fast Package Management Tools                 *|
+|*                                      designed by Ondøej Jirman, 2005 *|
 |*----------------------------------------------------------------------*|
-|* Slackware Linux Fast Package Management Tools                        *|
-|*                               designed by Ondøej (megi) Jirman, 2005 *|
-|*----------------------------------------------------------------------*|
-|*  No copy/usage restrictions are imposed on anybody using this work.  *|
+|*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
-/**********************************************************************/
 /** @defgroup untgz_api UNTGZ Extraction API
 
 Untgz is implementation of the robust tgz archive browser/extractor.
@@ -40,7 +37,7 @@ int main(int ac, char* av[])
 }
 @endcode
 
-***********************************************************************/
+\*----------------------------------------------------------------------*/
 /** @addtogroup untgz_api */
 /*! @{ */
 
@@ -143,7 +140,7 @@ extern gint untgz_get_header(struct untgz_state* s);
  *            the buffer.
  * @return 0 on success, 1 if no data, -1 on error.
  */
-extern gint untgz_write_data(struct untgz_state* s, guchar** buf, gsize* len);
+extern gint untgz_write_data(struct untgz_state* s, gchar** buf, gsize* len);
 
 /** Write current file to the disk.
  *
