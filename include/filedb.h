@@ -21,7 +21,7 @@ Basic operations on filedb are:
 It is necessary to go through database and find file
 with same path
 
-\*----------------------------------------------------------------------*/
+*//*--------------------------------------------------------------------*/
 /** @addtogroup filedb_api */
 /*! @{ */
 
