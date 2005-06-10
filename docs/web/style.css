@@ -95,6 +95,8 @@ th { color: darkgreen; }
 td.a { background: red; color: white; }
 td.b { background: yellow; }
 td.c { background: lightgreen; }
+tr.f { color: white; background: red; font-weight: bold; }
+tr.p { color: darkgreen; background: lightgreen; }
 
 #main strong {
   color: green;

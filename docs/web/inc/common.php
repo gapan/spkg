@@ -28,9 +28,8 @@
  <div id="topmenu">
   <a href="index.php">home</a> | 
   <a href="dloads.php">downloads</a> | 
-  <a href="code.php">code</a> | 
-  <a href="docs.php">documentation</a> | 
-  <a href="suckers.php">competition</a>
+  <a href="status.php">status</a> | 
+  <a href="docs.php">documentation</a>
  </div>
 
  <div id="main">

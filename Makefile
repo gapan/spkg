@@ -8,7 +8,7 @@ DESTDIR :=
 PREFIX := /usr/local
 DEBUG := no
 STATIC := no
-VERSION := 0.9.1
+VERSION := 0.1.0
 
 CC := gcc
 AR := ar
@@ -103,14 +103,18 @@ docs:
 	doxygen docs/Doxyfile
 	rm -f docs/html/doxygen.png
 
-web: docs
-	rm -rf docs/web/spkg-docs
-	mkdir -p docs/web/spkg-docs
-	cp -r docs/html/* docs/web/spkg-docs
-	( cd docs/web ; tar czf spkg-docs.tar.gz spkg-docs )
-
+web: docs slackpkg dist
+	rm -rf .website
+	mkdir -p .website/dl/spkg-docs
+	cp -r docs/html/* .website/dl/spkg-docs
+	( cd .website/dl ; tar czf spkg-docs.tar.gz spkg-docs )
+	mv spkg-$(VERSION)-i486-1.tgz .website/dl
+	mv spkg-$(VERSION).tar.gz .website/dl
+	tar cC docs/web `cd docs/web ; tla inventory -s` | tar xC .website
+	sed -i 's/@VER@/$(VERSION)/g' .website/*.php
+        
 clean: tests-clean
 	-rm -rf .build/*.o .build/*.a spkg
 
 mrproper: clean
-	-rm -rf .build docs/html docs/web/spkg-docs docs/web/spkg-docs.tar.gz
+	-rm -rf .build docs/html .website

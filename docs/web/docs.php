@@ -3,9 +3,9 @@
 
  <h1>Documentation</h1>
   <p>Documentation is included in the source package, but you can also
-  <a href="/spkg-docs.tar.gz">download</a> it separately, or browse it online.</p>
+  <a href="/dl/spkg-docs.tar.gz">download</a> it separately, or browse it online.</p>
 
  <h1>Online Documentation</h1>
-  <p>Online documentation is avalibale <a href="/spkg-docs/index.html">here</a>.</p>
+  <p>Online documentation is avalibale <a href="/dl/spkg-docs/index.html">here</a>.</p>
 
 <?php foot(); ?>

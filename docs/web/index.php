@@ -17,10 +17,15 @@
     <li>Compatibility with legacy Slackware package database. This measns, that you
     may simply use both <strong>spkg</strong> and original <strong>pkgtools</strong> 
     simultaneosuly.</li>
-    <li>Everything is librified. (see <a href="/docs.php">docs</a>) You can write new commands easily.</li>
+    <li>Everything is librified. (see <a href="/docs.php">docs</a>) You can write
+    new commands easily.</li>
   </ul>
 
  <h1>News</h1>
+  <p>The lastest version of spkg is <strong>@VER@</strong>.</p>
+ 
+  <p>See <a href="/status.php">status</a> page for status of the <strong>spkg</strong>
+  development.</p>
 
   <dl>
    <dt>2005-06-09</dt>

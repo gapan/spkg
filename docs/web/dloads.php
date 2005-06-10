@@ -4,14 +4,19 @@
  <h1>Downloads</h1>
   <p>On this page you can get the lastest version of the <strong>spkg</strong>.</p>
 
+ <h1>Binary package</h1>
+  <p>I recommend, that you build spkg yourself. But <a href="/dl/spkg-@VER@-i486-1.tgz">binary
+  package</a> for slackware-current
+  is also available.</p>
+
  <h1>Source code</h1>
-  <p>Source code is distributed as ordinary tar archive.</p>
+  <p>Source code is distributed as ordinary tar 
+  <a href="/dl/spkg-@VER@.tar.gz">archive</a>.</p>
   
   <p>Prerequisites for building spkg are:</p>
   <ul>
    <li><a href="http://www.sqlite.org">sqlite3</a> - lightweight SQL database engine</li>
-   <li></li>
-   <li></li>
+   <li><a href="http://www.gtk.org">glib2</a> - general purporse C library</li>
   </ul>
 
  <h1>Building</h1>
