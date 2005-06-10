@@ -45,7 +45,7 @@ int main()
     }
   }
   stop_timer(1);
-//  print_timer(1, "fdb_add_file");
+  print_timer(1, "fdb_add_file");
 
   start_timer(2);
   for (j=0; j<files_cnt; j++)
@@ -59,7 +59,7 @@ int main()
     }
   }
   stop_timer(2);
-//  print_timer(2, "fdb_get_file_id");
+  print_timer(2, "fdb_get_file_id");
 
   start_timer(3);
   fdb_close();

@@ -35,7 +35,7 @@ test-files.so: .build/test-files.o
 
 .build/test-files.c:
 	( echo "char* files[] = {" ; \
-	  ( cd / ; find usr | head -n 200000 | sed 's/.*/"\0",/' ) ; \
+	  ( cd / ; find usr | head -n 100000 | sed 's/.*/"\0",/' ) ; \
 	  echo "}; unsigned int files_cnt = sizeof(files)/sizeof(files[0]);" \
 	) > $@
 

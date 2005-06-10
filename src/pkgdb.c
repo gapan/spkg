@@ -18,6 +18,8 @@
 
 #include "pkgdb.h"
 
+#include "bench.h"
+
 /* private 
  ************************************************************************/
 
@@ -187,6 +189,7 @@ gchar* db_error()
 struct db_pkg* db_alloc_pkg(gchar* name)
 {
   struct db_pkg* p;
+
   if (name == 0 || !parse_pkgname(name, 6))
     return 0;
     
