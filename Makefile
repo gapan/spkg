@@ -114,8 +114,8 @@ web-files: docs dist #slackpkg
 	mkdir -p .website/dl/spkg-docs
 	cp -r docs/html/* .website/dl/spkg-docs
 	( cd .website/dl ; tar czf spkg-docs.tar.gz spkg-docs )
-#	mv spkg-$(VERSION)-i486-1.tgz .website/dl
 	mv spkg-$(VERSION).tar.gz .website/dl
+#	mv spkg-$(VERSION)-i486-1.tgz .website/dl
 
 web: web-base web-files
         

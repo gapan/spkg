@@ -23,10 +23,11 @@
   </ul>
 
  <h1>News</h1>
+
   <p>The lastest version of @SPKG@ is <strong>@VER@</strong>.</p>
  
-  <p>See <a href="/status.php">status</a> page for the current status and roadmap of the 
-  @SPKG@ development.</p>
+  <p>See <a href="/status.php">status</a> page for the current status
+  and roadmap of the @SPKG@ development.</p>
 
   <dl>
    <dt>2005-06-10</dt>

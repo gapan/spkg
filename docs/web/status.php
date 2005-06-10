@@ -5,8 +5,8 @@
 
   <p>The lastest version of @SPKG@ is <strong>@VER@</strong>.</p>
 
-  <p>spkg is under active development. Main parts of the @SPKG@ core library 
-  are completed.</p>
+  <p>spkg is under active development. Main parts of the @SPKG@ core
+  library are completed.</p>
   
   <table cellspacing="0">
     <tr><th>library part</th><th>docs</th><th>code</th><th>what's missing (or problematic)</th></tr>

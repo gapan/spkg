@@ -2,6 +2,7 @@
 <?php head("spkg - The Unofficial Slackware Linux Package Manager"); ?>
 
  <h1>Downloads</h1>
+
   <p>On this page you can get the lastest version of the @SPKG@.</p>
 
  <h1>Binary package</h1>
@@ -14,7 +15,9 @@
   developement. See roadmap for more info.</p>
 
  <h1>Source code</h1>
-  <p>Source code is distributed as an ordinary <a href="/dl/spkg-@VER@.tar.gz">tarball</a>.</p>
+
+  <p>Source code is distributed as an ordinary <a
+  href="/dl/spkg-@VER@.tar.gz">tarball</a>.</p>
   
   <p>Prerequisites for building @SPKG@ are:</p>
   <ul>
@@ -23,8 +26,9 @@
   </ul>
 
  <h1>Building</h1>
-  <p>Installing @SPKG@ is very easy. Just extract source code package and run 
-  this command:</p>
+
+  <p>Installing @SPKG@ is very easy. Just extract source code package
+  and run  this command:</p>
   <code># make install</code>
 
   <p>To uninstall @SPKG@, do:</p>
