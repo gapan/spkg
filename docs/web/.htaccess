@@ -1,0 +1,9 @@
+Order allow,deny
+Allow from all
+
+<Files .ht*>
+  Order allow,deny
+  Deny from all
+</Files>
+
+DirectoryIndex index.php

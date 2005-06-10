@@ -1,5 +1,5 @@
 #/----------------------------------------------------------------------\#
-#| spkg - Slackware Linux Fast Package Management Tools                 |#
+#| spkg - The Unofficial Slackware Linux Package Manager                |#
 #|                                      designed by Ondøej Jirman, 2005 |#
 #|----------------------------------------------------------------------|#
 #|          No copy/usage restrictions are imposed on anybody.          |#
@@ -103,8 +103,14 @@ docs:
 	doxygen docs/Doxyfile
 	rm -f docs/html/doxygen.png
 
+web: docs
+	rm -rf docs/web/spkg-docs
+	mkdir -p docs/web/spkg-docs
+	cp -r docs/html/* docs/web/spkg-docs
+	( cd docs/web ; tar czf spkg-docs.tar.gz spkg-docs )
+
 clean: tests-clean
 	-rm -rf .build/*.o .build/*.a spkg
 
 mrproper: clean
-	-rm -rf .build docs/html
+	-rm -rf .build docs/html docs/web/spkg-docs docs/web/spkg-docs.tar.gz

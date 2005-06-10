@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------*\
-|* spkg - Slackware Linux Fast Package Management Tools                 *|
+|* spkg - The Unofficial Slackware Linux Package Manager                *|
 |*                                      designed by Ondøej Jirman, 2005 *|
 |*----------------------------------------------------------------------*|
 |*          No copy/usage restrictions are imposed on anybody.          *|
@@ -105,7 +105,7 @@ int main(int ac, char* av[])
     exit(1);
   }
   
-  context = g_option_context_new("- Slackware Linux(TM) Package Management Tool v." SPKG_VERSION);
+  context = g_option_context_new("- The Unofficial Slackware Linux Package Manager v." SPKG_VERSION);
   g_option_context_add_main_entries(context, entries, 0);
   g_option_context_parse(context, &ac, &av, &error);
 

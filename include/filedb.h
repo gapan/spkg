@@ -1,5 +1,5 @@
 /*----------------------------------------------------------------------*\
-|* spkg - Slackware Linux Fast Package Management Tools                 *|
+|* spkg - The Unofficial Slackware Linux Package Manager                *|
 |*                                      designed by Ondøej Jirman, 2005 *|
 |*----------------------------------------------------------------------*|
 |*          No copy/usage restrictions are imposed on anybody.          *|
