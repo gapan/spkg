@@ -8,9 +8,9 @@
 
 /* tics per second (this is constant for my 1GHz athlon) */
 #define TPS 1000000000ull
-#define CNT 8
+#define CNT 16
 
-unsigned long long timers[CNT][3];
+static unsigned long long timers[CNT][3];
 
 static __inline__ void start_timer(int t) {
   timers[t][2] = 0;
@@ -34,7 +34,7 @@ static __inline__ double get_timer(int t) {
   return (double)(timers[t][1]-timers[t][0])/TPS; 
 }
 
-void print_timer(int t, char* msg)
+static __inline__ void print_timer(int t, char* msg)
 {
   double d = (double)timers[t][2]/TPS;
 

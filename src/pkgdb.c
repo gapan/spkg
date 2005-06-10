@@ -100,11 +100,17 @@ gint db_open(const gchar* root)
   }
 
   /* check spkg db file */
-  _db_dbroot = g_strdup_printf("%s/%s", _db_topdir, "spkg");
+  _db_dbroot = g_strdup_printf("%s/%s", _db_topdir, "spkgdb");
   _db_dbfile = g_strdup_printf("%s/%s", _db_dbroot, "spkg.db");
   if (sys_file_type(_db_dbfile,0) != SYS_REG && sys_file_type(_db_dbfile,0) != SYS_NONE)
   {
     _db_set_error(DB_OTHER, "can't open package database (%s is not accessible)", _db_dbfile);
+    goto err1;
+  }
+
+  if (fdb_open(_db_dbroot))
+  {
+    _db_set_error(DB_OTHER, "can't open file database\n%s", fdb_error());
     goto err1;
   }
 
@@ -113,7 +119,6 @@ gint db_open(const gchar* root)
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
     _db_set_error(DB_OTHER, "can't open package database (sql error)\n%s", sql_error());
-    sql_close();
     goto err2;
   }
 
@@ -160,6 +165,7 @@ gint db_open(const gchar* root)
 void db_close()
 {
   _db_reset_error();
+  fdb_close();
   sql_close();
   g_free(_db_dbfile);
   g_free(_db_topdir);
@@ -240,7 +246,6 @@ gint db_add_pkg(struct db_pkg* pkg)
   guint32 *fi_array = g_malloc(sizeof(guint32)*fi_size);
   guint i = 0;
 
-  fdb_open(_db_dbroot);
   for (l=pkg->files; l!=0; l=l->next)
   { /* for each file */
     struct db_file* f = l->data;
@@ -252,7 +257,6 @@ gint db_add_pkg(struct db_pkg* pkg)
     f->refs = fdb.refs;
     fi_array[i++] = f->id;
   }
-  fdb_close();
 
   /* add pkg to the pacakge table */
   q = sql_prep("INSERT INTO packages(name, shortname, version, arch, build, csize, usize, desc, location, files)"
@@ -312,10 +316,8 @@ gint db_rem_pkg(gchar* name)
   guint fi_size = sql_get_size(q, 1)/sizeof(guint32);
   guint32 *fi_array = (guint32*)sql_get_blob(q, 1);
   guint i;
-  fdb_open(_db_dbroot);
   for (i=0; i<fi_size; i++)
     fdb_del_file(fi_array[i]);
-  fdb_close();
   
   sql_fini(q);
 
@@ -382,7 +384,6 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   guint fi_size = sql_get_size(q, 10)/sizeof(guint32);
   guint32 *fi_array = (guint32*)sql_get_blob(q, 10);
   
-  fdb_open(_db_dbroot);
   guint i;
   struct fdb_file f;
   for (i=0; i<fi_size; i++)
@@ -395,7 +396,6 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
     file->id = fi_array[i];
     p->files = g_slist_append(p->files, file);
   }
-  fdb_close();
 
   sql_pop_context(0);
   return p;
@@ -722,7 +722,9 @@ gint db_sync_to_legacydb()
   _db_open_check(1)
 
   pkgs = db_get_packages();
-  if (pkgs == 0)
+  if (pkgs == 0 && db_error() == 0)
+    return 0; /* no packages */
+  else if (pkgs == 0)
   {
     gchar* err = g_strdup(db_error());
     _db_set_error(DB_OTHER, "can't synchronize database (internal error)\n%s", err);
