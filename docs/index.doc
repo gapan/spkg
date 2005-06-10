@@ -1,12 +1,5 @@
 /** @page index Main Page
 
-@section descr Description
-
-
-
-@section feats Features
-
-@li The fastest package manager ever written.
-@li All features of pkgtools (except for makepkg).
+This is spkg internal (developers) documentation.
 
 */

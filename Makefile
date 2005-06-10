@@ -103,15 +103,21 @@ docs:
 	doxygen docs/Doxyfile
 	rm -f docs/html/doxygen.png
 
-web: docs slackpkg dist
+web-base:
 	rm -rf .website
+	mkdir -p .website
+	tar cC docs/web `cd docs/web ; tla inventory -s` | tar xC .website
+	sed -i 's/@VER@/$(VERSION)/g ; s/@DATE@/$(shell LANG=C date)/g' .website/*.php .website/inc/*.php
+	sed -i 's/@SPKG@/<strong style="color:darkblue;"><span style="color:red;">s<\/span>pkg<\/strong>/g' .website/*.php .website/inc/*.php
+
+web-files: docs dist #slackpkg
 	mkdir -p .website/dl/spkg-docs
 	cp -r docs/html/* .website/dl/spkg-docs
 	( cd .website/dl ; tar czf spkg-docs.tar.gz spkg-docs )
-	mv spkg-$(VERSION)-i486-1.tgz .website/dl
+#	mv spkg-$(VERSION)-i486-1.tgz .website/dl
 	mv spkg-$(VERSION).tar.gz .website/dl
-	tar cC docs/web `cd docs/web ; tla inventory -s` | tar xC .website
-	sed -i 's/@VER@/$(VERSION)/g' .website/*.php
+
+web: web-base web-files
         
 clean: tests-clean
 	-rm -rf .build/*.o .build/*.a spkg

@@ -7,7 +7,7 @@
 
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2" />
 <meta name="Keywords" content="spkg, package manager, slackware, linux, C, fast" />
-<meta name="Description" content="spkg - The unofficial Slackware Linux package manager." />
+<meta name="Description" content="spkg - The Unofficial Slackware Linux Package Manager" />
 <meta name="Author" content="Ondřej Jirman" />
 <meta name="robots" content="all" />
 <meta name="revisit-after" content="7 days" />
@@ -26,10 +26,10 @@
  </div>
 
  <div id="topmenu">
-  <a href="index.php">home</a> | 
-  <a href="dloads.php">downloads</a> | 
-  <a href="status.php">status</a> | 
-  <a href="docs.php">documentation</a>
+  <a href="index.php">home</a> |
+  <a href="status.php">status</a> |
+  <a href="docs.php">documentation</a> |
+  <a href="dloads.php">downloads</a>
  </div>
 
  <div id="main">
@@ -40,7 +40,10 @@
  </div>
 
  <div id="botmenu">
- Written by Ondřej Jirman, 2005 | last update: date | kiss me
+ Written by Ondřej Jirman, 2005 
+ | last update: @DATE@ 
+ | contact: <a href="mailto:megous@megous.com">megous@megous.com</a>
+ | <a href="http://megous.com">megous.com</a>
  </div>
 
 </div>
