@@ -90,65 +90,49 @@ gchar* parse_pkgname(const gchar* path, guint elem)
   <shortname>: longdesc
   ...
   other lines are discarded
+  
+  XXX: strip eoln
 */
 #define MAXLNLEN 128
-gint parse_slackdesc(const gchar* slackdesc,
-                     gchar* sname,
-                     gchar** sdesc,
-                     gchar** ldesc)
+gint parse_slackdesc(const gchar* slackdesc, const gchar* sname, gchar* desc[11])
 {
   const gchar* i = slackdesc;
   const gchar* j;
   gint sl = strlen(sname);
   gint ln = 0;
-  gint ll = 0;
-  gchar bufs[MAXLNLEN] = {0};
-  gchar bufl[MAXLNLEN*10] = {0};
+  gint l = 0;
+  gchar buf[MAXLNLEN];
+
+  /*XXX: some asserts should be here */
+
+  for (l=0;l<11;l++)
+    desc[l] = 0;
   
-  if (i == 0 || sname == 0)
-    return 1;
-  
-  *sdesc = 0;
-  *ldesc = 0;
-    
   while (1)
   {
     if (strncmp(sname, i, sl) != 0 || (*(i+sl) != ':'))
     { /* line don't match sname */
       i = strchr(i,'\n');
       if (i==0)
-      {
-        *sdesc = g_strndup(bufs, MAXLNLEN);
-        *ldesc = g_strndup(bufl, 10*MAXLNLEN);
-        return 0; /* end */
-      }
+        return ln?0:1; /* end */
       i++;
     }
     else
     { /* line matches sname: */
       if (ln > 10) /* too much valid lines */
-      {
-        *sdesc = g_strndup(bufs, MAXLNLEN);
-        *ldesc = g_strndup(bufl, 10*MAXLNLEN);
-        return 0;
-      }
+        return 0; /* this is ok */
 
       i += sl+1;
       j = strchr(i,'\n');
       if (j==0)
-        j = i+strlen(i);
-      ll = j-i+1;
-      if (ll > MAXLNLEN-1)
-        ll = MAXLNLEN-1;
-      if (ln)
-      { /* not a first line */
-        strncat(bufl, i, ll);
-      }
-      else
-      { /* first line */
-        strncpy(bufs, i, ll);
-        bufs[ll] = 0;
-      }
+        j = i+strlen(i)+1;
+      l = j-i;
+      if (l > MAXLNLEN-1)
+        l = MAXLNLEN-1;
+      strncpy(buf, i, l);
+      buf[l] = 0;
+      gchar* b = buf[0] == ' '?buf+1:buf;
+      desc[ln] = g_strndup(b, MAXLNLEN-1);
       ln++;
     }
   }

@@ -10,17 +10,16 @@
 
 void test_parser(gchar* sn, gchar* sd)
 {
-  gchar *l, *s;
-  gint rv = parse_slackdesc(sd, sn, &s, &l);
+  gchar* dsc[11];
+  gint i;
+  gint rv = parse_slackdesc(sd, sn, dsc);
+  
   printf("***** (reval = %d)\n", rv);
-  printf(sd);
+  for (i=0;dsc[i]!=0 && i<11; i++)
+    printf("%s\n", dsc[i]);
   printf("*****\n");
-  printf(s);
-  printf("*****\n");
-  printf(l);
-  printf("*****\n");
-  g_free(l);
-  g_free(s);
+  for (i=0;i<11;i++)
+    g_free(dsc[i]);
 }
 
 gchar* tests[][2] = {
