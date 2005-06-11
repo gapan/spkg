@@ -36,6 +36,8 @@ extern gchar* parse_pkgname(const gchar* path, guint elem);
  */
 extern gint parse_slackdesc(const gchar* slackdesc, const gchar* sname, gchar* desc[11]);
 
+extern gchar* gen_slackdesc(const gchar* sname, gchar* desc[11]);
+
 #endif
 
 /*! @} */

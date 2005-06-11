@@ -138,3 +138,21 @@ gint parse_slackdesc(const gchar* slackdesc, const gchar* sname, gchar* desc[11]
   }
   return 1;
 }
+
+gchar* gen_slackdesc(const gchar* sname, gchar* desc[11])
+{
+  gchar buf[MAXLNLEN*11];
+  buf[0]=0;
+  gint i;
+
+  for (i=0;i<11;i++)
+  {
+    if (desc[i] == 0)
+      break;
+    g_strlcat(buf,sname,MAXLNLEN*11);
+    g_strlcat(buf,": ",MAXLNLEN*11);
+    g_strlcat(buf,desc[i],MAXLNLEN*11);
+    g_strlcat(buf,"\n",MAXLNLEN*11);
+  }
+  return buf[0]?g_strdup(buf):0;
+}
