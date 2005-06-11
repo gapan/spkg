@@ -15,7 +15,8 @@ compiled-tests = \
   test-pkgtools \
   test-sql-speed \
   test-sql \
-  test-untgz
+  test-untgz \
+  test-parsers
 
 test-filedb-i486 test-filedb-speed1 test-filedb-speed2 test-sql-speed: test-files.so
 

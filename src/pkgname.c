@@ -91,18 +91,66 @@ gchar* parse_pkgname(const gchar* path, guint elem)
   ...
   other lines are discarded
 */
-gint parse_slackdesc(const gchar* slackdesc, 
+#define MAXLNLEN 128
+gint parse_slackdesc(const gchar* slackdesc,
                      gchar* sname,
                      gchar** sdesc,
                      gchar** ldesc)
 {
-  return 1;
-}
+  const gchar* i = slackdesc;
+  const gchar* j;
+  gint sl = strlen(sname);
+  gint ln = 0;
+  gint ll = 0;
+  gchar bufs[MAXLNLEN] = {0};
+  gchar bufl[MAXLNLEN*10] = {0};
+  
+  if (i == 0 || sname == 0)
+    return 1;
+  
+  *sdesc = 0;
+  *ldesc = 0;
+    
+  while (1)
+  {
+    if (strncmp(sname, i, sl) != 0 || (*(i+sl) != ':'))
+    { /* line don't match sname */
+      i = strchr(i,'\n');
+      if (i==0)
+      {
+        *sdesc = g_strndup(bufs, MAXLNLEN);
+        *ldesc = g_strndup(bufl, 10*MAXLNLEN);
+        return 0; /* end */
+      }
+      i++;
+    }
+    else
+    { /* line matches sname: */
+      if (ln > 10) /* too much valid lines */
+      {
+        *sdesc = g_strndup(bufs, MAXLNLEN);
+        *ldesc = g_strndup(bufl, 10*MAXLNLEN);
+        return 0;
+      }
 
-gint parse_pkgdb(const gchar* buffer, gsize len,
-                 gchar* name,
-                 GSList** links,
-                 GSList** files)
-{
+      i += sl+1;
+      j = strchr(i,'\n');
+      if (j==0)
+        j = i+strlen(i);
+      ll = j-i+1;
+      if (ll > MAXLNLEN-1)
+        ll = MAXLNLEN-1;
+      if (ln)
+      { /* not a first line */
+        strncat(bufl, i, ll);
+      }
+      else
+      { /* first line */
+        strncpy(bufs, i, ll);
+        bufs[ll] = 0;
+      }
+      ln++;
+    }
+  }
   return 1;
 }
