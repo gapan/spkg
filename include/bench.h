@@ -12,13 +12,20 @@
 
 #if __BENCH == 1
 
-/* [0] = start tics, [1] = accumulated tics */
+/* [0] = start tics, [1] = accumulated tics, [2] = times stopped/continued */
 static unsigned long long timers[CNT][3];
 
 static __inline__ void reset_timer(int t)
 {
   timers[t][1] = 0;
   timers[t][2] = 0;
+}
+
+static __inline__ void reset_timers()
+{
+  int i;
+  for (i=0;i<CNT;i++)
+    reset_timer(i);
 }
 
 static __inline__ void start_timer(int t)
@@ -66,12 +73,13 @@ static __inline__ void print_timer(int t, char* msg)
   double d2 = get_timer(t)/(unsigned int)timers[t][2];
   get_time_str(d1,buf1);
   get_time_str(d2,buf2);
-  printf("timer[%d]: %s = %s (%s per cycle)\n", t, msg?msg:"", buf1, buf2);
+  printf("** timer: %s = %s (%s per cycle)\n", msg?msg:"", buf1, buf2);
 }
 
 #else
 
 static __inline__ void start_timer(int t) { }
+static __inline__ void reset_timers() { }
 static __inline__ void reset_timer(int t) { }
 static __inline__ void continue_timer(int t) { }
 static __inline__ void stop_timer(int t) { }
@@ -79,3 +87,6 @@ static __inline__ double get_timer(int t) { return 0; }
 static __inline__ void print_timer(int t, char* msg) { }
 
 #endif
+
+#undef CNT
+#undef TPS

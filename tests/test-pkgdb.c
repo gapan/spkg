@@ -105,7 +105,7 @@ int main(int ac, char* av[])
     exit(1);
   }
   stop_timer(0);
-  print_timer(0, "db_sync_from_legacydb()");
+  print_timer(0, "db_sync_from_legacydb");
 #endif
 
 #if TEST_SYNC_FROM_DB == 1
@@ -116,7 +116,7 @@ int main(int ac, char* av[])
     exit(1);
   }
   stop_timer(0);
-  print_timer(0, "db_sync_to_legacydb()");
+  print_timer(0, "db_sync_to_legacydb");
 #endif
 
   return 0;

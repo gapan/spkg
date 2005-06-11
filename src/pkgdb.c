@@ -388,11 +388,12 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   guint32 *fi_array = (guint32*)sql_get_blob(q, 10);
   
   guint i;
-  struct fdb_file f;
   for (i=0; i<fi_size; i++)
   {
+    struct fdb_file f;
+    struct db_file* file;
     fdb_get_file(fi_array[i], &f);
-    struct db_file* file = g_new0(struct db_file, 1);
+    file = g_new0(struct db_file, 1);
     file->path = g_strdup(f.path);
     file->link = f.link?g_strdup(f.link):0;
     file->mode = f.mode;
@@ -724,6 +725,9 @@ gint db_sync_to_legacydb()
   _db_reset_error();
   _db_open_check(1)
 
+  reset_timers();
+
+  continue_timer(0);
   pkgs = db_get_packages();
   if (pkgs == 0 && db_error() == 0)
     return 0; /* no packages */
@@ -734,6 +738,7 @@ gint db_sync_to_legacydb()
     g_free(err);
     goto err_0;
   }
+  stop_timer(0);
  
   for (l=pkgs; l!=0; l=l->next)
   { /* for each package */
@@ -745,6 +750,7 @@ gint db_sync_to_legacydb()
 //    fflush(stdout);
 /*XXX: debug code */
 
+    continue_timer(1);
     p = db_get_pkg(pkg->name,1);
     if (p == 0)
     {
@@ -753,6 +759,8 @@ gint db_sync_to_legacydb()
       g_free(err);
       goto err_1;
     }
+    stop_timer(1);
+    continue_timer(2);
     if (db_legacy_add_pkg(p))
     {
       gchar* err = g_strdup(db_error());
@@ -760,8 +768,16 @@ gint db_sync_to_legacydb()
       g_free(err);
       goto err_1;
     }
+    stop_timer(2);
+    continue_timer(3);
     db_free_pkg(p);
+    stop_timer(3);
   }
+
+  print_timer(0, "db_get_packages");
+  print_timer(1, "db_get_pkg");
+  print_timer(2, "db_legacy_add_pkg");
+  print_timer(3, "db_free_pkg");
 
   ret = 0;
  err_1:
@@ -791,6 +807,8 @@ gint db_sync_from_legacydb()
   /*XXX: unchecked sql library call */
   sql_exec("DELETE FROM packages;");
 
+  reset_timers();
+
   while ((de = readdir(d)) != NULL)
   {
     struct db_pkg* p=0;
@@ -803,7 +821,9 @@ gint db_sync_from_legacydb()
 //    fflush(stdout);
 /*XXX: debug code */
 
+    continue_timer(0);
     p = db_legacy_get_pkg(de->d_name);
+    stop_timer(0);
     if (p == 0)
     {
       gchar* err = g_strdup(db_error());
@@ -811,6 +831,8 @@ gint db_sync_from_legacydb()
       g_free(err);
       goto err_1;
     }
+
+    continue_timer(1);
     if (db_add_pkg(p))
     {
       gchar* err = g_strdup(db_error());
@@ -819,8 +841,16 @@ gint db_sync_from_legacydb()
       db_free_pkg(p);
       goto err_1;
     }
+    stop_timer(1);
+
+    continue_timer(2);
     db_free_pkg(p);
+    stop_timer(2);
   }
+  
+  print_timer(0, "db_legacy_get_pkg");
+  print_timer(1, "db_add_pkg");
+  print_timer(2, "db_free_pkg");
 
   ret = 0;
  err_1:
