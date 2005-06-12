@@ -2,7 +2,7 @@ set print pretty on
 set logging file .gdb.log
 set logging overwrite on
 set logging on
-file ./test-parsers
+file ./test-pkgdb
 r
 #file ./pkgdb
 #r

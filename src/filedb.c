@@ -342,6 +342,8 @@ gint fdb_open(const gchar* root)
   gchar z = 0;
   gint j;
 
+  reset_timers();
+
   if (_fdb.is_open)
   {
     _fdb_set_error("can't open filedb: trying to open opened file database");
@@ -519,6 +521,9 @@ gint fdb_close()
   _fdb.ihdr->lastid = _fdb.lastid;
   _fdb.phdr->newoff = _fdb.newoff;
 
+  print_timer(0, "fdb_get_file");
+  print_timer(1, "fdb_add_file");
+
 #if SHOW_STATS == 1
   guint32 is = (_fdb.lastid*sizeof(struct file_idx)+sizeof(struct file_idx_hdr));
   guint32 ps = _fdb.newoff;
@@ -541,12 +546,16 @@ gint fdb_close()
 
 guint32 fdb_add_file(struct fdb_file* file)
 {
+  guint32 id;
+  continue_timer(1);
   if (file == 0 || file->path == 0)
   {
     _fdb_set_error("can't add file: invalid argument of the function");
     return 0;
   }
-  return _ins_node(file);
+  id = _ins_node(file);
+  stop_timer(1);
+  return id;
 }
 
 guint32 fdb_get_file_id(gchar* path)
@@ -576,7 +585,9 @@ guint32 fdb_get_file_id(gchar* path)
 
 gint fdb_get_file(guint32 id, struct fdb_file* file)
 {
-  struct file_pld* pld = _pld(_node(id));
+  struct file_pld* pld;
+  continue_timer(0);
+  pld = _pld(_node(id));
   if (pld == 0)
   {
     _fdb_set_error("can't get file: invalid file id");
@@ -585,6 +596,7 @@ gint fdb_get_file(guint32 id, struct fdb_file* file)
   file->path = pld->data;
   file->link = pld->llen?pld->data+pld->plen+1:0;
   file->mode = pld->mode;
+  stop_timer(0);
   return 0;
 }
 

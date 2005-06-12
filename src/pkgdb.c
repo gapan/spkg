@@ -236,6 +236,7 @@ gint db_add_pkg(struct db_pkg* pkg)
   }
 
   /* check if package already exists in db */
+  continue_timer(8);
   q = sql_prep("SELECT id FROM packages WHERE name == '%q';", pkg->name);
   if (sql_step(q))
   { /* if package exists */
@@ -244,7 +245,9 @@ gint db_add_pkg(struct db_pkg* pkg)
     return 1;
   }
   sql_fini(q);
+  stop_timer(8);
 
+  continue_timer(9);
   guint fi_size = g_slist_length(pkg->files);
   guint32 *fi_array = g_malloc(sizeof(guint32)*fi_size);
   guint i = 0;
@@ -260,7 +263,9 @@ gint db_add_pkg(struct db_pkg* pkg)
     f->refs = fdb.refs;
     fi_array[i++] = f->id;
   }
+  stop_timer(9);
 
+  continue_timer(10);
   /* add pkg to the pacakge table */
   q = sql_prep("INSERT INTO packages(name, shortname, version, arch, build, csize, usize, desc, location, files)"
                " VALUES(?,?,?,?,?,?,?,?,?,?);");
@@ -278,6 +283,7 @@ gint db_add_pkg(struct db_pkg* pkg)
   sql_fini(q);
 
   g_free(fi_array);
+  stop_timer(10);
 
   sql_pop_context(1);
   return 0;
@@ -356,6 +362,7 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
     return 0;
   }
 
+  continue_timer(9);
   q = sql_prep("SELECT id, name, shortname, version, arch, build, csize,"
                    " usize, desc, location, files FROM packages WHERE name == '%q';", name);
   if (!sql_step(q))
@@ -364,7 +371,9 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
     sql_pop_context(0);
     return 0;
   }
+  stop_timer(9);
 
+  continue_timer(10);
   p = g_new0(struct db_pkg, 1);
   pid = sql_get_int(q, 0);
   p->name = g_strdup(name);
@@ -376,6 +385,7 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   p->usize = sql_get_int(q, 7);
   p->desc = g_strdup(sql_get_text(q, 8));
   p->location = g_strdup(sql_get_text(q, 9));
+  stop_timer(10);
 
   /* caller don't want files list, so it's enough here */
   if (files == 0)
@@ -384,22 +394,27 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
     return p;
   }
 
+  continue_timer(11);
   guint fi_size = sql_get_size(q, 10)/sizeof(guint32);
   guint32 *fi_array = (guint32*)sql_get_blob(q, 10);
   
   guint i;
+  struct fdb_file f;
+  struct db_file* file;
   for (i=0; i<fi_size; i++)
   {
-    struct fdb_file f;
-    struct db_file* file;
     fdb_get_file(fi_array[i], &f);
     file = g_new0(struct db_file, 1);
     file->path = g_strdup(f.path);
     file->link = f.link?g_strdup(f.link):0;
     file->mode = f.mode;
     file->id = fi_array[i];
-    p->files = g_slist_append(p->files, file);
+    continue_timer(12);
+    p->files = g_slist_prepend(p->files, file);
+    stop_timer(12);
   }
+  p->files = g_slist_reverse(p->files);
+  stop_timer(11);
 
   sql_pop_context(0);
   return p;
@@ -534,7 +549,7 @@ struct db_pkg* db_legacy_get_pkg(gchar* name)
       }
       break;
       case FILELIST:
-        p->files = g_slist_append(p->files, db_alloc_file(g_strdup(ln),0));
+        p->files = g_slist_prepend(p->files, db_alloc_file(g_strdup(ln),0));
       break;
       case LINKLIST:
       {
@@ -545,13 +560,14 @@ struct db_pkg* db_legacy_get_pkg(gchar* name)
         ln[rm[3].rm_eo] = 0;
         tmpstr = g_strjoin("/", ln+rm[1].rm_so, ln+rm[3].rm_so, 0);
         linktgt = g_strdup(ln+rm[2].rm_so);
-        p->files = g_slist_append(p->files, db_alloc_file(tmpstr, linktgt));
+        p->files = g_slist_prepend(p->files, db_alloc_file(tmpstr, linktgt));
       }
       break;
       default:
         goto err;
     }
   }
+  p->files = g_slist_reverse(p->files);
 
   goto err1;
  err:
@@ -694,7 +710,7 @@ GSList* db_get_packages()
   }
 
   q = sql_prep("SELECT id, name, shortname, version, arch, build, csize,"
-                   " usize, desc, location FROM packages ORDER BY name;");
+                   " usize, desc, location FROM packages;");
   while(sql_step(q))
   {
     struct db_pkg* p;
@@ -710,7 +726,7 @@ GSList* db_get_packages()
     p->desc = g_strdup(sql_get_text(q, 8));
     p->location = g_strdup(sql_get_text(q, 9));
 
-    pkgs = g_slist_append(pkgs, p);
+    pkgs = g_slist_prepend(pkgs, p);
   }
 
   sql_pop_context(0);
@@ -778,6 +794,11 @@ gint db_sync_to_legacydb()
   print_timer(1, "db_get_pkg");
   print_timer(2, "db_legacy_add_pkg");
   print_timer(3, "db_free_pkg");
+
+  print_timer(9, "db_get_pkg:get");
+  print_timer(10, "db_get_pkg:set");
+  print_timer(11, "db_get_pkg:fls");
+  print_timer(12, "db_get_pkg:lst");
 
   ret = 0;
  err_1:
@@ -851,6 +872,10 @@ gint db_sync_from_legacydb()
   print_timer(0, "db_legacy_get_pkg");
   print_timer(1, "db_add_pkg");
   print_timer(2, "db_free_pkg");
+
+  print_timer(8, "db_add_pkg:get");
+  print_timer(9, "db_add_pkg:fls");
+  print_timer(10, "db_add_pkg:add");
 
   ret = 0;
  err_1:
