@@ -71,20 +71,6 @@ extern void sys_sigblock(sigset_t* sigs);
  */
 extern void sys_sigunblock(sigset_t* sigs);
 
-/** Directory part of the path.
- *
- * @param path path
- * @return directory part of the path
- */
-extern gchar* sys_dirname(const gchar* path);
-
-/** Last part of the path.
- *
- * @param path path
- * @return last part of the path
- */
-extern gchar* sys_basename(const gchar* path);
-
 #endif
 
 /*! @} */

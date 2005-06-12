@@ -8,6 +8,7 @@
 testdir = tests
 
 compiled-tests = \
+  test-pkgdb-legacy \
   test-filedb-i486 \
   test-filedb-speed1 \
   test-filedb-speed2 \

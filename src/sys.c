@@ -98,15 +98,3 @@ void sys_sigunblock(sigset_t* sigs)
     exit(1);
   }
 }
-
-gchar* sys_dirname(const gchar* path)
-{
-  /*XXX: unimplemented */
-  return (gchar*)path;
-}
-
-gchar* sys_basename(const gchar* path)
-{
-  /*XXX: unimplemented */
-  return (gchar*)path;
-}

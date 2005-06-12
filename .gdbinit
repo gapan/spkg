@@ -2,10 +2,6 @@ set print pretty on
 set logging file .gdb.log
 set logging overwrite on
 set logging on
-file ./test-pkgdb
+file ./test-pkgdb-legacy
+b pkgdb.c:566
 r
-#file ./pkgdb
-#r
-
-#set args testpkg-1.0-i486-1.tgz
-#file ./fastpkg

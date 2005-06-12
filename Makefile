@@ -6,8 +6,8 @@
 #\----------------------------------------------------------------------/#
 DESTDIR :=
 PREFIX := /usr/local
-DEBUG := no
-BENCH := yes
+DEBUG := yes
+BENCH := no
 STATIC := no
 VERSION := 0.1.0
 

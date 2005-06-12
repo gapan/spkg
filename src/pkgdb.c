@@ -8,8 +8,10 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <dirent.h>
-#include <regex.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <string.h>
+#include <sys/mman.h>
 
 #include "sql.h"
 #include "sys.h"
@@ -422,171 +424,213 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
 
 struct db_pkg* db_legacy_get_pkg(gchar* name)
 {
-  gchar *tmpstr, *linktgt;
-  FILE *fp, *fs, *f;
-  gchar *ln = 0;
-  gsize len = 0, l;
-  enum { HEADER, FILELIST, LINKLIST } state = HEADER;
+  gint fp, fs;
+  gchar *ap, *as=0;
+  gsize sp, ss=0;
   struct db_pkg* p=0;
-  regex_t re_symlink,
-          re_pkgname,
-          re_pkgsize,
-          re_desc,
-          re_nameparts;
-  regmatch_t rm[5];
-
+  gchar *tmpstr;
+ 
   if (name == 0)
-    return 0;
+    goto err_0;
 
   continue_timer(11);
-  /* open package db entries */  
-  tmpstr = g_strjoin("/", _db_topdir, "packages", name, 0);
-  fp = fopen(tmpstr, "r");
-  g_free(tmpstr);
-  tmpstr = g_strjoin("/", _db_topdir, "scripts", name, 0);
-  fs = fopen(tmpstr, "r");
-  g_free(tmpstr);
 
-  /* if main package db entry is not accessible return error */
-  if (fp == NULL)
-    goto err;
+  /* open legacy package db entries */  
+  tmpstr = g_strdup_printf("%s/packages/%s", _db_topdir, name);
+  fp = open(tmpstr, O_RDONLY);
+  g_free(tmpstr);
+  if (fp == -1) /* main package entry can't be open */
+    goto err_0;
+  sp = lseek(fp, 0, SEEK_END)+1;
+  ap = mmap(0, sp, PROT_READ, MAP_SHARED, fp, 0);
+  if (ap == (void*)-1)
+  {
+    close(fp);
+    goto err_0;
+  }
 
-  /* compile regexps */
-  if (regcomp(&re_symlink, "^\\( cd ([^ ]+) ; ln -sf ([^ ]+) ([^ ]+) \\)$", REG_EXTENDED) || 
-      regcomp(&re_pkgname, "^([^:]+):[ ]*(.+)?$", REG_EXTENDED) ||
-      regcomp(&re_desc, "^([^:]+):(.*)$", REG_EXTENDED) ||
-      regcomp(&re_pkgsize, "^([^:]+):[ ]*([0-9]+) K$", REG_EXTENDED) ||
-      regcomp(&re_nameparts, "^(.+)-([^-]+)-([^-]+)-([^-]+)$", REG_EXTENDED))
-    g_error("can't compile regexps");
+  tmpstr = g_strdup_printf("%s/scripts/%s", _db_topdir, name);
+  fs = open(tmpstr, O_RDONLY);
+  g_free(tmpstr);
+  if (fs != -1) /* script entry can't be open */
+  {
+    ss = lseek(fs, 0, SEEK_END)+1;
+    as = mmap(0, ss, PROT_READ, MAP_SHARED, fs, 0);
+    if (as == (void*)-1)
+    {
+      close(fs);
+      fs = -1;
+    }
+  }
 
   p = g_new0(struct db_pkg, 1);
   p->name = g_strdup(name);
-  p->shortname = parse_pkgname(p->name, 1);
+  p->shortname = parse_pkgname(p->name, 1); /*XXX: no checking here */
   p->version = parse_pkgname(p->name, 2);
   p->arch = parse_pkgname(p->name, 3);
   p->build = parse_pkgname(p->name, 4);
   stop_timer(11);
-    
-  /* for each line in the main package db entry file do: */
+
   continue_timer(12);
-  f = fp;
+  /* parse main package file */
+  enum { HEADER, FILELIST, LINKLIST } state = HEADER;
+  gchar* i = 0; /* current line start */
+  gchar* j = 0;  /* current line end */
+  gchar* n = ap;  /* next line start (may be 0) */
+  gint snl = strlen(p->shortname);
+  gint m[5] = {0}; /* if particular line was matched it can't 
+    occur anymore, so we cache info about already matched lines */
   while (1)
   {
-    if (getline(&ln, &len, f) == -1)
-    { /* handle EOF */
-      if (state == FILELIST)
+    i = n;
+    if (i == 0)
+    {
+      if (state == FILELIST && fs != -1)
       {
-        if (fs == NULL) /* no linklist */
-          break;
-        f = fs;
         state = LINKLIST;
-        continue;
+        i = as;
       }
-      else if (state == LINKLIST)
+      else
         break;
-      goto err;
     }
+    j = strchr(i,'\n');
+    if (j == 0) /* eof */
+      j = i+strlen(i)-1, n=0;
+    else
+      n = j+1, j -= 1;
 
-    /* remove newline character */
-    l = strlen(ln);
-    if (l > 0 && ln[l-1] == '\n')
-      ln[l-1] = '\0';
+    /* skip empty lines */ /* XXX: optimize this */
+    gchar* k;
+    for (k=i;k<=j;k++)
+      if (*k!=' ')
+        goto ok;
+    continue;
+   ok:;
 
+#define LINEMATCH(s) (strncmp(i, s, sizeof(s)-1) == 0)
+#define LINESIZE(s) (sizeof(s)-1)
     switch (state)
     {
       case HEADER:
-      {
-        if (!regexec(&re_pkgsize, ln, 3, rm, 0))
+        if (!m[0] && LINEMATCH("PACKAGE NAME:"))
         {
-          ln[rm[1].rm_eo] = 0;
-          ln[rm[2].rm_eo] = 0;
-          if (!strcmp(ln, "COMPRESSED PACKAGE SIZE"))
-          {
-            p->csize = atol(ln+rm[2].rm_so);
-          }
-          else if (!strcmp(ln, "UNCOMPRESSED PACKAGE SIZE"))
-          {
-            p->usize = atol(ln+rm[2].rm_so);
-          }
-          else
-            goto err;
+          gchar* name = i+LINESIZE("PACKAGE NAME:");
+          name = g_strstrip(g_strndup(name, j-name+1));
+          g_free(name);
+          /* skip whitespace */
+          m[0] = 1;
         }
-        else if (!regexec(&re_pkgname, ln, 3, rm, 0))
+        else if (!m[1] && LINEMATCH("COMPRESSED PACKAGE SIZE:"))
         {
-          ln[rm[1].rm_eo] = 0;
-          if (!strcmp(ln, "PACKAGE NAME") && rm[2].rm_so > 0)
-          {
-            ln[rm[2].rm_eo] = 0;
-            if (strcmp(p->name, ln+rm[2].rm_so)) /* pkgname != requested pkgname */
-              goto err;
-          }
-          else if (!strcmp(ln, "PACKAGE LOCATION") && rm[2].rm_so > 0)
-          {
-            ln[rm[2].rm_eo] = 0;
-            p->location = g_strdup(ln+rm[2].rm_so);
-          }
-          else if (!strcmp(ln, "PACKAGE DESCRIPTION"))
-          {
-          }
-          else if (!strcmp(ln, "FILE LIST"))
-          {
-            state = FILELIST;
-          }
-          else if (!strcmp(ln, p->shortname))
-          {
-            ln[rm[1].rm_eo] = ':';
-            if (p->desc)
-            {
-              tmpstr = g_strconcat(p->desc, ln, "\n", 0);
-              g_free(p->desc);
-              p->desc = tmpstr;
-            }
-            else
-              p->desc = g_strconcat(ln, "\n", 0);
-          }
-          else
-            goto err;
+          gchar* size = i+LINESIZE("COMPRESSED PACKAGE SIZE:");
+          sscanf(size, " %u ", &p->csize); /*XXX: no checking here */
+          m[1] = 1;
         }
-        else
-          goto err;
-      }
+        else if (!m[2] && LINEMATCH("UNCOMPRESSED PACKAGE SIZE:"))
+        {
+          gchar* size = i+LINESIZE("UNCOMPRESSED PACKAGE SIZE:");
+          sscanf(size, " %u ", &p->usize); /*XXX: no checking here */
+          m[2] = 1;
+        }
+        else if (!m[3] && LINEMATCH("PACKAGE LOCATION:"))
+        {
+          gchar* loc = i+LINESIZE("PACKAGE LOCATION:");
+          loc = g_strstrip(g_strndup(loc, j-loc+1));
+          p->location = loc;
+          m[3] = 1;
+        }
+        else if (!m[4] && LINEMATCH("PACKAGE DESCRIPTION:"))
+        {
+          m[4] = 1;
+        }
+        else if (strncmp(i, p->shortname, snl) == 0)
+        {
+          gchar* ln = g_strndup(i, j-i+1);
+          gchar* ndesc = g_strconcat(p->desc?p->desc:"", ln, "\n", 0);
+          g_free(ln);
+          g_free(p->desc);
+          p->desc = ndesc;
+        }
+        if (LINEMATCH("FILE LIST:"))
+        {
+          state = FILELIST;
+        }
       break;
       case FILELIST:
-        p->files = g_slist_prepend(p->files, db_alloc_file(g_strdup(ln),0));
+        p->files = g_slist_prepend(p->files, db_alloc_file(g_strndup(i, j-i+1),0));
       break;
       case LINKLIST:
       {
-        if (regexec(&re_symlink, ln, 4, rm, 0))
-          continue;
-        ln[rm[1].rm_eo] = 0;
-        ln[rm[2].rm_eo] = 0;
-        ln[rm[3].rm_eo] = 0;
-        tmpstr = g_strjoin("/", ln+rm[1].rm_so, ln+rm[3].rm_so, 0);
-        linktgt = g_strdup(ln+rm[2].rm_so);
-        p->files = g_slist_prepend(p->files, db_alloc_file(tmpstr, linktgt));
+        /* link line looks like this:
+           ( cd dir ; ln -sf tgt lnk )  */
+        gchar* ln = g_strndup(i, j-i+1);
+        if (strncmp(ln, "( cd ", 5) != 0)
+          goto fail0;
+        gchar* basedir = ln+5;
+        gchar* it = basedir;
+        while (*it!=' '&&*it!=0) it++;
+        if (it == basedir || *it == 0)
+          goto fail0;
+        basedir = g_strndup(basedir, it-basedir);
+        if (strncmp(it, " ; ln -sf ", 10) != 0)
+          goto fail1;
+        it+=10;
+        gchar* target = it;
+        while (*it!=' '&&*it!=0) it++;
+        if (it == target || *it == 0)
+          goto fail1;        
+        target = g_strndup(target, it-target);
+        it++;
+        gchar* basename = it;
+        while (*it!=' '&&*it!=0) it++;
+        if (it == basename || *it == 0)
+          goto fail2;        
+        basename = g_strndup(basename, it-basename);
+        if (strncmp(it, " )", 2) != 0)
+          goto fail3;
+        /* FINALLY WE HAVE A VALID LINK LINE! */
+        gchar* path = g_strdup_printf("%s/%s", basedir, basename);
+        g_free(basename);
+        g_free(basedir);
+        g_free(ln);
+        p->files = g_slist_prepend(p->files, db_alloc_file(path,target));
+        break;
+       fail3:
+        g_free(basename);
+       fail2:
+        g_free(target);
+       fail1:
+        g_free(basedir);
+       fail0:
+        g_free(ln);
       }
       break;
-      default:
-        goto err;
     }
   }
+
   p->files = g_slist_reverse(p->files);
   stop_timer(12);
 
-  goto err1;
- err:
-  db_free_pkg(p);
-  p = 0;
- err1:
-  regfree(&re_symlink);
-  regfree(&re_pkgname);
-  regfree(&re_pkgsize);
-  regfree(&re_desc);
-  regfree(&re_nameparts);
-  if (ln) free(ln);
-  if (fp) fclose(fp);
-  if (fs) fclose(fs);
+  if (fs != -1)
+  {
+    munmap(as, ss);
+    close(fs);
+  }
+  munmap(ap, sp);
+  close(fp);
+
   return p;
+ err_1:
+  db_free_pkg(p);
+  if (fs != -1)
+  {
+    munmap(as, ss);
+    close(fs);
+  }
+  munmap(ap, sp);
+  close(fp);
+ err_0:
+  return 0;
 }
 
 gint db_legacy_add_pkg(struct db_pkg* pkg)
@@ -638,10 +682,12 @@ gint db_legacy_add_pkg(struct db_pkg* pkg)
     struct db_file* f = l->data;
     if (f->link)
     {
-      gchar* bn = sys_dirname(f->path);
-      gchar* dn = sys_basename(f->path);
+      gchar* dn = g_path_get_dirname(f->path);
+      gchar* bn = g_path_get_basename(f->path);
       fprintf(sf, "( cd %s ; rm -rf %s )\n"
                   "( cd %s ; ln -sf %s %s )\n", dn, bn, dn, f->link, bn);
+      g_free(bn);
+      g_free(dn);
     }
     else
       fprintf(pf, "%s\n", f->path);
@@ -872,8 +918,6 @@ gint db_sync_from_legacydb()
 
   print_timer(11, "db_legacy_get_pkg:ini");
   print_timer(12, "db_legacy_get_pkg:main");
-  print_timer(13, "db_legacy_get_pkg:rev");
-//  print_timer(14, "db_legacy_get_pkg:");
 
   ret = 0;
  err_1:
