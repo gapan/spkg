@@ -438,6 +438,7 @@ struct db_pkg* db_legacy_get_pkg(gchar* name)
   if (name == 0)
     return 0;
 
+  continue_timer(11);
   /* open package db entries */  
   tmpstr = g_strjoin("/", _db_topdir, "packages", name, 0);
   fp = fopen(tmpstr, "r");
@@ -464,8 +465,10 @@ struct db_pkg* db_legacy_get_pkg(gchar* name)
   p->version = parse_pkgname(p->name, 2);
   p->arch = parse_pkgname(p->name, 3);
   p->build = parse_pkgname(p->name, 4);
+  stop_timer(11);
     
   /* for each line in the main package db entry file do: */
+  continue_timer(12);
   f = fp;
   while (1)
   {
@@ -568,6 +571,7 @@ struct db_pkg* db_legacy_get_pkg(gchar* name)
     }
   }
   p->files = g_slist_reverse(p->files);
+  stop_timer(12);
 
   goto err1;
  err:
@@ -623,13 +627,12 @@ gint db_legacy_add_pkg(struct db_pkg* pkg)
     "UNCOMPRESSED PACKAGE SIZE: %d K\n"
     "PACKAGE LOCATION:          %s\n"
     "PACKAGE DESCRIPTION:\n"
-    "%s",
+    "%s"
+    "FILE LIST:\n",
     pkg->name, pkg->csize, pkg->usize, pkg->location?pkg->location:"", pkg->desc?pkg->desc:""
   );
   
   /* construct filelist and script for links creation */
-  fprintf(pf, "FILE LIST:\n");
-  
   for (l=pkg->files; l!=0; l=l->next)
   {
     struct db_file* f = l->data;
@@ -761,11 +764,6 @@ gint db_sync_to_legacydb()
     struct db_pkg* pkg = l->data;
     struct db_pkg* p;
 
-/*XXX: debug code */
-//    printf("syncing %s\n", pkg->name);
-//    fflush(stdout);
-/*XXX: debug code */
-
     continue_timer(1);
     p = db_get_pkg(pkg->name,1);
     if (p == 0)
@@ -837,11 +835,6 @@ gint db_sync_from_legacydb()
     if (!strcmp(de->d_name,".") || !strcmp(de->d_name,".."))
       continue;
 
-/*XXX: debug code */
-//    printf("syncing %s\n", de->d_name);
-//    fflush(stdout);
-/*XXX: debug code */
-
     continue_timer(0);
     p = db_legacy_get_pkg(de->d_name);
     stop_timer(0);
@@ -876,6 +869,11 @@ gint db_sync_from_legacydb()
   print_timer(8, "db_add_pkg:get");
   print_timer(9, "db_add_pkg:fls");
   print_timer(10, "db_add_pkg:add");
+
+  print_timer(11, "db_legacy_get_pkg:ini");
+  print_timer(12, "db_legacy_get_pkg:main");
+  print_timer(13, "db_legacy_get_pkg:rev");
+//  print_timer(14, "db_legacy_get_pkg:");
 
   ret = 0;
  err_1:
