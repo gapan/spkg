@@ -6,9 +6,9 @@
 #\----------------------------------------------------------------------/#
 DESTDIR :=
 PREFIX := /usr/local
-DEBUG := yes
+DEBUG := no
 BENCH := no
-STATIC := no
+STATIC := yes
 VERSION := 0.1.1_20050612
 
 #CC := gcc-3.4.4

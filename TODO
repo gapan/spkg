@@ -1,9 +1,8 @@
 TODO
 ----
+- implement file transactions
 - implement doinst.sh parser (parse out sym links)
-- implement slack-desc parser (parse out bullshit, short desc and long desc)
 - modify pkg structure to contain short desc long desc and pkg name
-- implement sys_basename and sys_dirname
 - reimplement sys_rm_rf and sys_mkdir_p in C
 - pkgtools: implement install, upgrade, remove
 - implement filedb transactions

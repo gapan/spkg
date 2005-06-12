@@ -28,7 +28,7 @@ vpath %.c $(testdir) .build
 objs-tests = $(foreach t,$(compiled-tests),.build/$(t).o)
 
 $(compiled-tests): .build/$$@.o .build/libspkg.a
-	$(CC) $(LDFLAGS) $^ -o $@
+	$(CC) $^ $(LDFLAGS) -o $@
 
 test-files.so: .build/test-files.o
 	$(CC) $(LDFLAGS) -shared $^ -o $@
