@@ -9,16 +9,16 @@
   library are completed.</p>
   
   <table cellspacing="0">
-    <tr><th>library part</th><th>docs</th><th>code</th><th>what's missing (or problematic)</th></tr>
+    <tr><th>library part</th><th>docs</th><th>code</th><th>status description</th></tr>
 <?php
   $status = array(
-    array("untgz",    80,  95,  ""),
-    array("sql",      90, 100,  ""),
-    array("filedb",   40,  80,  "atomic transactions"),
-    array("pkgdb",    60,  85,  "slow legacy pkg entry parser"),
-    array("taction",   0,  10,  "all"),
-    array("commands",  0,   0,  "all"),
-    array("cli",       0,   0,  "all"),
+    array("untgz",    80, 100,  "completed!"),
+    array("sql",      90,  99,  "completed! (maybe add some asserts)"),
+    array("filedb",   40,  80,  "atomic transactions missing"),
+    array("pkgdb",    60,  90,  "a whole lot of XXXs to be removed"),
+    array("taction",   0,  10,  "only code skeleton is in place"),
+    array("commands",  0,   0,  "nothing done"),
+    array("cli",       0,   0,  "nothing done"),
   );
   function getclass($p)
   {
@@ -39,7 +39,7 @@
 
  <h1>Roadmap</h1>
 
-  <p>Here is an actual roadmap of the development of the @SPKG@.</p>
+  <p>Here is the current roadmap of the @SPKG@ development.</p>
 
   <table cellspacing="0">
     <tr><th>date</th><th>milestone</th></tr>
@@ -50,9 +50,9 @@
     array(1,"500,000 files can be added to filedb per second on my 1GHz athlon", "2005-06-01"),
     array(1,"existing codebase stabilized", "2005-06-04"),
     array(1,"website created", "2005-06-09"),
-    array(0,"legacydb entries parser optimized", "2005-06-12"),
+    array(1,"legacydb entries parser optimized", "2005-06-12"),
     array(0,"filesystem transactions implemented", "2005-06-15"),
-    array(0,"commands framework in place", "2005-06-20"),
+    array(0,"commands framework in place", "2005-06-19"),
     array(0,"three basic commands implemented", "2005-07-01"),
     array(0,"testing framework for commands finished", "2005-07-15"),
     array(0,"first fully functional release", "2005-08-01"),

@@ -30,6 +30,11 @@
   and roadmap of the @SPKG@ development.</p>
 
   <dl>
+   <dt>2005-06-12</dt>
+    <dd>Another milestone achieved. Pkgdb is now reaching speed limits. Averange 
+    package can be imported into database in 2ms on my 1GHz Athlon. Full 
+    synchronization with legacy database on my system can be done in 1 second.
+    (522 packages)</dd>
    <dt>2005-06-10</dt>
     <dd>Website created. Development code released.</dd>
   </dl>

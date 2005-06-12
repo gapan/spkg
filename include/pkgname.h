@@ -36,6 +36,12 @@ extern gchar* parse_pkgname(const gchar* path, guint elem);
  */
 extern gint parse_slackdesc(const gchar* slackdesc, const gchar* sname, gchar* desc[11]);
 
+/** Generate slack-desc file from parsed buffer.
+ *
+ * @param sname Short name of the package.
+ * @param desc Array of prased slack-desc lines.
+ * @return 0 on error, slack-desc string
+ */
 extern gchar* gen_slackdesc(const gchar* sname, gchar* desc[11]);
 
 #endif
