@@ -4,33 +4,55 @@
 |*----------------------------------------------------------------------*|
 |*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
-/** @defgroup untgz_api UNTGZ Extraction API
+/** @defgroup untgz_api Tgz Archive Extraction API
 
-Untgz is implementation of the robust tgz archive browser/extractor.
-Every known error state is properly handled.
-
-@section assum Assumptions
-
-@li Archive was created with tar czf. 
+Untgz is the robust implementation of tgz archive browser/extractor.
+It can open multiple files at once.
 
 @section usage Typical usage
 
+Following code shows typical \ref untgz_api usage.
+
 @code
+#include <stdlib.h>
+#include <stdio.h>
 #include "untgz.h"
 
 int main(int ac, char* av[])
 {
-  if (ac == 2)
+  // Check if we have something on the command line.
+  if (ac > 1)
+    return 1;
+  
+  gint i;
+  // For each file do:
+  for (i=1;i<ac;i++)
   {
-    struct untgz_state* tgz;
-    tgz = untgz_open(av[1]);
+    // Open tgz file.
+    struct untgz_state* tgz = untgz_open(av[i]);
     if (tgz == 0)
-      return 1;
+    {
+      fprintf(stderr, "error: can't open tgz file\n");
+      continue;
+    }
+    // While we can successfully get next file's header from the archive...
     while (untgz_get_header(tgz) == 0)
-      if (untgz_write_file(tgz,0))
+    {
+      // ...we will be extracting that file to a disk using its original name...
+      if (untgz_write_file(tgz, 0))
+      {
+        // ...until something goes wrong.
         break;
+      }
+    }
+    // And if something went wrong...
     if (tgz->errstr)
-      printf("err: %s\n", tgz->errstr);
+    {
+      // ...we will alert user.
+      fprintf(stderr, "error: %s\n", tgz->errstr);
+    }
+    
+    // Close file.
     untgz_close(tgz);
   }
   return 0;
@@ -119,7 +141,7 @@ extern struct untgz_state* untgz_open(const gchar* tgzfile);
 
 /** Read next file header from the archive.
  *
- * Needs to be called before untgz_write_data or untgz_write_file.
+ * Needs to be called before \ref untgz_write_data or \ref untgz_write_file.
  *
  * @param s Pointer to the \ref untgz_state object.
  * @return 0 on success, 1 on end of archive, -1 on error.

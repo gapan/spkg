@@ -17,7 +17,7 @@
     <li>And yes, fast upgrade too. :-)</li>
     <li>Compatibility with legacy Slackware package database. This means, that you
     may simply use both @SPKG@ and original <strong>pkgtools</strong> 
-    simultaneosuly.</li>
+    simultaneously.</li>
     <li>Everything is librified. (see <a href="/docs.php">docs</a>) You can implement
     new commands easily.</li>
   </ul>
@@ -30,9 +30,12 @@
   and roadmap of the @SPKG@ development.</p>
 
   <dl>
+   <dt>2005-06-15</dt>
+    <dd>Filesystem transactions implemented. SQL database wrapper API 
+    completed. Untgz documented.</dd>
    <dt>2005-06-12</dt>
-    <dd>Another milestone achieved. Pkgdb is now reaching speed limits. Averange 
-    package can be imported into database in 2ms on my 1GHz Athlon. Full 
+    <dd>Another milestone achieved. Pkgdb is fast. Database operations on 
+    averange package can be done in 2ms on my 1GHz Athlon. Full 
     synchronization with legacy database on my system can be done in 1 second.
     (522 packages)</dd>
    <dt>2005-06-10</dt>
