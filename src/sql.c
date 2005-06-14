@@ -13,13 +13,34 @@
 //#define trace() do { printf("trace[sql]: %s\n", __func__); } while(0)
 #define trace() do { } while (0)
 
-/* private
+/* private data
  ************************************************************************/
 
-static sql_erract _sql_context_erract = SQL_ERREXIT;
+/* database and error string */
+static sql* _sql_db=0;
 static gchar* _sql_errstr=0;
 
-/* generic error processing functions */
+struct sql_context {
+  jmp_buf errjmp;
+  gboolean transact;
+  sql_erract erract;
+  sql_query* queries[SQL_OPEN_QUERIES_LIMIT];
+};
+
+/* context stack */
+static gint _sql_context_stack_pos = 0;
+static struct sql_context _sql_context_stack[SQL_CONTEXT_STACK_LIMIT];
+
+/* current context */
+static sql_query* _sql_context_queries[SQL_OPEN_QUERIES_LIMIT] = {0};
+static sql_erract _sql_context_erract = SQL_ERREXIT;
+static gboolean _sql_context_transact = 0;
+static gboolean _sql_transaction = 0;
+
+/* private funcs
+ ************************************************************************/
+
+/* generic error processing function */
 #define _sql_on_error(fmt, args...) __sql_on_error(__func__, fmt, ##args)
 static void __sql_on_error(const gchar* func, const gchar* fmt, ...)
 {
@@ -54,9 +75,9 @@ static void __sql_on_error(const gchar* func, const gchar* fmt, ...)
   }
 }
 
+/* clean error */
 static __inline__ void _sql_reset_error()
 {
-  /* just an optimization */
   if (G_UNLIKELY(_sql_errstr != 0))
   {
     g_free(_sql_errstr);
@@ -64,151 +85,94 @@ static __inline__ void _sql_reset_error()
   }
 }
 
-/* open queries array for the current context */
-static sql_query* _sql_context_queries[SQL_OPEN_QUERIES_LIMIT] = {0};
-
+/* store query on the stack */
 static __inline__ gint _sql_context_pushq(sql_query* query)
 {
   guint i;
   for (i=0; i<SQL_OPEN_QUERIES_LIMIT; i++)
+  {
     if (_sql_context_queries[i] == 0)
     {
       _sql_context_queries[i] = query;
       return 0;
     }
+  }
   return 1;
 }
 
+/* remove query from the stack */
 static __inline__ gint _sql_context_popq(sql_query* query)
 {
   guint i;
   for (i=0; i<SQL_OPEN_QUERIES_LIMIT; i++)
+  {
     if (_sql_context_queries[i] == query)
     {
       _sql_context_queries[i] = 0;
       return 0;
     }
+  }
   return 1;
 }
 
-static __inline__ gint _sql_context_fini_all_queries()
+/* close all queries in the current context */
+static __inline__ void _sql_context_fini_all_queries()
 {
   gint i, rs;
-  gboolean shown=0;
   for (i=0; i<SQL_OPEN_QUERIES_LIMIT; i++)
+  {
     if (_sql_context_queries[i] != 0)
     {
       rs = sqlite3_finalize(_sql_context_queries[i]);
-      if (rs != SQLITE_OK && shown)
-      {
-        fprintf(stderr, "panic: some queries can't be properly finalized! :-(\n");
-        shown = 1;
-      }
+      _sql_context_queries[i] = 0;
+      g_assert(rs == SQLITE_OK);
     }
-  return shown;
+  }
 }
-
-struct sql_context {
-  jmp_buf errjmp;
-  gboolean transact;
-  sql_erract erract;
-  sql_query* queries[SQL_OPEN_QUERIES_LIMIT];
-};
-
-static struct sql_context _sql_context_stack[SQL_CONTEXT_STACK_LIMIT];
-static gint _sql_context_stack_pos = 0;
-static gboolean _sql_context_transact = 0;
-
-static sql* _sql_db=0;
-static gboolean _sql_transaction = 0;
 
 /* public 
  ************************************************************************/
 
+/* where to jump on error */
 jmp_buf sql_errjmp;
 
-gint sql_transaction_begin()
-{
-  gint rs;
-  trace();  
-  
-  if (_sql_transaction)
-    return 1;
-  rs = sqlite3_exec(_sql_db,"BEGIN EXCLUSIVE TRANSACTION;",0,0,0);
-  if (rs != SQLITE_OK)
-    return 1;
-  _sql_transaction = 1;
-  _sql_context_transact = 1;
-  return 0;
-}
-
-gint sql_transaction_end(gboolean commit)
-{
-  gint rs;
-  trace();  
-
-  if (!_sql_transaction)
-    return 1;
-  if (commit)
-  {
-    rs = sqlite3_exec(_sql_db,"COMMIT TRANSACTION;",0,0,0);
-    if (rs != SQLITE_OK)
-      return 1;
-  }
-  else
-  {
-    rs = sqlite3_exec(_sql_db,"ROLLBACK TRANSACTION;",0,0,0);
-    if (rs != SQLITE_OK)
-      return 1;
-  }
-  _sql_transaction = 0;
-  _sql_context_transact = 0;
-  return 0;
-}
-
-gint sql_push_context(sql_erract act, gboolean begin)
+gint sql_open(const gchar* file)
 {
   trace();  
-  if (_sql_context_stack_pos < SQL_CONTEXT_STACK_LIMIT)
+
+  g_assert(_sql_db == 0);
+  g_assert(file != 0);
+
+  _sql_reset_error();
+
+  sql* db=0;
+  gint rs = sqlite3_open(file, &db);
+  if (rs == SQLITE_OK)
   {
-    _sql_context_stack[_sql_context_stack_pos].transact = _sql_context_transact;
-    _sql_context_stack[_sql_context_stack_pos].erract = _sql_context_erract;
-    _sql_context_stack[_sql_context_stack_pos].errjmp[0] = sql_errjmp[0];
-    memcpy(_sql_context_stack[_sql_context_stack_pos].queries, _sql_context_queries, sizeof(_sql_context_queries));
-    memset(_sql_context_queries, 0, sizeof(_sql_context_queries));
-    _sql_context_stack_pos++;
-    _sql_context_erract = act;
-    _sql_context_transact = 0;
-    if (begin)
-    { /* begin transaction in new context */
-      if (sql_transaction_begin())
-        return 1;
-    }
+    _sql_db = db;
     return 0;
   }
+  sqlite3_close(db);
   return 1;
 }
 
-gint sql_pop_context(gboolean commit)
+void sql_close()
 {
   trace();  
-  /* if transaction was executed in contex that is being popped, end it */
-  if (_sql_context_transact)
-  {
-    if (sql_transaction_end(commit))
-      return 1;
-  }
-  if (_sql_context_stack_pos > 0)
-  {
-    _sql_context_stack_pos--;
-    _sql_context_erract = _sql_context_stack[_sql_context_stack_pos].erract;
-    _sql_context_transact = _sql_context_stack[_sql_context_stack_pos].transact;
-    sql_errjmp[0] = _sql_context_stack[_sql_context_stack_pos].errjmp[0];
-    _sql_context_fini_all_queries();
-    memcpy(_sql_context_queries, _sql_context_stack[_sql_context_stack_pos].queries, sizeof(_sql_context_queries));
-    return 0;
-  }
-  return 1;
+
+  g_assert(_sql_db != 0);
+
+  _sql_reset_error();
+
+  /* unroll contexts up to toplevel one */
+  while (_sql_context_stack_pos)
+    sql_pop_context(0);
+  /* cleanup toplevel context */
+  _sql_context_fini_all_queries();
+
+  gint rs = sqlite3_close(_sql_db);
+  g_assert(rs == SQLITE_OK);
+  _sql_db = 0;
 }
 
 gchar* sql_error()
@@ -216,55 +180,71 @@ gchar* sql_error()
   return _sql_errstr;
 }
 
-gint sql_open(const gchar* file)
+void sql_transaction_begin()
 {
-  gint rs;
-  sql* db=0;
   trace();  
+  
+  g_assert(!_sql_transaction);
+  gint rs = sqlite3_exec(_sql_db,"BEGIN EXCLUSIVE TRANSACTION;",0,0,0);
+  g_assert(rs == SQLITE_OK);
 
-  _sql_reset_error();
-  if (_sql_db != 0)
-  {
-    _sql_on_error("database is already open");
-    return 1;
-  }
-
-  rs = sqlite3_open(file, &db);
-  if (rs == SQLITE_OK)
-  {
-    _sql_db = db;
-    return 0;
-  }
-  _sql_on_error("%s", sqlite3_errmsg(db));
-  sqlite3_close(db);
-  return 1;
+  _sql_transaction = 1;
+  _sql_context_transact = 1;
 }
 
-gint sql_close()
+void sql_transaction_end(gboolean commit)
 {
-  gint rs;
   trace();  
 
-  _sql_reset_error();
-  if (_sql_db == 0)
-  {
-    fprintf(stderr, "panic: database can't be closed! (because it was not opened)\n");
-    return 1;
-  }
+  g_assert(_sql_transaction);
 
-  /* unroll contexts up to toplevel one */
-  while (sql_pop_context(0) == 0);
-  /* cleanup toplevel context */
+  gint rs;
+  if (commit)
+    rs = sqlite3_exec(_sql_db,"COMMIT TRANSACTION;",0,0,0);
+  else
+    rs = sqlite3_exec(_sql_db,"ROLLBACK TRANSACTION;",0,0,0);
+  g_assert(rs == SQLITE_OK);
+
+  _sql_transaction = 0;
+  _sql_context_transact = 0;
+}
+
+void sql_push_context(sql_erract act, gboolean begin)
+{
+  trace();
+
+  g_assert(_sql_context_stack_pos < SQL_CONTEXT_STACK_LIMIT);
+
+  _sql_context_stack[_sql_context_stack_pos].transact = _sql_context_transact;
+  _sql_context_stack[_sql_context_stack_pos].erract = _sql_context_erract;
+  _sql_context_stack[_sql_context_stack_pos].errjmp[0] = sql_errjmp[0];
+  memcpy(_sql_context_stack[_sql_context_stack_pos].queries, _sql_context_queries, sizeof(_sql_context_queries));
+  memset(_sql_context_queries, 0, sizeof(_sql_context_queries));
+  _sql_context_stack_pos++;
+  _sql_context_erract = act;
+  _sql_context_transact = 0;
+
+  /* begin transaction in new context */
+  if (begin)
+    sql_transaction_begin();
+}
+
+void sql_pop_context(gboolean commit)
+{
+  trace();  
+
+  g_assert(_sql_context_stack_pos > 0);
+
+  /* if transaction was executed in contex that is being popped, end it */
+  if (_sql_context_transact)
+    sql_transaction_end(commit);
+
+  _sql_context_stack_pos--;
+  _sql_context_erract = _sql_context_stack[_sql_context_stack_pos].erract;
+  _sql_context_transact = _sql_context_stack[_sql_context_stack_pos].transact;
+  sql_errjmp[0] = _sql_context_stack[_sql_context_stack_pos].errjmp[0];
   _sql_context_fini_all_queries();
-
-  rs = sqlite3_close(_sql_db);
-  _sql_db = 0;
-  if (rs != SQLITE_OK)
-  {
-    fprintf(stderr, "panic: database can't be properly closed! :-(\n");
-    return 1;
-  }
-  return 0;
+  memcpy(_sql_context_queries, _sql_context_stack[_sql_context_stack_pos].queries, sizeof(_sql_context_queries));
 }
 
 gint sql_exec(const gchar* sql, ...)
@@ -272,6 +252,9 @@ gint sql_exec(const gchar* sql, ...)
   va_list ap;
   gchar* tmp;
   gint rs;
+
+  g_assert(_sql_db != 0);
+  g_assert(sql != 0);
 
   _sql_reset_error();
   va_start(ap, sql);
@@ -292,14 +275,15 @@ sql_query* sql_prep(const gchar* sql, ...)
 {
   sql_query* query;
   va_list ap;
-  gchar* tmp;
-  gint rs;
+
+  g_assert(_sql_db != 0);
+  g_assert(sql != 0);
 
   _sql_reset_error();
   va_start(ap, sql);
-  tmp = sqlite3_vmprintf(sql, ap);
+  gchar* tmp = sqlite3_vmprintf(sql, ap);
   va_end(ap);
-  rs = sqlite3_prepare(_sql_db, tmp, -1, &query, 0);
+  gint rs = sqlite3_prepare(_sql_db, tmp, -1, &query, 0);
   if (rs == SQLITE_OK)
   {
     if (_sql_context_pushq(query))
@@ -319,7 +303,8 @@ sql_query* sql_prep(const gchar* sql, ...)
 
 gint sql_fini(sql_query* query)
 {
-  gint rs;
+  g_assert(_sql_db != 0);
+  g_assert(query != 0);
 
   _sql_reset_error();
   if (_sql_context_popq(query))
@@ -327,7 +312,7 @@ gint sql_fini(sql_query* query)
     _sql_on_error("trying to finalize query that was not prepared in the current context");
     return 1;
   }
-  rs = sqlite3_finalize(query);
+  gint rs = sqlite3_finalize(query);
   if (rs == SQLITE_OK)
     return 0;
   _sql_on_error("%s", sqlite3_errmsg(_sql_db));
@@ -336,10 +321,11 @@ gint sql_fini(sql_query* query)
 
 gint sql_rest(sql_query* query)
 {
-  gint rs;
+  g_assert(_sql_db != 0);
+  g_assert(query != 0);
 
   _sql_reset_error();
-  rs = sqlite3_reset(query);
+  gint rs = sqlite3_reset(query);
   if (rs == SQLITE_OK)
     return 0;
   _sql_on_error("%s", sqlite3_errmsg(_sql_db));
@@ -348,10 +334,11 @@ gint sql_rest(sql_query* query)
 
 gint sql_step(sql_query* query)
 {
-  gint rs;
+  g_assert(_sql_db != 0);
+  g_assert(query != 0);
 
   _sql_reset_error();
-  rs = sqlite3_step(query);
+  gint rs = sqlite3_step(query);
   if (rs == SQLITE_DONE)
     return 0;
   else if (rs == SQLITE_ROW)
@@ -365,100 +352,104 @@ gint sql_step(sql_query* query)
 
 gint64 sql_rowid()
 {
-  _sql_reset_error();
+  g_assert(_sql_db != 0);
   return sqlite3_last_insert_rowid(_sql_db);
 }
 
 gint sql_get_int(sql_query* query, guint col)
 {
-  _sql_reset_error();
-  if (col < sqlite3_data_count(query))
-    return sqlite3_column_int(query, col);
-  _sql_on_error("column out of range (%d)", col);
-  return 0;
-}
-
-gchar* sql_get_text(sql_query* query, guint col)
-{
-  _sql_reset_error();
-  if (col < sqlite3_data_count(query))
-    return (gchar*)sqlite3_column_text(query, col);
-  _sql_on_error("column out of range (%d)", col);
-  return 0;
+  g_assert(_sql_db != 0);
+  g_assert(query != 0);
+  g_assert(col >= 0 && col < sqlite3_data_count(query));
+  return sqlite3_column_int(query, col);
 }
 
 const void* sql_get_blob(sql_query* query, guint col)
 {
-  _sql_reset_error();
-  if (col < sqlite3_data_count(query))
-    return sqlite3_column_blob(query, col);
-  _sql_on_error("column out of range (%d)", col);
-  return 0;
+  g_assert(_sql_db != 0);
+  g_assert(query != 0);
+  g_assert(col >= 0 && col < sqlite3_data_count(query));
+  return sqlite3_column_blob(query, col);
+}
+
+gchar* sql_get_text(sql_query* query, guint col)
+{
+  g_assert(_sql_db != 0);
+  g_assert(query != 0);
+  g_assert(col >= 0 && col < sqlite3_data_count(query));
+  return (gchar*)sqlite3_column_text(query, col);
 }
 
 guint sql_get_size(sql_query* query, guint col)
 {
-  _sql_reset_error();
-  if (col < sqlite3_data_count(query))
-    return (guint)sqlite3_column_bytes(query, col);
-  _sql_on_error("column out of range (%d)", col);
-  return 0;
+  g_assert(_sql_db != 0);
+  g_assert(query != 0);
+  g_assert(col >= 0 && col < sqlite3_data_count(query));
+  return (guint)sqlite3_column_bytes(query, col);
 }
 
 gint64 sql_get_int64(sql_query* query, guint col)
 {
-  _sql_reset_error();
-  if (col < sqlite3_data_count(query))
-    return sqlite3_column_int64(query, col);
-  _sql_on_error("column out of range (%d)", col);
-  return 0;
+  g_assert(_sql_db != 0);
+  g_assert(query != 0);
+  g_assert(col >= 0 && col < sqlite3_data_count(query));
+  return sqlite3_column_int64(query, col);
 }
 
 gboolean sql_get_null(sql_query* query, guint col)
 {
-  _sql_reset_error();
-  if (col < sqlite3_data_count(query))
-    return sqlite3_column_type(query, col) == SQLITE_NULL ? 1 : 0;
-  _sql_on_error("column out of range (%d)", col);
-  return 0;
+  g_assert(_sql_db != 0);
+  g_assert(query != 0);
+  g_assert(col >= 0 && col < sqlite3_data_count(query));
+  return sqlite3_column_type(query, col) == SQLITE_NULL ? 1 : 0;
 }
 
-gint sql_set_int(sql_query* query, gint par, gint val)
+void sql_set_int(sql_query* query, gint par, gint val)
 {
-  _sql_reset_error();
-  return sqlite3_bind_int(query, par, val);
+  g_assert(_sql_db != 0);
+  g_assert(query != 0);
+  g_assert(par >= 1 && par <= sqlite3_bind_parameter_count(query));
+  sqlite3_bind_int(query, par, val);
 }
 
-gint sql_set_text(sql_query* query, gint par, const gchar* val)
+void sql_set_text(sql_query* query, gint par, const gchar* val)
 {
-  _sql_reset_error();
-  return sqlite3_bind_text(query, par, val, -1, SQLITE_STATIC); /*XXX: TRANSIENT? */
+  g_assert(_sql_db != 0);
+  g_assert(query != 0);
+  g_assert(par >= 1 && par <= sqlite3_bind_parameter_count(query));
+  sqlite3_bind_text(query, par, val, -1, SQLITE_STATIC);
 }
 
-gint sql_set_blob(sql_query* query, gint par, void* val, guint len)
+void sql_set_blob(sql_query* query, gint par, void* val, guint len)
 {
-  _sql_reset_error();
-  return sqlite3_bind_blob(query, par, val, len, SQLITE_STATIC); /*XXX: TRANSIENT? */
+  g_assert(_sql_db != 0);
+  g_assert(query != 0);
+  g_assert(par >= 1 && par <= sqlite3_bind_parameter_count(query));
+  sqlite3_bind_blob(query, par, val, len, SQLITE_STATIC);
 }
 
-gint sql_set_int64(sql_query* query, gint par, gint64 val)
+void sql_set_int64(sql_query* query, gint par, gint64 val)
 {
-  _sql_reset_error();
-  return sqlite3_bind_int64(query, par, val);
+  g_assert(_sql_db != 0);
+  g_assert(query != 0);
+  g_assert(par >= 1 && par <= sqlite3_bind_parameter_count(query));
+  sqlite3_bind_int64(query, par, val);
 }
 
-gint sql_set_null(sql_query* query, gint par)
+void sql_set_null(sql_query* query, gint par)
 {
-  _sql_reset_error();
-  return sqlite3_bind_null(query, par);
+  g_assert(_sql_db != 0);
+  g_assert(query != 0);
+  g_assert(par >= 1 && par <= sqlite3_bind_parameter_count(query));
+  sqlite3_bind_null(query, par);
 }
 
-gint sql_table_exist(const gchar* name, ...)
+gint sql_table_exist(const gchar* name)
 {
-  sql_query* query;
+  g_assert(name != 0);
+
   gint ret = 0;
-
-  query = sql_prep("SELECT name FROM sqlite_master WHERE type == 'table' AND name == '%q';", name);
+  sql_query* query = sql_prep("SELECT name FROM sqlite_master WHERE type == 'table' AND name == '%q';", name);
   if (sql_step(query))
     ret = 1;
   sql_fini(query);

@@ -10,57 +10,76 @@
 
 int main(int ac, char* av[])
 {
-  char* names[] = { "bob", "bill", "ben", 0 };
-  char** name;
   sql_query* q;
 
+  // open database
+  if (sql_open("test.db"))
+  {
+    fprintf(stderr,"error: can't open sql database\n");
+    return 1;
+  }
+  
+  // Automatically close databse at exit.
+  atexit((void(*)(void))sql_close);
+
+  // Save current context and open new context with exception 
+  // like error handling.
   sql_push_context(SQL_ERRJUMP, 0);
-  if (setjmp(sql_errjmp) == 1)
-  { /* exception occured */
+  // This code will be called on exception.
+  sql_error_handler()
+  { 
+    // This is unneccessary here, because contexts will be popped 
+    // automatically by the sql_close, but it will not do any harm.
+    // This will became neccessary when used in library function to
+    // restore caller's context.
+    sql_pop_context(0);
     fprintf(stderr, "%s\n", sql_error());
-    sql_close();
-    exit(1);
+    return 1;
   }
 
-  /* open database */
-  sql_open("test.db");
-
+  // Do some internal sqlite3 hacks to speedup queries.
   sql_exec("PRAGMA temp_store = MEMORY;");
   sql_exec("PRAGMA synchronous = OFF;");
 
+  // Begin SQL transaction.
   sql_transaction_begin();
 
   if (!sql_table_exist("tab"))
-  {
-    /* create table */
+  { 
+    // If given table does not exist in database create it...
     sql_exec("CREATE TABLE tab(id INTEGER PRIMARY KEY, name TEXT, age INTEGER DEFAULT 0);");
 
-    /* fill the table */
+    // ...and fill it with some data.
     q = sql_prep("INSERT INTO tab(name) VALUES(?);");
-    name = names;
-    while (*name != 0)
+    char* names[] = { "bob", "bill", "ben", 0 };
+    char** n = names;
+    while (*n != 0)
     {
-      sql_set_text(q, 1, *name);
+      sql_set_text(q, 1, *n);
       sql_step(q);
       sql_rest(q);
-      name++;
+      n++;
     }
     sql_fini(q);
   }
-  /* update table */
-  sql_exec("UPDATE tab SET age = %d WHERE name == '%q';", 20, "bob");
-  sql_exec("UPDATE tab SET age = %d WHERE name == '%q';", 33, "bill");
+  else
+  {
+    // If given table exist in database update it.
+    sql_exec("UPDATE tab SET age = %d WHERE name == '%q';", 20, "bob");
+    sql_exec("UPDATE tab SET age = %d WHERE name == '%q';", 30, "bill");
+    sql_exec("UPDATE tab SET age = %d WHERE name == '%q';", 40, "ben");
+  }
 
-  /* query table */
+  // Display table contents.
   q = sql_prep("SELECT id,name,age FROM tab;");
   while (sql_step(q))
+  {
     printf("%d: %s (%d)\n", sql_get_int(q,0), sql_get_text(q,1), sql_get_int(q,2));
+  }
   sql_fini(q);
 
-  /* close database */
+  // Commit transaction, close current context and restore previous 
+  // context.
   sql_pop_context(1);
-
-  sql_close();
-
   return 0;
 }

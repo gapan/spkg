@@ -8,3 +8,6 @@ TODO
 - implement filedb transactions
 - finish readmes
 - fix manpage
+
+- sql: use automatically last prepared query if 0 is passed as query
+       to some functions

@@ -13,7 +13,7 @@
 <?php
   $status = array(
     array("untgz",    80, 100,  "completed!"),
-    array("sql",      90,  99,  "completed! (maybe add some asserts)"),
+    array("sql",     100, 100,  "completed!"),
     array("filedb",   40,  80,  "atomic transactions missing"),
     array("pkgdb",    60,  90,  "a whole lot of XXXs to be removed"),
     array("taction",   0,  10,  "only code skeleton is in place"),

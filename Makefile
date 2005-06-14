@@ -7,8 +7,8 @@
 DESTDIR :=
 PREFIX := /usr/local
 DEBUG := no
-BENCH := no
-STATIC := yes
+BENCH := yes
+STATIC := no
 VERSION := 0.1.1_20050612
 
 #CC := gcc-3.4.4
@@ -23,6 +23,7 @@ CFLAGS +=  -ggdb3 -O0
 CPPFLAGS += -D__DEBUG=1
 else
 CFLAGS += -ggdb1 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer
+#CPPFLAGS += -DG_DISABLE_ASSERT
 endif
 ifeq ($(BENCH),yes)
 CPPFLAGS += -D__BENCH=1
