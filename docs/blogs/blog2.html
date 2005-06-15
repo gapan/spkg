@@ -1,0 +1,183 @@
+<p>
+ Mùj první pøíspìvek vyvolal nìkolik kritických reakcí, za co¾ vøele dìkuji.
+ Kritika je v¾dycky potøeba. Minule to byl jen takový nástøel mé nespokojenosti
+ s pkgtools. Dnes  napí¹u o tom co by mìlo a co by nemìlo být spkg a odpovím
+ na nìkteré pøipomínky z minula.
+</p>
+<break>
+<h2>O èem to je?</h2>
+<p>
+ Slackware pou¾ívám hlavnì kvùli jednoduchosti jeho balíèkovacího systému a
+ jeho minimalistiènosti. To je pro mì hodnì dùle¾ité, proto¾e já balíèkovací
+ mana¾er vyu¾ívám velmi èasto a zpùsoby kdy potøebuji pomìrnì dobøe vìdìt
+ co v¹echno dìlá a aby to dìlal co nejrychleji. (pøiznávám, ¾e nejsem asi
+ nejlep¹ím pøíkladem typického usera)
+</p>
+<p>
+ Nenechte se zmílit, koncept pkgtools se mi velmi líbí. Pkgtools mají jako
+ nízkoúrovòové nástroje v¹echny funkce které potøebuji - instalalce, upgrade
+ a odinstalace. Tím nízkoúrovòové myslím to, ¾e se nestarají o nic jiného ne¾
+ o udr¾ování seznamu nainstalovaných balíèkù a k nim patøících souborù.
+</p>
+<h2>O èem to není?</h2>
+<p>
+ Ne opravdu to není o reimplementaci funkcí RPM, èi DPKG. Èi jiných pododbných
+ oblud (co do velikosti kódu a mno¾ství funkcí). Mým cílem naopak je, aby to
+ co do velikosti kódu a funkcí bylo srovnatelné s pùvodními shellovými skripty.
+</p>
+<h2>Vady na kráse pkgtools - z mého pohledu :)</h2>
+<ul>
+ <li>Hlavní vadou jsou závislosti. Pkgtools potøebují nìjaký shell.</li>
+ <li>S shellem souvisí dal¹í nevýhoda, taková reinstalace (ne upgrade, to je
+ je¹tì daleko hor¹í!)
+ gaimu (4.5MB) potøebuje 561 forkù. No a stou zase dal¹í...</li>
+ <li>Na 1GHz athlonu to trvá 12s - a to musí být v¹echna potøebná data v cache - 
+ pokud nejsou, tak to trvá kolem 40s.</li>
+ <li>Rychlostní limit, kterého by se dalo dosáhnout pøi upgrade je na stejném
+  stroji 0,6s. Tolik toti¾ trvá <em>tar xzf</em>.</li>
+ <li>Chybí librifikace funkcí balíèkovacího maman¾eru, která by se urèitì hodila
+ nìkomu kdo by chtìl napsat nìjaké u¾ivatelské rozhraní, nebo roz¹íøit funkce
+ balíèkovaèe o kontrolu integrity nainstalovaných balíèkù, nalezení souborù v /usr,
+ které nepatøí k nainstalovaným balíèkùm, atd. atp.</li>
+ <li>Souèasné pkgtools nemají funkci pro zji¹tìní toho, co v systému pøepí¹í.
+ -warn je k nièemu, proto¾e ukazuje v¹echny instalované soubory, i pokudv systému
+ neexistují.</li>
+</ul>
+<h2>Jaký je mùj cíl?</h2>
+<p>
+ Hlavní cíl je zrychlení. U instalace lze dosáhnout zrychlení 2x-3x, u upgrade
+ 6x-10x, u odstraòování 10x-20x. Dal¹ím cílem je kompatibilita se stávajícími
+ pkgtools. Tedy stejný formát databáze. Minimalizace závislostí. No a nakonec
+ librifikace v¹ech èinností balíèkovaèe (vèetnì pøístupu k databázi) a kvalitní
+ dokumentace.
+</p>
+<h2>K pøipomínkám z minula</h2>
+<p><em>
+ Instaluju a upgraduju i na "¹unkách" P/166 64MB a nikdy jsem problémy s
+ rychlostí nemìl a navíc èas instalací z celkového èasu vyu¾ití poèítaèe 
+ je naprosto zanedbatelný.
+</em></p>
+ Taky obèas instaluju na jedné ¹unce: 486/50Mhz/16MB. :) Ne, ale o tom
+ to není. Já si udr¾uju vlastní ¾ivou distribuci, tak¾e sem tam potøebuju
+ udìlat "plnou" instalaci do ROOT=/livecd, tak¾e zrychlení 2x-3x by obèas nebylo
+ vùbec na ¹kodu. Jsou prostì lidi, kterým se rychlý b.m. mù¾e hodit.
+<p>
+
+<p><em>
+Removepkg mi jako shellscript nepøijde zbyteènì pomalé. Pøed smazáním 
+souboru nebo adresáøe se provadí docela dost testù (jestli není obsa¾en
+v jiném balíèku, podle timestampu jestli byl zmìnìn, jestli adresáø, 
+který byl balíèkem vytvoøen neobsahuje nové soubory, generování seznamu
+linkù vytvoøených z instalaèního skriptu, atd.). Nic z toho mi nepøipadá
+zbyteèné a zjevnì ¹patnì optimalizované.
+</em></p>
+<p>
+Na shellscript to mo¾ná pomalé není, ale pokud lze udìlat ony testy
+duplicit a generování seznamu linkù tak, ¾e tøeba pro balíèek s 5000 
+soubory to na systému, kde je 150 000 souborù lze stihnout za 5ms, tak
+proè to tak nedìlat?
+
+Jen detail: removepkg timestampy nekontroluje. Nebo to aspoò v tom 
+bordelu nemù¾u najít. A hlavnì mì nejde do hlavy s èím by je asi porovnával, 
+kdy¾ si je neukládá do databáze.
+</p>
+
+
+<p><em>
+Installpkg rozbaluje archiv dvakrát? Na zaèátku pouze rozbalí obsah 
+instalaèního adresáøe, kdy¾ nemù¾e najít popisný externí soubor. Také 
+testuje integritu archivu (-tzf) a pak ho teprve jednou rozbalí. Proè 
+je tam ta extrakce popisku balíèku snad nemusím vysvìtlovat.
+</em></p>
+<p>
+Ano. Minimálnì dvakrát. Jednou test integrity, podruhé rozbalení
+/install (tady zále¾í na tom kde se v archivu adresáø /install nachází
+co¾ je díky tomu ¾e zaèíná na "i" na¹tìstí pøed /usr a /opt, tak¾e
+to není a¾ zas tak stra¹né) a napotøetí naostro.
+</p>
+
+<p><em>
+Pøeru¹ení pøi instalaci glibc aj."páteøního" sw, a» u¾ zdùvodu hw problémù
+nebo interaktivnì, bývá vìc fatalní, ale to platí stejnì pro v¹echny mì 
+známé zpùsoby instalací. Dokonce ty, které pou¾ívají k evidenci instalací
+databáze místo prostých textových souborù, bývají daleko náchylnìj¹í. 
+A obnova se mù¾e snadno øe¹it pou¾itím rescue CD. U instalace ostatních
+balíèkù to nevadí. Navíc bych chtìl vidìt "usera", který instaluje 
+glibc ;-) Ale vy jste asi myslel toho s uid 0.
+</em></p>
+<p>
+Samozøejmì. Pravdìpodobnost selhání ovlivnit nemù¾eme. Co ale mù¾eme ovlivnit je
+délka doby, kdy selhání mù¾e vést k destrukci systému. Ovlivòuje je délka 
+"ostrých" operací na databázi a hlavnì délka doby po kterou jsou na souborovém
+systému promíchány soubory starého a nového balíèku. A tato doba se dá velmi
+rapidnì zkrátit pomocí zpùsobu, který se chystám v následujícím týdnu
+naprogramovat. V souèasnosti pkgtools dìlají to, ¾e nechávají tar pøepisovat
+staré soubory postupnì tak jak jsou rozbalovány nové. Je jasné ¾e pøeru¹ení
+upgrade povede k problémùm. A» u¾ pøijde odkudkoliv.
+</p>
+
+<p><em>
+Souhlas, pkgtool je hlavnì pro zobrazení nainstalovaných balíèkù nepou¾itelný.
+Nevím k èemu tam je, proto¾e není nad ls, grep a less. Snad mo¾ná kvùli newbies,
+kteøí se trochu bojí CLI :-D
+</em></p>
+<p>
+To je pìkné, ale právì noobs potøebují napø. krátký popis balíèku, díky jeho¾
+získávání je to jak ¹nek.
+</p>
+
+<p><em>
+API k pøístupu k databázi balíèkù? Si dìláte srandu? Juknìte se do 
+/var/log/packages|scripts|removed_packages|removed_scripts . Pak na ls, grep
+a dal¹í základní unixovské nástroje a mo¾ná vás u¾ ta otázka znovu nenapadne.
+</em></p>
+<p>
+Si srandu nedìlám! :) Teï trochu vá¾nì. Ono je pìkné mít ls a grep, ale 
+pak nemù¾ete èekat, ¾e se dostanete u prohlí¾ení balíèkù pomocí pkgtool
+pod 40s pøi startu. LOL
+</p>
+
+<p><em>
+Pøeju vám hodnì úspìchù s realizací va¹eho projektu a také hodnì nespokojených
+u¾ivatelù oficiálních balíèkovacích nástrojù, kteøí by mìli potøebu pou¾ívat
+nìco jiného. Já mezi nimi nebudu, proto¾e filozofie administrativních nástrojù
+u Slackware, tj. co nejprimitivnìj¹í a nejpøímìj¹í, mi zcela vyhovuje i za
+cenu, ¾e nepobì¾í tak rychle, jak by teoreticky mohly.
+...
+S tím pøíkladem k /etc/group máte pravdu, ale já to chápu tak, ¾e to je u¾ 
+dlouho zavedený zpùsob snad na v¹ech *nixech co znám nebo o nich èetl a 
+filozofií Slackware je, ¾e pokud to není nezbytnì nutné, tak se právì 
+sna¾í nepøidávat ¾ádné svoje specialitky, jako je tomu èasto vidìt u 
+nìkterých dister. Ale respektuju, ¾e nìkomu jinému tento pøístup 
+nevyhovuje nebo na to dokonce ka¹le.
+</em></p>
+<p>
+No já na té primitivnosti, jak jste ji¾ poznal nic mìnit nechci
+(dokonce ani nahrazovat pùvodní databázi balíèkù). Jediné co chci
+je rychlost. Tak¾e je¹tì uvidíme.
+
+Osobnì mi bude staèit úplnì jeden spokojený u¾ivatel, a to já. :)
+</p>
+
+<p><em>
+Happy buffer overflows
+</em></p>
+<p>
+Tak z toho u¾ jsem na¹tìstí vyrostl. :)
+</p>
+
+<p><em>
+Nemít ¾ádnou úroveò abstakce vede k ... tedy vlastnì nikam nevede, proto¾e to
+neumo¾òuje jakkoliv mìnit implementaci. Proto existují API i k takovým 
+trivialitám jako /etc/group.
+</em></p>
+<p>
+Pøesnì! Navíc to jak to dìlám já umo¾ní zároveò pou¾ívat v¹echny existující nástroje
+které pou¾ívají originální databázi balíèkù a zároveò do databáze ukládat
+dal¹í data (kontrolní souèty, práva k souborùm, cokoliv).
+</p>
+
+<h2>Pøí¹tì?</h2>
+<p>
+ Pøí¹tì se rozepí¹u více o zpùsobu implementace.
+</p>

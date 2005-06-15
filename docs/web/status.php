@@ -1,7 +1,7 @@
 <?php require "inc/common.php"; ?>
 <?php head("spkg - The Unofficial Slackware Linux Package Manager"); ?>
 
- <h1>Status (2005-06-10)</h1>
+ <h1>Status</h1>
 
   <p>The lastest version of @SPKG@ is <strong>@VER@</strong>.</p>
 

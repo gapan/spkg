@@ -30,9 +30,8 @@
   and roadmap of the @SPKG@ development.</p>
 
   <dl>
-   <dt>2005-06-15</dt>
-    <dd>Filesystem transactions implemented. SQL database wrapper API 
-    completed. Untgz documented.</dd>
+   <dt>2005-06-14</dt>
+    <dd>SQL database wrapper API completed. Untgz documented.</dd>
    <dt>2005-06-12</dt>
     <dd>Another milestone achieved. Pkgdb is fast. Database operations on 
     averange package can be done in 2ms on my 1GHz Athlon. Full 

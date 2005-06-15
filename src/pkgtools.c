@@ -87,7 +87,8 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   }
 
   /* check if package is in the database */  
-  if ((pkg = db_get_pkg(name,0)))
+  pkg = db_get_pkg(name,0);
+  if (pkg)
   {
     _pkg_set_error("installation failed: package is already installed (%s)", name);
     db_free_pkg(pkg);
@@ -98,6 +99,7 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
     _pkg_set_error("installation failed: db_get_pkg failed (%s)\n%s", name, db_error());
     goto err1;
   }
+
   /*XXX: check for shortname match (maybe) */
 
   /* open tgz */

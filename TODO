@@ -1,7 +1,6 @@
 TODO
 ----
 - implement file transactions
-- implement doinst.sh parser (parse out sym links)
 - modify pkg structure to contain short desc long desc and pkg name
 - reimplement sys_rm_rf and sys_mkdir_p in C
 - pkgtools: implement install, upgrade, remove
@@ -11,3 +10,5 @@ TODO
 
 - sql: use automatically last prepared query if 0 is passed as query
        to some functions
+
+- add somewhere notice, that avl insert code was taken from gnuavl library
