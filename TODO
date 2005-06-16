@@ -1,5 +1,9 @@
 TODO
 ----
+- spilt desc to sdesc and ldesc
+- add preprocessed script to database
+
+
 - implement file transactions
 - reimplement sys_rm_rf and sys_mkdir_p in C
 - pkgtools: implement install, upgrade, remove
@@ -11,3 +15,10 @@ TODO
        to some functions
 
 - add somewhere notice, that avl insert code was taken from gnuavl library
+
+PROBLEMS
+--------
+- sqldb corruption should be checked in sql_open
+- sql tranactions should return if db is busy (or try to wait for db)
+- pkg structure should be better defined (espec. required and optional fields)
+- filedb distributed checksumming

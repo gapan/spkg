@@ -10,51 +10,6 @@
 
 #include "pkgtools.h"
 
-/*XXX: remove (move to cli) */
-extern gint verbose;
-extern void notice(const gchar* f,...);
-extern void err(gint e, const gchar* f,...);
-extern void warn(const gchar* f,...);
-
-gint verbose = 2;
-
-void notice(const gchar* f,...)
-{
-  va_list ap;
-  if (verbose < 2)
-    return;
-  printf("notice: ");
-  va_start(ap, f);
-  vprintf(f, ap);
-  va_end(ap);
-  fflush(stdout);
-}
-
-void err(gint e, const gchar* f,...)
-{
-  va_list ap;
-  printf("error: ");
-  va_start(ap, f);
-  vprintf(f, ap);
-  va_end(ap);
-  fflush(stdout);
-  if (e)
-    exit(e);
-}
-
-void warn(const gchar* f,...)
-{
-  va_list ap;
-  if (verbose < 1)
-    return;
-  printf("warning: ");
-  va_start(ap, f);
-  vprintf(f, ap);
-  va_end(ap);
-  fflush(stdout);
-  exit(1);
-}
-
 typedef struct {
   /* command line opts */
   gboolean install;
@@ -101,7 +56,7 @@ int main(int ac, char* av[])
 
   if (getuid() != 0)
   {
-    fprintf(stderr, "You need to run this program with root privileges.\n");
+    fprintf(stderr, "spkg: You need root privileges to run this program.\n");
     exit(1);
   }
   
@@ -109,13 +64,20 @@ int main(int ac, char* av[])
   g_option_context_add_main_entries(context, entries, 0);
   g_option_context_parse(context, &ac, &av, &error);
 
-  f = opts.files;
-  if (f == 0)
-    return 0;
+
+  gint cmds = opts.install?1:0 + opts.upgrade?1:0 + opts.remove?1:0;
+  if (cmds > 1)
+  {
+    fprintf(stderr, "spkg: conflicting commands given, use one of -i -d -u");
+    exit(1);
+  }
 
 //  db_sync_from_legacydb();
 //  db_sync_to_legacydb();
   
+  f = opts.files;
+  if (f == 0)
+    return 0;
   while (*f != 0)
   {
 //    pkg_install(*f,1,1);

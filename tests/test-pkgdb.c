@@ -82,7 +82,7 @@ static USED void del_pkg(gchar* name)
 }
 
 #define TEST_SYNC_TO_DB 1
-#define TEST_SYNC_FROM_DB 0
+#define TEST_SYNC_FROM_DB 1
 
 int main(int ac, char* av[])
 {

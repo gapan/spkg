@@ -50,6 +50,7 @@ struct db_pkg {
   gsize  usize;      /**< uncompressed size of the package */
   gchar* location;   /**< original package location */
   gchar* desc;       /**< package description */
+  gchar* doinst;     /**< doinst.sh script contents (without links) */
   
   GSList* files;     /**< list of the files in the package */
 

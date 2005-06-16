@@ -163,21 +163,11 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
       gchar* buf;
       gsize len;
       untgz_write_data(tgz,&buf,&len);
+      gchar* doinst = 0;
       
-      gchar *b, *e;
-      gchar *n = buf;
-      while (1)
+      gchar *b, *e, *ln, *n=buf;
+      while(iter_lines(&b, &e, &n, &ln))
       { /* for each line */
-        b = n;
-        if (b == 0)
-          break;
-        e = strchr(b,'\n');
-        if (e == 0) /* eof */
-          e = b+strlen(b)-1, n=0;
-        else
-          n = e+1, e -= 1;
-
-        gchar* ln = g_strndup(b, e-b+1);
         gchar* dir;
         gchar* link;
         gchar* target;
@@ -189,15 +179,21 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
           if (verbose)
             printf("install[symlinking]: %s -> %s\n", path, target);
           pkg->files = g_slist_prepend(pkg->files, db_alloc_file(path, target));
-          *b = '#';
         }
-        else if (parse_cleanuplink(ln))
+        else if (!parse_cleanuplink(ln))
         {
-          *b = '#';
+          /* append doinst.sh buffer */
+          gchar* nd;
+          if (doinst)
+            nd = g_strdup_printf("%s%s\n", doinst, ln);
+          else
+            nd = g_strdup_printf("%s\n", ln);
+          g_free(doinst);
+          doinst = nd;          
         }
         g_free(ln);
       }
-      /*XXX: save parsed script */
+      pkg->doinst = doinst;
       continue;
     }
 

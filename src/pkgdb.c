@@ -69,7 +69,7 @@ gint db_open(const gchar* root)
   gchar** d;
   gchar* checkdirs[] = {
     "packages", "scripts", "removed_packages", "removed_scripts", "setup", 
-    "spkgdb", 0
+    "spkgdb", "packages.spkg", "scripts.spkg", 0
   };
   
   _db_reset_error();
@@ -136,7 +136,7 @@ gint db_open(const gchar* root)
   }
 
   /* setup sql error handling */
-  sql_push_context(SQL_ERRJUMP,1);
+  sql_push_context(SQL_ERRJUMP,0);
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
     _db_set_error(DB_OTHER, "can't open package database (sql error)\n%s", sql_error());
@@ -144,8 +144,10 @@ gint db_open(const gchar* root)
   }
 
   /* sqlite setup */
-//  sql_exec("PRAGMA temp_store = MEMORY;");
-//  sql_exec("PRAGMA synchronous = OFF;");
+  sql_exec("PRAGMA temp_store = MEMORY;");
+  sql_exec("PRAGMA synchronous = OFF;");
+
+  sql_transaction_begin();
 
   /* if package table does not exist create it */
   if (!sql_table_exist("packages"))
@@ -161,6 +163,7 @@ gint db_open(const gchar* root)
       " csize INTEGER,"
       " usize INTEGER,"
       " desc TEXT,"
+      " doinst TEXT,"
       " location TEXT,"
       " files BLOB "
       ");"
@@ -284,8 +287,8 @@ gint db_add_pkg(struct db_pkg* pkg)
 
   continue_timer(10);
   /* add pkg to the pacakge table */
-  q = sql_prep("INSERT INTO packages(name, shortname, version, arch, build, csize, usize, desc, location, files)"
-               " VALUES(?,?,?,?,?,?,?,?,?,?);");
+  q = sql_prep("INSERT INTO packages(name, shortname, version, arch, build, csize, usize, desc, location, files, doinst)"
+               " VALUES(?,?,?,?,?,?,?,?,?,?,?);");
   sql_set_text(q, 1, pkg->name);
   sql_set_text(q, 2, pkg->shortname);
   sql_set_text(q, 3, pkg->version);
@@ -296,6 +299,7 @@ gint db_add_pkg(struct db_pkg* pkg)
   sql_set_text(q, 8, pkg->desc);
   sql_set_text(q, 9, pkg->location);
   sql_set_blob(q, 10, fi_array, fi_size*sizeof(*fi_array));
+  sql_set_text(q, 11, pkg->doinst);
   sql_step(q);
   sql_fini(q);
 
@@ -381,7 +385,7 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
 
   continue_timer(9);
   q = sql_prep("SELECT id, name, shortname, version, arch, build, csize,"
-                   " usize, desc, location, files FROM packages WHERE name == '%q';", name);
+                   " usize, desc, location, files, doinst FROM packages WHERE name == '%q';", name);
   if (!sql_step(q))
   {
     _db_set_error(DB_NOTEX, "can't retrieve package from the database (package is not there - %s)", name);
@@ -402,6 +406,7 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   p->usize = sql_get_int(q, 7);
   p->desc = g_strdup(sql_get_text(q, 8));
   p->location = g_strdup(sql_get_text(q, 9));
+  p->doinst = g_strdup(sql_get_text(q, 11));
   stop_timer(10);
 
   /* caller don't want files list, so it's enough here */
@@ -444,6 +449,7 @@ struct db_pkg* db_legacy_get_pkg(gchar* name)
   gsize sp, ss=0;
   struct db_pkg* p=0;
   gchar *tmpstr;
+  gchar *doinst = 0;
  
   if (name == 0)
     return 0;
@@ -487,115 +493,104 @@ struct db_pkg* db_legacy_get_pkg(gchar* name)
   stop_timer(11);
 
   continue_timer(12);
+
   /* parse main package file */
-  enum { HEADER, FILELIST, LINKLIST } state = HEADER;
-  gchar* i = 0; /* current line start */
-  gchar* j = 0;  /* current line end */
-  gchar* n = ap;  /* next line start (may be 0) */
   gint snl = strlen(p->shortname);
   gint m[5] = {0}; /* if particular line was matched it can't 
-    occur anymore, so we cache info about already matched lines */
-  while (1)
+  occur anymore, so we cache info about already matched lines */
+
+  gchar *b, *e, *ln, *n=ap;
+  while(iter_lines(&b, &e, &n, 0))
   {
-    i = n;
-    if (i == 0)
-    {
-      if (state == FILELIST && fs != -1)
-      {
-        state = LINKLIST;
-        i = as;
-      }
-      else
-        break;
-    }
-    j = strchr(i,'\n');
-    if (j == 0) /* eof */
-      j = i+strlen(i)-1, n=0;
-    else
-      n = j+1, j -= 1;
-
-    /* skip empty lines */ /* XXX: optimize this */
-    gchar* k;
-    for (k=i;k<=j;k++)
-      if (*k!=' ')
-        goto ok;
-    continue;
-   ok:;
-
-#define LINEMATCH(s) (strncmp(i, s, sizeof(s)-1) == 0)
+#define LINEMATCH(s) (strncmp(b, s, sizeof(s)-1) == 0)
 #define LINESIZE(s) (sizeof(s)-1)
-    switch (state)
+    if (!m[0] && LINEMATCH("PACKAGE NAME:"))
     {
-      case HEADER:
-        if (!m[0] && LINEMATCH("PACKAGE NAME:"))
-        {
-          gchar* name = i+LINESIZE("PACKAGE NAME:");
-          name = g_strstrip(g_strndup(name, j-name+1));
-          g_free(name);
-          /* skip whitespace */
-          m[0] = 1;
-        }
-        else if (!m[1] && LINEMATCH("COMPRESSED PACKAGE SIZE:"))
-        {
-          gchar* size = i+LINESIZE("COMPRESSED PACKAGE SIZE:");
-          sscanf(size, " %u ", &p->csize); /*XXX: no checking here */
-          m[1] = 1;
-        }
-        else if (!m[2] && LINEMATCH("UNCOMPRESSED PACKAGE SIZE:"))
-        {
-          gchar* size = i+LINESIZE("UNCOMPRESSED PACKAGE SIZE:");
-          sscanf(size, " %u ", &p->usize); /*XXX: no checking here */
-          m[2] = 1;
-        }
-        else if (!m[3] && LINEMATCH("PACKAGE LOCATION:"))
-        {
-          gchar* loc = i+LINESIZE("PACKAGE LOCATION:");
-          loc = g_strstrip(g_strndup(loc, j-loc+1));
-          p->location = loc;
-          m[3] = 1;
-        }
-        else if (!m[4] && LINEMATCH("PACKAGE DESCRIPTION:"))
-        {
-          m[4] = 1;
-        }
-        else if (strncmp(i, p->shortname, snl) == 0)
-        {
-          gchar* ln = g_strndup(i, j-i+1);
-          gchar* ndesc = g_strconcat(p->desc?p->desc:"", ln, "\n", 0);
-          g_free(ln);
-          g_free(p->desc);
-          p->desc = ndesc;
-        }
-        if (LINEMATCH("FILE LIST:"))
-        {
-          state = FILELIST;
-        }
-      break;
-      case FILELIST:
-        p->files = g_slist_prepend(p->files, db_alloc_file(g_strndup(i, j-i+1),0));
-      break;
-      case LINKLIST:
-      {
-        gchar* ln = g_strndup(i, j-i+1);
-        gchar* dir;
-        gchar* link;
-        gchar* target;
-        if (parse_createlink(ln, &dir, &link, &target))
-        {
-          gchar* path = g_strdup_printf("%s/%s", dir, link);
-          g_free(dir);
-          g_free(link);
-          p->files = g_slist_prepend(p->files, db_alloc_file(path,target));
-        }
-        g_free(ln);
-      }
-      break;
+      gchar* name = b+LINESIZE("PACKAGE NAME:");
+      name = g_strstrip(g_strndup(name, e-name+1));
+      g_free(name);
+      /* skip whitespace */
+      m[0] = 1;
     }
+    else if (!m[1] && LINEMATCH("COMPRESSED PACKAGE SIZE:"))
+    {
+      gchar* size = b+LINESIZE("COMPRESSED PACKAGE SIZE:");
+      sscanf(size, " %u ", &p->csize); /*XXX: no checking here */
+       m[1] = 1;
+    }
+    else if (!m[2] && LINEMATCH("UNCOMPRESSED PACKAGE SIZE:"))
+    {
+      gchar* size = b+LINESIZE("UNCOMPRESSED PACKAGE SIZE:");
+      sscanf(size, " %u ", &p->usize); /*XXX: no checking here */
+      m[2] = 1;
+    }
+    else if (!m[3] && LINEMATCH("PACKAGE LOCATION:"))
+    {
+      gchar* loc = b+LINESIZE("PACKAGE LOCATION:");
+      loc = g_strstrip(g_strndup(loc, e-loc+1));
+      p->location = loc;
+      m[3] = 1;
+    }
+    else if (!m[4] && LINEMATCH("PACKAGE DESCRIPTION:"))
+      m[4] = 1;
+    else if (strncmp(b, p->shortname, snl) == 0)
+    {
+      gchar* ln = g_strndup(b, e-b+1);
+      gchar* ndesc = g_strconcat(p->desc?p->desc:"", ln, "\n", 0);
+      g_free(ln);
+      g_free(p->desc);
+      p->desc = ndesc;
+    }
+    if (LINEMATCH("FILE LIST:"))
+      goto parse_files;
+  }
+  goto err_1;
+
+ parse_files:
+  while(iter_lines(&b, &e, &n, &ln))
+    p->files = g_slist_prepend(p->files, db_alloc_file(ln,0));
+
+  if (fs == -1)
+    goto fini;
+
+  n = as;
+  while(iter_lines(&b, &e, &n, &ln))
+  {
+    gchar* dir;
+    gchar* link;
+    gchar* target;
+    if (parse_createlink(ln, &dir, &link, &target))
+    {
+      gchar* path = g_strdup_printf("%s/%s", dir, link);
+      g_free(dir);
+      g_free(link);
+      p->files = g_slist_prepend(p->files, db_alloc_file(path,target));
+    }
+    else if (!parse_cleanuplink(ln))
+    {
+      /* append doinst.sh buffer */
+      gchar* nd;
+      if (doinst)
+        nd = g_strdup_printf("%s%s\n", doinst, ln);
+      else
+        nd = g_strdup_printf("%s\n", ln);
+      g_free(doinst);
+      doinst = nd;          
+    }
+    g_free(ln);
   }
 
+ fini:
   p->files = g_slist_reverse(p->files);
+  p->doinst = doinst;
   stop_timer(12);
+  goto no_err;
 
+ err_1:
+  db_free_pkg(p);
+  p=0;
+
+ no_err:
   if (fs != -1)
   {
     munmap(as, ss);
@@ -603,7 +598,6 @@ struct db_pkg* db_legacy_get_pkg(gchar* name)
   }
   munmap(ap, sp);
   close(fp);
-
   return p;
 }
 
@@ -625,16 +619,16 @@ gint db_legacy_add_pkg(struct db_pkg* pkg)
     return 1;
   }
 
-  ppath = g_strdup_printf("%s/packages/%s", _db_topdir, pkg->name);
-  spath = g_strdup_printf("%s/scripts/%s", _db_topdir, pkg->name);
+  ppath = g_strdup_printf("%s/packages.spkg/%s", _db_topdir, pkg->name);
+  spath = g_strdup_printf("%s/scripts.spkg/%s", _db_topdir, pkg->name);
 
-  pf = fopen(ppath, "w+");
+  pf = fopen(ppath, "w");
   if (pf == 0)
   {
     _db_set_error(DB_OTHER, "can't add package to the legacy database (can't open package file %s)", strerror(errno));
     goto err_0;
   }
-  sf = fopen(spath, "w+");
+  sf = fopen(spath, "w");
   if (sf == 0)
   {
     _db_set_error(DB_OTHER, "can't add package to the legacy database (can't open script file)");
@@ -653,6 +647,9 @@ gint db_legacy_add_pkg(struct db_pkg* pkg)
     pkg->name, pkg->csize, pkg->usize, pkg->location?pkg->location:"", pkg->desc?pkg->desc:""
   );
   
+  if (pkg->doinst)
+    fprintf(sf, "%s\n", pkg->doinst);
+
   /* construct filelist and script for links creation */
   for (l=pkg->files; l!=0; l=l->next)
   {
@@ -736,7 +733,7 @@ GSList* db_get_packages()
   }
 
   q = sql_prep("SELECT id, name, shortname, version, arch, build, csize,"
-                   " usize, desc, location FROM packages;");
+               " usize, desc, location FROM packages;");
   while(sql_step(q))
   {
     struct db_pkg* p;

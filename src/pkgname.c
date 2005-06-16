@@ -259,3 +259,20 @@ gint parse_cleanuplink(gchar* line)
 
   return 1;
 }
+
+gint iter_lines(gchar** b, gchar** e, gchar** n, gchar** ln)
+{
+  *b = *n;
+  if (*b == 0)
+    return 0;
+  if (**b == 0) /* last line is empty, discard it */
+    return 0;
+  *e = strchr(*b, '\n'); /* XXX: here may be CRLF check instead */
+  if (*e == 0) /* eof */
+    *e = *b+strlen(*b)-1, *n=0;
+  else
+    *n = *e+1, *e-=1;
+  if (ln)
+    *ln = g_strndup(*b, *e-*b+1);
+  return 1;
+}

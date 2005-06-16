@@ -61,6 +61,24 @@ extern gint parse_createlink(gchar* line, gchar** dir, gchar** link, gchar** tar
  */
 extern gint parse_cleanuplink(gchar* line);
 
+/** Iterate through buffer line by line.
+ *
+ * @param b  begining of the line
+ * @param e  end of the line
+ * @param n  next line start (set this to the buffer begining at start)
+ * @param ln line (zero terminated g_strduped string, freed by user) 
+ *           (could be zero if you don't want to us it)
+ * @return 0 if not a valid cleanup link line, 1 if valid
+ * @code
+ *  gchar *b, *e, *ln, *n=buf;
+ *  while(iter_lines(&b, &e, &n, &ln))
+ *  {
+ *    g_free(ln);
+ *  }
+ * @endcode
+ */
+extern gint iter_lines(gchar** b, gchar** e, gchar** n, gchar** ln);
+
 #endif
 
 /*! @} */
