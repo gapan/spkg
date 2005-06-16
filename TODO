@@ -1,7 +1,6 @@
 TODO
 ----
 - implement file transactions
-- modify pkg structure to contain short desc long desc and pkg name
 - reimplement sys_rm_rf and sys_mkdir_p in C
 - pkgtools: implement install, upgrade, remove
 - implement filedb transactions

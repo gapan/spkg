@@ -9,7 +9,7 @@
 #include "pkgtools.h"
 #include "pkgdb.h"
 
-const gchar* root = "./,,root";
+const gchar* root = "root";
 
 int main(int ac, char* av[])
 {
@@ -19,8 +19,11 @@ int main(int ac, char* av[])
   for (i=1;i<ac;i++)
   {
     printf("installing: %s\n", av[i]);
-    if (pkg_install(av[i], root, 0, 0))
+    if (pkg_install(av[i], root, 1, 1))
+    {
       printf("%s\n", pkg_error());
+      break;
+    }
   }
 
   db_close();

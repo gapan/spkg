@@ -44,6 +44,23 @@ extern gint parse_slackdesc(const gchar* slackdesc, const gchar* sname, gchar* d
  */
 extern gchar* gen_slackdesc(const gchar* sname, gchar* desc[11]);
 
+/** Parse link line in the doinst_sh file.
+ *
+ * @param line Link line.
+ * @param dir Directory part.
+ * @param link Link part.
+ * @param target Target part.
+ * @return 0 if not a valid link line, 1 if valid
+ */
+extern gint parse_createlink(gchar* line, gchar** dir, gchar** link, gchar** target);
+
+/** Parse cleanup link line in the doinst_sh file.
+ *
+ * @param line Link line.
+ * @return 0 if not a valid cleanup link line, 1 if valid
+ */
+extern gint parse_cleanuplink(gchar* line);
+
 #endif
 
 /*! @} */

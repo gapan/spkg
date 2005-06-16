@@ -35,6 +35,7 @@ static struct sql_context _sql_context_stack[SQL_CONTEXT_STACK_LIMIT];
 static sql_query* _sql_context_queries[SQL_OPEN_QUERIES_LIMIT] = {0};
 static sql_erract _sql_context_erract = SQL_ERREXIT;
 static gboolean _sql_context_transact = 0;
+
 static gboolean _sql_transaction = 0;
 
 /* private funcs
@@ -184,7 +185,9 @@ void sql_transaction_begin()
 {
   trace();  
   
+  g_assert(_sql_db != 0);
   g_assert(!_sql_transaction);
+
   gint rs = sqlite3_exec(_sql_db,"BEGIN EXCLUSIVE TRANSACTION;",0,0,0);
   g_assert(rs == SQLITE_OK);
 
@@ -196,6 +199,7 @@ void sql_transaction_end(gboolean commit)
 {
   trace();  
 
+  g_assert(_sql_db != 0);
   g_assert(_sql_transaction);
 
   gint rs;
@@ -213,6 +217,7 @@ void sql_push_context(sql_erract act, gboolean begin)
 {
   trace();
 
+  g_assert(_sql_db != 0);
   g_assert(_sql_context_stack_pos < SQL_CONTEXT_STACK_LIMIT);
 
   _sql_context_stack[_sql_context_stack_pos].transact = _sql_context_transact;
@@ -233,9 +238,12 @@ void sql_pop_context(gboolean commit)
 {
   trace();  
 
+  g_assert(_sql_db != 0);
   g_assert(_sql_context_stack_pos > 0);
 
   /* if transaction was executed in contex that is being popped, end it */
+  _sql_context_fini_all_queries();
+
   if (_sql_context_transact)
     sql_transaction_end(commit);
 
@@ -243,7 +251,6 @@ void sql_pop_context(gboolean commit)
   _sql_context_erract = _sql_context_stack[_sql_context_stack_pos].erract;
   _sql_context_transact = _sql_context_stack[_sql_context_stack_pos].transact;
   sql_errjmp[0] = _sql_context_stack[_sql_context_stack_pos].errjmp[0];
-  _sql_context_fini_all_queries();
   memcpy(_sql_context_queries, _sql_context_stack[_sql_context_stack_pos].queries, sizeof(_sql_context_queries));
 }
 

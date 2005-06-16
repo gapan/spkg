@@ -131,44 +131,82 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   while (untgz_get_header(tgz) == 0)
   {
     /* check file path */
-    if (tgz->f_name[0] == '/')
+    if (tgz->f_name[0] == '/') /* XXX: what checks are neccessary? */
     {
-      /* some damned fucker created package specially to mess our system */
+      /* some damned fucker created this package to mess our system */
       _pkg_set_error("installation failed: package contains files with absolute paths");
       goto err3;
     }
-    
-    /* check for special files */
+
+    /* check for metadata files */
     if (!strcmp(tgz->f_name, "install/slack-desc"))
     {
-      gchar *buf, *desc[11];
+      gchar *buf, *desc[11] = {0};
       gsize len;
+      gint i;
       
       untgz_write_data(tgz,&buf,&len);
       parse_slackdesc(buf,shortname,desc);
-      pkg->desc = buf;
-      if (verbose)
-        printf("install: package description found\n");
+      pkg->desc = gen_slackdesc(shortname,desc);
+
+      /* free description */
+      for (i=0;i<11;i++)
+      {
+        if (verbose)
+          printf("install: %s\n", desc[i]);
+        g_free(desc[i]);
+      }  
       continue;
     }
-#if 0
     else if (!strcmp(tgz->f_name, "install/doinst.sh"))
     {
-//      guchar* buf;
-//      gsize len;
-//      untgz_write_data(tgz,&buf,&len);
-      /*XXX: parse out symlinks */
-      if (verbose)
-        printf("install: install script found\n");
+      gchar* buf;
+      gsize len;
+      untgz_write_data(tgz,&buf,&len);
+      
+      gchar *b, *e;
+      gchar *n = buf;
+      while (1)
+      { /* for each line */
+        b = n;
+        if (b == 0)
+          break;
+        e = strchr(b,'\n');
+        if (e == 0) /* eof */
+          e = b+strlen(b)-1, n=0;
+        else
+          n = e+1, e -= 1;
+
+        gchar* ln = g_strndup(b, e-b+1);
+        gchar* dir;
+        gchar* link;
+        gchar* target;
+        if (parse_createlink(ln, &dir, &link, &target))
+        {
+          gchar* path = g_strdup_printf("%s/%s", dir, link);
+          g_free(dir);
+          g_free(link);
+          if (verbose)
+            printf("install[symlinking]: %s -> %s\n", path, target);
+          pkg->files = g_slist_prepend(pkg->files, db_alloc_file(path, target));
+          *b = '#';
+        }
+        else if (parse_cleanuplink(ln))
+        {
+          *b = '#';
+        }
+        g_free(ln);
+      }
+      /*XXX: save parsed script */
       continue;
     }
-#endif
+
     gchar* path = g_strdup_printf("%s/%s", root, tgz->f_name);
 //    gchar* spath = g_strdup_printf("%s/%s.install.%04x", root, tgz->f_name, stamp);
     pkg->files = g_slist_append(pkg->files, db_alloc_file(g_strdup(tgz->f_name), 0));
 
     if (verbose)
-      printf("install: extracting: %s\n", path);
+      printf("install[extracting]: %s\n", path);
 
     if (!dryrun)
     {
@@ -184,6 +222,7 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
         untgz_write_file(tgz,path);
       }
     }
+    g_free(path);
 //    g_free(spath);
   }
   
@@ -196,15 +235,14 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
 
   /* finalize transaction */
   if (!dryrun)
-  {
     ta_finalize();
-  }
 
-  pkg->usize = tgz->usize;
-  pkg->csize = tgz->csize;
+  pkg->usize = tgz->usize/1024;
+  pkg->csize = tgz->csize/1024;
   
   /* close tgz */
   untgz_close(tgz);
+  tgz = 0;
 
   gchar* old_cwd = sys_setcwd(root);
   if (old_cwd)
@@ -226,10 +264,15 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   }
 
   /* add package to the database */
-  if (!dryrun)
+//  if (!dryrun)
   {
     if (verbose)
       printf("install: updating database with package: %s\n", name);
+    if (db_legacy_add_pkg(pkg))
+    {
+      _pkg_set_error("installation failed: can't add package to the legacy database\n%s", db_error());
+      goto err3;
+    }
     if (db_add_pkg(pkg))
     {
       if (db_errno() == DB_EXIST)
@@ -244,8 +287,10 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   g_free(name);
   g_free(shortname);
   return 0;
+
  err3:
-  ta_rollback();
+  if (!dryrun)
+    ta_rollback();
   db_free_pkg(pkg);
  err2:
   untgz_close(tgz);

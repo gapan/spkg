@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <errno.h>
 
 #include "sql.h"
 #include "sys.h"
@@ -49,11 +50,11 @@ static __inline__ void _db_reset_error()
     return v; \
   }
 
-static void _db_set_error(gint errno, const gchar* fmt, ...)
+static void _db_set_error(gint n, const gchar* fmt, ...)
 {
   va_list ap;
   _db_reset_error();
-  _db_errno = errno;
+  _db_errno = n;
   va_start(ap, fmt);
   _db_errstr = g_strdup_vprintf(fmt, ap);
   va_end(ap);
@@ -79,9 +80,17 @@ gint db_open(const gchar* root)
   }
   
   if (root == 0)
-    root = "";
+    root = "/";
 
-  _db_topdir = g_strdup_printf("%s/%s", root, PKGDB_DIR);
+  if (root[0] == '/')
+    _db_topdir = g_strdup_printf("%s/%s", root, PKGDB_DIR);
+  else
+  {
+    gchar* cwd = getcwd(0,0);
+    _db_topdir = g_strdup_printf("%s/%s/%s", cwd, root, PKGDB_DIR); /*XXX: not portable */
+    free(cwd);
+  }
+
   /* check legacy and spkg db dirs */
   for (d = checkdirs; *d != 0; d++)
   {
@@ -112,25 +121,31 @@ gint db_open(const gchar* root)
     goto err1;
   }
 
+  /* open file database */
   if (fdb_open(_db_dbroot))
   {
     _db_set_error(DB_OTHER, "can't open file database\n%s", fdb_error());
     goto err1;
   }
 
+  /* open sql database */
+  if (sql_open(_db_dbfile))
+  {
+    _db_set_error(DB_OTHER, "can't open package database (sql open failed)\n");
+    goto err1;
+  }
+
   /* setup sql error handling */
-  sql_push_context(SQL_ERRJUMP,0);
+  sql_push_context(SQL_ERRJUMP,1);
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
     _db_set_error(DB_OTHER, "can't open package database (sql error)\n%s", sql_error());
     goto err2;
   }
 
-  /* open sql database */
-  sql_open(_db_dbfile);
-  sql_exec("PRAGMA temp_store = MEMORY;");
-  sql_exec("PRAGMA synchronous = OFF;");
-  sql_transaction_begin();
+  /* sqlite setup */
+//  sql_exec("PRAGMA temp_store = MEMORY;");
+//  sql_exec("PRAGMA synchronous = OFF;");
 
   /* if package table does not exist create it */
   if (!sql_table_exist("packages"))
@@ -431,7 +446,7 @@ struct db_pkg* db_legacy_get_pkg(gchar* name)
   gchar *tmpstr;
  
   if (name == 0)
-    goto err_0;
+    return 0;
 
   continue_timer(11);
 
@@ -440,13 +455,13 @@ struct db_pkg* db_legacy_get_pkg(gchar* name)
   fp = open(tmpstr, O_RDONLY);
   g_free(tmpstr);
   if (fp == -1) /* main package entry can't be open */
-    goto err_0;
+    return 0;
   sp = lseek(fp, 0, SEEK_END)+1;
   ap = mmap(0, sp, PROT_READ, MAP_SHARED, fp, 0);
   if (ap == (void*)-1)
   {
     close(fp);
-    goto err_0;
+    return 0;
   }
 
   tmpstr = g_strdup_printf("%s/scripts/%s", _db_topdir, name);
@@ -561,47 +576,17 @@ struct db_pkg* db_legacy_get_pkg(gchar* name)
       break;
       case LINKLIST:
       {
-        /* link line looks like this:
-           ( cd dir ; ln -sf tgt lnk )  */
         gchar* ln = g_strndup(i, j-i+1);
-        if (strncmp(ln, "( cd ", 5) != 0)
-          goto fail0;
-        gchar* basedir = ln+5;
-        gchar* it = basedir;
-        while (*it!=' '&&*it!=0) it++;
-        if (it == basedir || *it == 0)
-          goto fail0;
-        basedir = g_strndup(basedir, it-basedir);
-        if (strncmp(it, " ; ln -sf ", 10) != 0)
-          goto fail1;
-        it+=10;
-        gchar* target = it;
-        while (*it!=' '&&*it!=0) it++;
-        if (it == target || *it == 0)
-          goto fail1;        
-        target = g_strndup(target, it-target);
-        it++;
-        gchar* basename = it;
-        while (*it!=' '&&*it!=0) it++;
-        if (it == basename || *it == 0)
-          goto fail2;        
-        basename = g_strndup(basename, it-basename);
-        if (strncmp(it, " )", 2) != 0)
-          goto fail3;
-        /* FINALLY WE HAVE A VALID LINK LINE! */
-        gchar* path = g_strdup_printf("%s/%s", basedir, basename);
-        g_free(basename);
-        g_free(basedir);
-        g_free(ln);
-        p->files = g_slist_prepend(p->files, db_alloc_file(path,target));
-        break;
-       fail3:
-        g_free(basename);
-       fail2:
-        g_free(target);
-       fail1:
-        g_free(basedir);
-       fail0:
+        gchar* dir;
+        gchar* link;
+        gchar* target;
+        if (parse_createlink(ln, &dir, &link, &target))
+        {
+          gchar* path = g_strdup_printf("%s/%s", dir, link);
+          g_free(dir);
+          g_free(link);
+          p->files = g_slist_prepend(p->files, db_alloc_file(path,target));
+        }
         g_free(ln);
       }
       break;
@@ -620,17 +605,6 @@ struct db_pkg* db_legacy_get_pkg(gchar* name)
   close(fp);
 
   return p;
- err_1:
-  db_free_pkg(p);
-  if (fs != -1)
-  {
-    munmap(as, ss);
-    close(fs);
-  }
-  munmap(ap, sp);
-  close(fp);
- err_0:
-  return 0;
 }
 
 gint db_legacy_add_pkg(struct db_pkg* pkg)
@@ -651,18 +625,21 @@ gint db_legacy_add_pkg(struct db_pkg* pkg)
     return 1;
   }
 
-  ppath = g_strdup_printf("%s/%s.%s", _db_dbroot, "packages", pkg->name);
-  spath = g_strdup_printf("%s/%s.%s", _db_dbroot, "scripts", pkg->name);
-/*XXX: real code
-  ppath = g_strdup_printf("%s/%s/%s", _db_topdir, "packages", pkg->name);
-  spath = g_strdup_printf("%s/%s/%s", _db_topdir, "scripts", pkg->name);
-*/
-  pf = fopen(ppath, "w");
+  ppath = g_strdup_printf("%s/packages/%s", _db_topdir, pkg->name);
+  spath = g_strdup_printf("%s/scripts/%s", _db_topdir, pkg->name);
+
+  pf = fopen(ppath, "w+");
   if (pf == 0)
+  {
+    _db_set_error(DB_OTHER, "can't add package to the legacy database (can't open package file %s)", strerror(errno));
     goto err_0;
-  sf = fopen(spath, "w");
+  }
+  sf = fopen(spath, "w+");
   if (sf == 0)
+  {
+    _db_set_error(DB_OTHER, "can't add package to the legacy database (can't open script file)");
     goto err_1;
+  }
 
   /* construct header */
   fprintf(pf,

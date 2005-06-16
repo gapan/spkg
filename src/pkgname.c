@@ -90,20 +90,22 @@ gchar* parse_pkgname(const gchar* path, guint elem)
   <shortname>: longdesc
   ...
   other lines are discarded
-  
-  XXX: strip eoln
 */
-#define MAXLNLEN 128
+#define MAXLNLEN 128 /* slack-desc file lines length is limited anyway */
 gint parse_slackdesc(const gchar* slackdesc, const gchar* sname, gchar* desc[11])
 {
   const gchar* i = slackdesc;
   const gchar* j;
-  gint sl = strlen(sname);
+  gint sl;
   gint ln = 0;
   gint l = 0;
   gchar buf[MAXLNLEN];
 
-  /*XXX: some asserts should be here */
+  g_assert(slackdesc != 0);
+  g_assert(sname != 0);
+  g_assert(desc != 0);
+
+  sl = strlen(sname);
 
   for (l=0;l<11;l++)
     desc[l] = 0;
@@ -145,6 +147,9 @@ gchar* gen_slackdesc(const gchar* sname, gchar* desc[11])
   buf[0]=0;
   gint i;
 
+  g_assert(sname != 0);
+  g_assert(desc != 0);
+
   for (i=0;i<11;i++)
   {
     if (desc[i] == 0)
@@ -155,4 +160,102 @@ gchar* gen_slackdesc(const gchar* sname, gchar* desc[11])
     g_strlcat(buf,"\n",MAXLNLEN*11);
   }
   return buf[0]?g_strdup(buf):0;
+}
+
+/* this is simple parser that returns 1 if line looks like this:
+ * ( cd <dir> ; ln -sf <target> <link> )
+ */
+gint parse_createlink(gchar* line, gchar** dir, gchar** link, gchar** target)
+{
+  g_assert(line != 0);
+  g_assert(dir != 0);
+  g_assert(link != 0);
+  g_assert(target != 0);
+
+  gchar* it = line;
+
+  /* check "( cd " part */
+  if (strncmp(it, "( cd ", 5) != 0)
+    goto fail0;
+  it+=5;
+
+  /* get dir */
+  gchar* _dir = it;
+  while (*it != ' ' && *it != 0) it++;
+  if (it == _dir || *it == 0)
+    goto fail0;
+  _dir = g_strndup(_dir, it-_dir);
+  
+  /* check " ; ln -sf " part */
+  if (strncmp(it, " ; ln -sf ", 10) != 0)
+    goto fail1;
+  it+=10;
+
+  /* get target */
+  gchar* _tgt = it;
+  while (*it != ' ' && *it != 0) it++;
+  if (it == _tgt || *it == 0)
+    goto fail1;        
+  _tgt = g_strndup(_tgt, it-_tgt);
+
+  it++; /* skip space after target */
+ 
+  /* get link */
+  gchar* _lnk = it;
+  while (*it != ' ' && *it != 0) it++;
+  if (it == _lnk || *it == 0)
+    goto fail2;        
+  _lnk = g_strndup(_lnk, it-_lnk);
+
+  /* check " )" part */
+  if (strncmp(it, " )", 2) != 0)
+    goto fail3;
+  
+  *dir = _dir;
+  *link = _lnk;
+  *target = _tgt;
+  return 1;
+
+ fail3:
+  g_free(_lnk);
+ fail2:
+  g_free(_tgt);
+ fail1:
+  g_free(_dir);
+ fail0:
+  return 0;
+}
+
+gint parse_cleanuplink(gchar* line)
+{
+  g_assert(line != 0);
+  gchar* it = line;
+
+  /* check "( cd " part */
+  if (strncmp(it, "( cd ", 5) != 0)
+    return 0;
+  it+=5;
+
+  /* get dir */
+  gchar* _dir = it;
+  while (*it != ' ' && *it != 0) it++;
+  if (it == _dir || *it == 0)
+    return 0;
+  
+  /* check " ; ln -sf " part */
+  if (strncmp(it, " ; rm -rf ", 10) != 0)
+    return 0;
+  it+=10;
+
+  /* get target */
+  gchar* _tgt = it;
+  while (*it != ' ' && *it != 0) it++;
+  if (it == _tgt || *it == 0)
+    return 0;
+
+  /* check " )" part */
+  if (strncmp(it, " )", 2) != 0)
+    return 0;
+
+  return 1;
 }
