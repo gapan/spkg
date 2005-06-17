@@ -66,11 +66,6 @@ int main(int ac, char* av[])
 #include <zlib.h>
 #include <setjmp.h>
 
-/** Enable or disable parent directory modification and access times 
- *  preservation. 
- */
-#define UNTGZ_PRESERVE_DIR_TIMES 0
-
 /** File type. */
 typedef enum { 
   UNTGZ_NONE=0, /**< nothing read yet */
@@ -83,18 +78,15 @@ typedef enum {
   UNTGZ_FIFO    /**< fifo */
 } filetype_t;
 
-/*! @if false */
-/* optimal (according to the benchmark), must be multiple of 512 */
-#define BLOCKBUFSIZE (512*100)
-/*! @endif */
+/** internal opaque data type */
+struct untgz_state_internal;
 
 /** Untgz state structure. */
 struct untgz_state {
   /* archive information */
   gchar*  tgzfile;     /**< tgz file path */
-  gsize   usize;       /**< uncompressed size of the files in the archive */
+  gsize   usize;       /**< sum of sizes of the uncompressed files */
   gsize   csize;       /**< compressed size of the archive  */
-  gzFile* gzf;         /**< gzio tar stream */
 
   /* current file information */
   filetype_t f_type;   /**< type of the current file */
@@ -110,30 +102,35 @@ struct untgz_state {
   guint   f_devmaj;    /**< major number of the device */
   guint   f_devmin;    /**< minor number of the device */
 
-  /* error handling */
-  jmp_buf errjmp;      /**< used by the trigger_error for the 
-                            exception-like error handling */
-  gchar*  errstr;      /**< error string */
-
-  mode_t  old_umask;   /**< saved umask */
-  gboolean data;       /**< data from the current file were not read, yet */
-  gboolean written;    /**< file was written */
-  gboolean eof;        /**< end of archive reached */
-  
-  /* internal block buffer  */
-  guchar   bbuf[BLOCKBUFSIZE]; /**< block buffer */
-  guchar*  bend;       /**< points to the end of the buffer */
-  guchar*  bpos;       /**< points to the current block */
-  gint     blockid;    /**< block id (512*blockid == position of the block 
-                            in the input file) */
+  struct untgz_state_internal* i; /**< this is no no for a library user */
 };
+
+/** Untgz status callback. */
+typedef void(*untgz_status_cb)(struct untgz_state*, gsize, gsize);
 
 /** Open tgz archive.
  *
  * @param tgzfile Path to the tgz archive.
+ * @param scb Status callback. If you don't need this, set it to zero.
+ *            Note that if archive is corrupted, behavior is undefined.
+ *            Also note, that use of callback is not possible on files
+ *            where lseek is not posible.
  * @return Pointer to the \ref untgz_state object on success, 0 on error.
  */
-extern struct untgz_state* untgz_open(const gchar* tgzfile);
+extern struct untgz_state* untgz_open(const gchar* tgzfile, untgz_status_cb scb);
+
+/** Close archive and free \ref untgz_state object.
+ *
+ * @param s Pointer to the \ref untgz_state object.
+ */
+extern void untgz_close(struct untgz_state* s);
+
+/** Get last error description.
+ *
+ * @param s Pointer to the \ref untgz_state object.
+ * @return g_malloced error string, 0 if no error.
+ */
+extern gchar* untgz_error(struct untgz_state* s);
 
 /** Read next file header from the archive.
  *
@@ -168,12 +165,6 @@ extern gint untgz_write_data(struct untgz_state* s, gchar** buf, gsize* len);
  * @return 0 on success, 1 if file was already written, -1 on error.
  */
 extern gint untgz_write_file(struct untgz_state* s, gchar* altname);
-
-/** Close archive and free \ref untgz_state object.
- *
- * @param s Pointer to the \ref untgz_state object.
- */
-extern void untgz_close(struct untgz_state* s);
 
 #endif
 

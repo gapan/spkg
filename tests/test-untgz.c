@@ -8,6 +8,12 @@
 #include <stdio.h>
 #include "untgz.h"
 
+void status(struct untgz_state* tgz, gsize total, gsize remain)
+{
+  printf("%d\n", 100*remain/total);
+  fflush(stdout);
+}
+
 int main(int ac, char* av[])
 {
   gint i;
@@ -15,7 +21,7 @@ int main(int ac, char* av[])
   for (i=1;i<ac;i++)
   {
     // Open tgz file.
-    struct untgz_state* tgz = untgz_open(av[i]);
+    struct untgz_state* tgz = untgz_open(av[i], status);
     if (tgz == 0)
     {
       fprintf(stderr, "error: can't open tgz file\n");
@@ -32,10 +38,10 @@ int main(int ac, char* av[])
       }
     }
     // And if something went wrong...
-    if (tgz->errstr)
+    if (untgz_error(tgz))
     {
       // ...we will alert user.
-      fprintf(stderr, "error: %s\n", tgz->errstr);
+      fprintf(stderr, "error: %s\n", untgz_error(tgz));
     }
     
     // Close file.

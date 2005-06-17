@@ -103,7 +103,7 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   /*XXX: check for shortname match (maybe) */
 
   /* open tgz */
-  tgz = untgz_open(pkgfile);
+  tgz = untgz_open(pkgfile, 0);
   if (tgz == 0)
   {
     _pkg_set_error("installation failed: can't open package file (%s)", pkgfile);
@@ -223,9 +223,9 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   }
   
   /* error occured during extraction */
-  if (tgz->errstr)
+  if (untgz_error(tgz))
   {
-    _pkg_set_error("installation failed: package is corrupted (%s)", pkgfile);
+    _pkg_set_error("%s\ninstallation failed: package is corrupted (%s)", untgz_error(tgz), pkgfile);
     goto err3;
   }
 

@@ -4,13 +4,14 @@
 |*----------------------------------------------------------------------*|
 |*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
+#if __BENCH == 1
+
+#include <stdio.h>
 #include <asm/msr.h>
 
 /* tics per second (this is constant for my 1GHz athlon) */
 #define TPS 1000000000ull
 #define CNT 16
-
-#if __BENCH == 1
 
 /* [0] = start tics, [1] = accumulated tics, [2] = times stopped/continued */
 static unsigned long long timers[CNT][3];
@@ -76,6 +77,9 @@ static __inline__ void print_timer(int t, char* msg)
   printf("** timer: %-30s : %-15s : %-15s per cycle\n", msg?msg:"", buf1, buf2);
 }
 
+#undef CNT
+#undef TPS
+
 #else
 
 static __inline__ void start_timer(int t) { }
@@ -87,6 +91,3 @@ static __inline__ double get_timer(int t) { return 0; }
 static __inline__ void print_timer(int t, char* msg) { }
 
 #endif
-
-#undef CNT
-#undef TPS

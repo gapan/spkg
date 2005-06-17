@@ -11,11 +11,50 @@
 
 #include "untgz.h"
 
+/** Enable or disable parent directory modification and access times 
+ *  preservation. 
+ */
+#define UNTGZ_PRESERVE_DIR_TIMES 0
+
 #if UNTGZ_PRESERVE_DIR_TIMES == 1
 #include <libgen.h>
 #endif
 
 #include "bench.h"
+
+/* optimal (according to the benchmark), must be multiple of 512 */
+#define BLOCKBUFSIZE (512*100)
+
+struct untgz_state_internal {
+  /* error handling */
+  jmp_buf errjmp;
+  gchar*  errstr;
+
+  /* saved umask */
+  mode_t  old_umask;
+
+  /* data from the current file were not read, yet */
+  gboolean data;
+  /* current file was written to disk (or buffer) */
+  gboolean written;
+  /* end of archive reached */
+  gboolean eof;
+
+  /* gzio tar stream */
+  gzFile* gzf;
+  
+  /* internal block buffer data */
+  guchar   bbuf[BLOCKBUFSIZE]; /* block buffer */
+  guchar*  bend; /* points to the end of the buffer */
+  guchar*  bpos; /* points to the current block */
+  gint     blockid; /* block id (512*blockid == position of the block in the input file) */
+
+  /* status callback internal data */
+  untgz_status_cb scb;
+  gsize s_current;
+  gsize s_total;
+  gsize s_lastp;
+};
 
 /* private
  ************************************************************************/
@@ -70,13 +109,14 @@ union tar_block {
 
 static void throw_error(struct untgz_state* s, const gchar* format, ...)
 {
+  struct untgz_state_internal* i = s->i;
   gchar* errstr;
   va_list ap;
   va_start(ap, format);
   errstr = g_strdup_vprintf(format, ap);
   va_end(ap);
-  s->errstr = errstr;
-  longjmp(s->errjmp, 1);
+  i->errstr = errstr;
+  longjmp(i->errjmp, 1);
 }
 
 /* optimized conversion from octal ascii digits to uint */
@@ -97,7 +137,7 @@ static guint getoct(struct untgz_state* s, gchar *p, guint w)
     if (G_UNLIKELY(c == 0x20))
       break;
     else if (G_UNLIKELY(c == 0x10))
-      throw_error(s, "%d: corrupted tgz archive (checksumming data block?)", s->blockid);
+      throw_error(s, "%d: corrupted tgz archive (checksumming data block?)", s->i->blockid);
     else
       r = r*8+c;
   }
@@ -108,15 +148,16 @@ static guint getoct(struct untgz_state* s, gchar *p, guint w)
 /* header checksum validation */
 static void validate_header_csum(struct untgz_state* s)
 {
-  guint i, head_csum, real_csum=0;
-  union tar_block* b = (union tar_block*)s->bpos;
+  struct untgz_state_internal* i = s->i;
+  guint n, head_csum, real_csum=0;
+  union tar_block* b = (union tar_block*)i->bpos;
 
   head_csum = getoct(s, b->h.chksum, 6);
   memcpy(b->h.chksum, "        ", sizeof(b->h.chksum));
-  for (i=0; G_LIKELY(i<BLOCKSIZE); i+=2)
-    real_csum += b->b[i] + b->b[i+1];
+  for (n=0; G_LIKELY(n<BLOCKSIZE); n+=2)
+    real_csum += b->b[n] + b->b[n+1];
   if (G_UNLIKELY(real_csum != head_csum))
-    throw_error(s, "%d: corrupted tgz archive (invalid header checksum)", s->blockid);
+    throw_error(s, "%d: corrupted tgz archive (invalid header checksum)", i->blockid);
 }
 
 /* this function returns pointer to the next tar block
@@ -127,32 +168,52 @@ static void validate_header_csum(struct untgz_state* s)
 static union tar_block* read_next_block(struct untgz_state* s, gboolean is_header)
 {
   continue_timer(1);
-  s->bpos += BLOCKSIZE;
-  if (s->bpos >= s->bend)
+  struct untgz_state_internal* i = s->i;
+  i->bpos += BLOCKSIZE;
+  if (i->bpos >= i->bend)
   { /* reload */
     continue_timer(4);
-    gint read = gzread(s->gzf, s->bbuf, BLOCKBUFSIZE);
+    gint read = gzread(i->gzf, i->bbuf, BLOCKBUFSIZE);
     stop_timer(4);
     if (read < BLOCKSIZE)
     {
-      if (read == 0 && !gzeof(s->gzf))
-        throw_error(s, "%d: corrupted tgz archive (gzread failed)", s->blockid);
-      throw_error(s, "%d: corrupted tgz archive (early EOF)", s->blockid);
+      if (read == 0 && !gzeof(i->gzf))
+        throw_error(s, "%d: corrupted tgz archive (gzread failed)", i->blockid);
+      throw_error(s, "%d: corrupted tgz archive (early EOF)", i->blockid);
     }
-    s->bpos = s->bbuf;
-    s->bend = s->bbuf + read;
+    i->bpos = i->bbuf;
+    i->bend = i->bbuf + read;
+  }
+  /* report status */
+  if (i->scb)
+  {
+    i->s_current += BLOCKSIZE;
+    if (i->s_current >= i->s_total)
+    {
+      i->scb(s, i->s_current, i->s_current);
+      i->scb = 0; /* block another calls */
+    }
+    gint p = 100*i->s_current/i->s_total;
+    if (p - i->s_lastp >= 2)
+    {
+      i->scb(s, i->s_total, i->s_current);
+      i->s_lastp = p;
+    }
   }
   if (is_header)
   {
-    if (G_UNLIKELY(s->bpos[0] == 0))
+    if (G_UNLIKELY(i->bpos[0] == 0))
+    {
+      if (i->scb)
       return 0;
+    }
     continue_timer(0);
     validate_header_csum(s);
     stop_timer(0);
   }
-  s->blockid++;
+  i->blockid++;
   stop_timer(1);
-  return (union tar_block*)s->bpos;
+  return (union tar_block*)i->bpos;
 }
 
 /* append two strings (reallocate memmory) */
@@ -175,7 +236,7 @@ static gchar* strnappend(gchar* dst, gchar* src, gsize size)
 /* public 
  ************************************************************************/
 
-struct untgz_state* untgz_open(const gchar* tgzfile)
+struct untgz_state* untgz_open(const gchar* tgzfile, untgz_status_cb scb)
 {
   struct untgz_state* s;
   gzFile *gzf;
@@ -183,22 +244,87 @@ struct untgz_state* untgz_open(const gchar* tgzfile)
 
   reset_timers();
   start_timer(3);
-  
-  if (tgzfile == 0)
-    return 0;
+
+  g_assert(tgzfile != 0);
+
   if (stat(tgzfile, &st) == -1)
     return 0;
+  
+  /* get total size of uncompressed data from gzipped file 
+     (read last four bytes in the file) */
+  guint32 size;
+  if (scb)
+  {
+    gint fd = open(tgzfile, O_RDONLY);
+    if (fd < 0)
+      return 0;
+    if (lseek(fd, -4, SEEK_END) == (off_t)-1)
+    { 
+      close(fd);
+      return 0;
+    }
+    if (read(fd, &size, 4) != 4)
+    {
+      close(fd);
+      return 0;
+    }
+    close(fd);
+  }
+  
   gzf = gzopen(tgzfile, "rb");
   if (gzf == 0)
     return 0;
 
   s = g_new0(struct untgz_state,1);
+  s->i = g_new0(struct untgz_state_internal,1);
+  struct untgz_state_internal* i = s->i;
   s->tgzfile = g_strdup(tgzfile);
-  s->gzf = gzf;
+  i->gzf = gzf;
   s->csize = st.st_size;
-  s->old_umask = umask(0);
-  s->blockid = -1;
+  i->old_umask = umask(0);
+  i->blockid = -1;
+
+  if (scb)
+  {
+    i->scb = scb;
+    i->s_total = GUINT32_FROM_LE(size);
+  }
   return s;
+}
+
+void untgz_close(struct untgz_state* s)
+{
+  g_assert(s != 0);
+
+  struct untgz_state_internal* i = s->i;
+
+  gzclose(i->gzf);
+  umask(i->old_umask);
+  g_free(i->errstr);
+  g_free(s->f_name);
+  g_free(s->f_link);
+  g_free(s->tgzfile);
+  s->f_name = s->f_link = s->tgzfile = i->errstr = 0;
+  i->gzf = 0;
+  g_free(i);
+  s->i = 0;
+  g_free(s);
+
+  stop_timer(3);
+  print_timer(0, "[untgz] validate_header_csum");
+  print_timer(1, "[untgz] get_next_block");
+  print_timer(2, "[untgz] getoct");
+  print_timer(3, "[untgz] extract (all)");
+  print_timer(4, "[untgz] gzread");
+  print_timer(5, "[untgz] get_header");
+  print_timer(6, "[untgz] write_file");
+  print_timer(7, "[untgz] write(syscall)");
+}
+
+gchar* untgz_error(struct untgz_state* s)
+{
+  g_assert(s != 0);
+  return s->i->errstr;
 }
 
 gint untgz_get_header(struct untgz_state* s)
@@ -206,23 +332,27 @@ gint untgz_get_header(struct untgz_state* s)
   gsize remaining;
   union tar_block* b;
 
+  g_assert(s != 0);
+
+  struct untgz_state_internal* i = s->i;
+
   continue_timer(5);
 
-  if (G_UNLIKELY(s == 0 || s->errstr))
+  if (G_UNLIKELY(i->errstr))
     return -1;
-  if (G_UNLIKELY(s->eof))
+  if (G_UNLIKELY(i->eof))
     return 1;
-  if (G_UNLIKELY(setjmp(s->errjmp) != 0))
+  if (G_UNLIKELY(setjmp(i->errjmp) != 0))
     return -1;
   
   /* skip data blocks if write_data or write_file was not called after previous get_header */
-  if (s->f_type == UNTGZ_REG && s->data)
+  if (s->f_type == UNTGZ_REG && i->data)
   {
     remaining = s->f_size;
     while (G_LIKELY(remaining > 0))
     {
       if (read_next_block(s, 0) == 0)
-        throw_error(s, "%d: corrupted tgz archive (missing data block)", s->blockid);
+        throw_error(s, "%d: corrupted tgz archive (missing data block)", i->blockid);
       remaining = remaining<=BLOCKSIZE?0:remaining-BLOCKSIZE;
     }
   }
@@ -232,8 +362,8 @@ gint untgz_get_header(struct untgz_state* s)
   g_free(s->f_link);
   s->f_name = s->f_link = 0;
   s->f_type = UNTGZ_NONE;
-  s->data = 0;
-  s->written = 0;
+  i->data = 0;
+  i->written = 0;
 
   while (1)
   {
@@ -242,7 +372,7 @@ gint untgz_get_header(struct untgz_state* s)
     if (b == 0)
     {
       /* empty header => end of archive */
-      s->eof = 1;
+      i->eof = 1;
       return 1;
     }
 
@@ -254,7 +384,7 @@ gint untgz_get_header(struct untgz_state* s)
       {
         b = read_next_block(s, 0);
         if (b == 0)
-          throw_error(s, "%d: corrupted tgz archive (missing longlink data block)", s->blockid);
+          throw_error(s, "%d: corrupted tgz archive (missing longlink data block)", i->blockid);
         s->f_link = strnappend(s->f_link, (gchar*)b->b, BLOCKSIZE);
         remaining = remaining<=BLOCKSIZE?0:remaining-BLOCKSIZE;
       }
@@ -266,7 +396,7 @@ gint untgz_get_header(struct untgz_state* s)
       {
         b = read_next_block(s, 0);
         if (b == 0)
-          throw_error(s, "%d: corrupted tgz archive (missing longname data block)", s->blockid);
+          throw_error(s, "%d: corrupted tgz archive (missing longname data block)", i->blockid);
         s->f_name = strnappend(s->f_name, (gchar*)b->b, BLOCKSIZE);
         remaining = remaining<=BLOCKSIZE?0:remaining-BLOCKSIZE;
       }
@@ -289,25 +419,25 @@ gint untgz_get_header(struct untgz_state* s)
   switch (b->h.typeflag)
   {
     case AREGTYPE: 
-    case REGTYPE: s->f_type = UNTGZ_REG; s->data = 1; s->usize += remaining; break;
+    case REGTYPE: s->f_type = UNTGZ_REG; i->data = 1; s->usize += remaining; break;
     case DIRTYPE: s->f_type = UNTGZ_DIR; break;
     case SYMTYPE: s->f_type = UNTGZ_SYM; break;
     case LNKTYPE: s->f_type = UNTGZ_LNK; break;
     case CHRTYPE: s->f_type = UNTGZ_CHR; break;
     case BLKTYPE: s->f_type = UNTGZ_BLK; break;
-    default: throw_error(s, "%d: \"corrupted\" tgz archive (unimplemented typeflag [%c])", s->blockid, b->h.typeflag);
+    default: throw_error(s, "%d: \"corrupted\" tgz archive (unimplemented typeflag [%c])", i->blockid, b->h.typeflag);
   }
 
   if (s->f_name == 0)
     s->f_name = g_strndup(b->h.name, SHORTNAMESIZE);
   /* just one more (unnecessary) check */
   else if (strncmp(s->f_name, b->h.name, SHORTNAMESIZE-1)) /* -1 because it's zero terminated */
-    throw_error(s, "%d: corrupted tgz archive (longname mismatch)", s->blockid);
+    throw_error(s, "%d: corrupted tgz archive (longname mismatch)", i->blockid);
   if (s->f_link == 0)
     s->f_link = g_strndup(b->h.linkname, SHORTNAMESIZE);
   /* just one more (unnecessary) check */
   else if (strncmp(s->f_link, b->h.linkname, SHORTNAMESIZE-1)) /* -1 because it's zero terminated */
-    throw_error(s, "%d: corrupted tgz archive (longlink mismatch)", s->blockid);
+    throw_error(s, "%d: corrupted tgz archive (longlink mismatch)", i->blockid);
 
   stop_timer(5);
   return 0;
@@ -320,11 +450,17 @@ gint untgz_write_data(struct untgz_state* s, gchar** buf, gsize* len)
   gsize position=0;
   gsize remaining;
 
-  if (s == 0 || s->errstr || buf == 0 || len == 0)
+  g_assert(s != 0);
+  g_assert(buf != 0);
+  g_assert(len != 0);
+
+  struct untgz_state_internal* i = s->i;
+
+  if (i->errstr)
     return -1;
-  if (s->f_type != UNTGZ_REG || s->data == 0) /* no data for current file */
+  if (s->f_type != UNTGZ_REG || i->data == 0) /* no data for current file */
     return 1;
-  if (setjmp(s->errjmp) != 0)
+  if (setjmp(i->errjmp) != 0)
   {
     g_free(buffer);
     return -1;
@@ -336,12 +472,12 @@ gint untgz_write_data(struct untgz_state* s, gchar** buf, gsize* len)
   {
     b = read_next_block(s, 0);
     if (b == 0)
-      throw_error(s, "%d: corrupted tgz archive (missing data block)", s->blockid);
+      throw_error(s, "%d: corrupted tgz archive (missing data block)", i->blockid);
     memcpy(buffer+position, b, remaining>BLOCKSIZE?BLOCKSIZE:remaining);
     remaining = remaining<=BLOCKSIZE?0:remaining-BLOCKSIZE;
     position += BLOCKSIZE;
   }
-  s->data = 0;
+  i->data = 0;
   buffer[s->f_size] = 0; /* zero terminate buffer */
   *buf = buffer;
   *len = s->f_size;
@@ -360,13 +496,17 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
   struct utimbuf dt;
 #endif
 
+  g_assert(s != 0);
+
+  struct untgz_state_internal* i = s->i;
+
   continue_timer(6);
 
-  if (G_UNLIKELY(s == 0 || s->errstr))
+  if (G_UNLIKELY(i->errstr))
     return -1;
-  if (G_UNLIKELY(s->written))
+  if (G_UNLIKELY(i->written))
     return 1;
-  if (G_UNLIKELY(setjmp(s->errjmp) != 0))
+  if (G_UNLIKELY(setjmp(i->errjmp) != 0))
   {
 #if UNTGZ_PRESERVE_DIR_TIMES == 1
     g_free(dpath_tmp);
@@ -395,7 +535,7 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
   {
     case UNTGZ_REG:
     {
-      if (!s->data)
+      if (!i->data)
         return 1;
       remaining = s->f_size;
 //      gint blocks = s->f_size/BLOCKSIZE+(s->f_size%LOCKSIZE)?1:0;
@@ -406,7 +546,7 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
       {
         b = read_next_block(s, 0);
         if (b == 0)
-          throw_error(s, "%d: corrupted tgz archive (missing data block)", s->blockid);
+          throw_error(s, "%d: corrupted tgz archive (missing data block)", i->blockid);
         continue_timer(7);
         ssize_t w = write(fd, b->b, remaining>BLOCKSIZE?BLOCKSIZE:remaining);
         if (w < 0)
@@ -415,7 +555,7 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
         remaining = remaining<=BLOCKSIZE?0:remaining-BLOCKSIZE;
       }
       close(fd);
-      s->data = 0;
+      i->data = 0;
       break;
     }
     case UNTGZ_SYM:
@@ -463,32 +603,6 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
 
   stop_timer(6);
 
-  s->written = 1;
+  i->written = 1;
   return 0;
-}
-
-void untgz_close(struct untgz_state* s)
-{
-  if (s == 0)
-    return;
-
-  umask(s->old_umask);
-  gzclose(s->gzf);
-  g_free(s->f_name);
-  g_free(s->f_link);
-  g_free(s->tgzfile);
-  g_free(s->errstr);
-  s->f_name = s->f_link = s->tgzfile = s->errstr = 0;
-  s->gzf = 0;
-  g_free(s);
-
-  stop_timer(3);
-  print_timer(0, "[untgz] validate_header_csum");
-  print_timer(1, "[untgz] get_next_block");
-  print_timer(2, "[untgz] getoct");
-  print_timer(3, "[untgz] extract (all)");
-  print_timer(4, "[untgz] gzread");
-  print_timer(5, "[untgz] get_header");
-  print_timer(6, "[untgz] write_file");
-  print_timer(7, "[untgz] write(syscall)");
 }
