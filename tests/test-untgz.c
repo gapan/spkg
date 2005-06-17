@@ -8,9 +8,9 @@
 #include <stdio.h>
 #include "untgz.h"
 
-void status(struct untgz_state* tgz, gsize total, gsize remain)
+void status(struct untgz_state* tgz, gsize total, gsize current)
 {
-  printf("%d\n", 100*remain/total);
+  printf("%d\n", 100*current/total);
   fflush(stdout);
 }
 
@@ -21,7 +21,8 @@ int main(int ac, char* av[])
   for (i=1;i<ac;i++)
   {
     // Open tgz file.
-    struct untgz_state* tgz = untgz_open(av[i], status);
+//    struct untgz_state* tgz = untgz_open(av[i], status);
+    struct untgz_state* tgz = untgz_open(av[i], 0);
     if (tgz == 0)
     {
       fprintf(stderr, "error: can't open tgz file\n");

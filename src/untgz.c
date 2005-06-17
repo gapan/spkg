@@ -205,6 +205,7 @@ static union tar_block* read_next_block(struct untgz_state* s, gboolean is_heade
     if (G_UNLIKELY(i->bpos[0] == 0))
     {
       if (i->scb)
+        i->scb(s, i->s_total, i->s_total);
       return 0;
     }
     continue_timer(0);

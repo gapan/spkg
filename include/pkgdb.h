@@ -16,9 +16,8 @@
 
 #include <glib.h>
 
-/*! @if false */
+/** Directory where the package database is stored. */
 #define PKGDB_DIR "var/log"
-/*! @endif */
 
 #define DB_OK     0 /**< ok */
 #define DB_CLOSED 1 /**< database is [already] closed (on any call except db_open) */

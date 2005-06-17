@@ -18,6 +18,12 @@ Following code shows typical \ref untgz_api usage.
 #include <stdio.h>
 #include "untgz.h"
 
+void status(struct untgz_state* tgz, gsize total, gsize current)
+{
+  printf("%d%% done\n", 100*current/total);
+  fflush(stdout);
+}
+
 int main(int ac, char* av[])
 {
   gint i;
@@ -25,7 +31,7 @@ int main(int ac, char* av[])
   for (i=1;i<ac;i++)
   {
     // Open tgz file.
-    struct untgz_state* tgz = untgz_open(av[i]);
+    struct untgz_state* tgz = untgz_open(av[i], status);
     if (tgz == 0)
     {
       fprintf(stderr, "error: can't open tgz file\n");
@@ -42,10 +48,10 @@ int main(int ac, char* av[])
       }
     }
     // And if something went wrong...
-    if (tgz->errstr)
+    if (untgz_error(tgz))
     {
       // ...we will alert user.
-      fprintf(stderr, "error: %s\n", tgz->errstr);
+      fprintf(stderr, "error: %s\n", untgz_error(tgz));
     }
     
     // Close file.
@@ -76,7 +82,7 @@ typedef enum {
   UNTGZ_BLK,    /**< block device */
   UNTGZ_CHR,    /**< character device */
   UNTGZ_FIFO    /**< fifo */
-} filetype_t;
+} untgz_filetype;
 
 /** internal opaque data type */
 struct untgz_state_internal;
@@ -89,7 +95,7 @@ struct untgz_state {
   gsize   csize;       /**< compressed size of the archive  */
 
   /* current file information */
-  filetype_t f_type;   /**< type of the current file */
+  untgz_filetype f_type; /**< type of the current file */
   gchar*  f_name;      /**< name of the current file */
   gchar*  f_link;      /**< file that current file links to */
   gsize   f_size;      /**< size of the current file */
@@ -102,11 +108,11 @@ struct untgz_state {
   guint   f_devmaj;    /**< major number of the device */
   guint   f_devmin;    /**< minor number of the device */
 
-  struct untgz_state_internal* i; /**< this is no no for a library user */
+  struct untgz_state_internal* i; /**< this is no-no for a library user */
 };
 
 /** Untgz status callback. */
-typedef void(*untgz_status_cb)(struct untgz_state*, gsize, gsize);
+typedef void(*untgz_status_cb)(struct untgz_state* s, gsize total, gsize current);
 
 /** Open tgz archive.
  *
