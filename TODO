@@ -13,7 +13,7 @@ TODO
 
 PROBLEMS
 --------
-- sqldb corruption should be checked in sql_open
+- sqldb corruption should be checked in sql_open (PRAGMA integrity_check)
 - sql tranactions should return if db is busy (or try to wait for db)
 - filedb distributed checksumming
 

@@ -60,7 +60,7 @@ int main(int ac, char* av[])
     exit(1);
   }
   
-  context = g_option_context_new("- The Unofficial Slackware Linux Package Manager v." SPKG_VERSION);
+  context = g_option_context_new("- The Unofficial Slackware Linux Package Manager v." G_STRINGIFY(SPKG_VERSION));
   g_option_context_add_main_entries(context, entries, 0);
   g_option_context_parse(context, &ac, &av, &error);
 

@@ -8,16 +8,14 @@ DESTDIR :=
 PREFIX := /usr/local
 DEBUG := no
 BENCH := yes
-STATIC := no
 VERSION := 20050617
 
 #CC := gcc-3.4.4
 CC := gcc
 AR := ar
-CPPFLAGS := -Iinclude -D_GNU_SOURCE -DSPKG_VERSION='"$(VERSION)"' \
-$(strip $(shell pkg-config --cflags glib-2.0 sqlite3))
 CFLAGS := -pipe -Wall
-LDFLAGS := -lz $(strip $(shell pkg-config --libs glib-2.0 sqlite3))
+CPPFLAGS := -Iinclude -Ilibs/sqlite -Ilibs/glib -D_GNU_SOURCE -DSPKG_VERSION=$(VERSION)
+LDFLAGS := -lz libs/sqlite/libsqlite3.a libs/glib/libglib-2.0.a
 ifeq ($(DEBUG),yes)
 CFLAGS +=  -ggdb3 -O0
 CPPFLAGS += -D__DEBUG=1
@@ -29,9 +27,6 @@ ifeq ($(BENCH),yes)
 CPPFLAGS += -D__BENCH=1
 else
 CPPFLAGS += -D__BENCH=0
-endif
-ifeq ($(STATIC),yes)
-LDFLAGS += -static
 endif
 
 objs-spkg := main.o pkgtools.o untgz.o sys.o sql.o filedb.o pkgdb.o \
