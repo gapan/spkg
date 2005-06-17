@@ -19,7 +19,7 @@ int main(int ac, char* av[])
   for (i=1;i<ac;i++)
   {
     printf("installing: %s\n", av[i]);
-    if (pkg_install(av[i], root, 1, 1))
+    if (pkg_install(av[i], root, 0, 0))
     {
       printf("%s\n", pkg_error());
       break;

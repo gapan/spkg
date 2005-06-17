@@ -10,10 +10,6 @@
 
 int main(int ac, char* av[])
 {
-  // Check if we have something on the command line.
-  if (ac > 1)
-    return 1;
-  
   gint i;
   // For each file do:
   for (i=1;i<ac;i++)

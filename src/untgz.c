@@ -15,6 +15,8 @@
 #include <libgen.h>
 #endif
 
+#include "bench.h"
+
 /* private
  ************************************************************************/
 
@@ -80,6 +82,7 @@ static void throw_error(struct untgz_state* s, const gchar* format, ...)
 /* optimized conversion from octal ascii digits to uint */
 static guint getoct(struct untgz_state* s, gchar *p, guint w)
 {
+  continue_timer(2);
   guint r=0, i;
   static const guchar oct_tab[256] = {
     [0 ... 255] = 0x10,
@@ -98,6 +101,7 @@ static guint getoct(struct untgz_state* s, gchar *p, guint w)
     else
       r = r*8+c;
   }
+  stop_timer(2);
   return r;
 }
 
@@ -122,10 +126,13 @@ static void validate_header_csum(struct untgz_state* s)
  */
 static union tar_block* read_next_block(struct untgz_state* s, gboolean is_header)
 {
+  continue_timer(1);
   s->bpos += BLOCKSIZE;
-  if (G_UNLIKELY(s->bpos >= s->bend))
+  if (s->bpos >= s->bend)
   { /* reload */
+    continue_timer(4);
     gint read = gzread(s->gzf, s->bbuf, BLOCKBUFSIZE);
+    stop_timer(4);
     if (read < BLOCKSIZE)
     {
       if (read == 0 && !gzeof(s->gzf))
@@ -139,9 +146,12 @@ static union tar_block* read_next_block(struct untgz_state* s, gboolean is_heade
   {
     if (G_UNLIKELY(s->bpos[0] == 0))
       return 0;
+    continue_timer(0);
     validate_header_csum(s);
+    stop_timer(0);
   }
   s->blockid++;
+  stop_timer(1);
   return (union tar_block*)s->bpos;
 }
 
@@ -170,6 +180,9 @@ struct untgz_state* untgz_open(const gchar* tgzfile)
   struct untgz_state* s;
   gzFile *gzf;
   struct stat st;
+
+  reset_timers();
+  start_timer(3);
   
   if (tgzfile == 0)
     return 0;
@@ -192,6 +205,8 @@ gint untgz_get_header(struct untgz_state* s)
 {
   gsize remaining;
   union tar_block* b;
+
+  continue_timer(5);
 
   if (G_UNLIKELY(s == 0 || s->errstr))
     return -1;
@@ -293,6 +308,8 @@ gint untgz_get_header(struct untgz_state* s)
   /* just one more (unnecessary) check */
   else if (strncmp(s->f_link, b->h.linkname, SHORTNAMESIZE-1)) /* -1 because it's zero terminated */
     throw_error(s, "%d: corrupted tgz archive (longlink mismatch)", s->blockid);
+
+  stop_timer(5);
   return 0;
 }
 
@@ -343,6 +360,8 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
   struct utimbuf dt;
 #endif
 
+  continue_timer(6);
+
   if (G_UNLIKELY(s == 0 || s->errstr))
     return -1;
   if (G_UNLIKELY(s->written))
@@ -379,15 +398,20 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
       if (!s->data)
         return 1;
       remaining = s->f_size;
+//      gint blocks = s->f_size/BLOCKSIZE+(s->f_size%LOCKSIZE)?1:0;
       fd = open(path, O_CREAT|O_TRUNC|O_WRONLY);
       if (fd < 0)
-        throw_error(s, "tgz extraction failed (can't write to a file): %s", strerror(errno));
+        throw_error(s, "tgz extraction failed (can't open file): %s", strerror(errno));
       while (G_LIKELY(remaining > 0))
       {
         b = read_next_block(s, 0);
         if (b == 0)
           throw_error(s, "%d: corrupted tgz archive (missing data block)", s->blockid);
-        write(fd, b->b, remaining>BLOCKSIZE?BLOCKSIZE:remaining);
+        continue_timer(7);
+        ssize_t w = write(fd, b->b, remaining>BLOCKSIZE?BLOCKSIZE:remaining);
+        if (w < 0)
+          throw_error(s, "tgz extraction failed (can't write to a file): %s", strerror(errno));
+        stop_timer(7);
         remaining = remaining<=BLOCKSIZE?0:remaining-BLOCKSIZE;
       }
       close(fd);
@@ -437,6 +461,8 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
   g_free(dpath_tmp);
 #endif
 
+  stop_timer(6);
+
   s->written = 1;
   return 0;
 }
@@ -455,4 +481,14 @@ void untgz_close(struct untgz_state* s)
   s->f_name = s->f_link = s->tgzfile = s->errstr = 0;
   s->gzf = 0;
   g_free(s);
+
+  stop_timer(3);
+  print_timer(0, "[untgz] validate_header_csum");
+  print_timer(1, "[untgz] get_next_block");
+  print_timer(2, "[untgz] getoct");
+  print_timer(3, "[untgz] extract (all)");
+  print_timer(4, "[untgz] gzread");
+  print_timer(5, "[untgz] get_header");
+  print_timer(6, "[untgz] write_file");
+  print_timer(7, "[untgz] write(syscall)");
 }

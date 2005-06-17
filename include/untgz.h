@@ -20,10 +20,6 @@ Following code shows typical \ref untgz_api usage.
 
 int main(int ac, char* av[])
 {
-  // Check if we have something on the command line.
-  if (ac > 1)
-    return 1;
-  
   gint i;
   // For each file do:
   for (i=1;i<ac;i++)
@@ -89,7 +85,7 @@ typedef enum {
 
 /*! @if false */
 /* optimal (according to the benchmark), must be multiple of 512 */
-#define BLOCKBUFSIZE (512*64) 
+#define BLOCKBUFSIZE (512*100)
 /*! @endif */
 
 /** Untgz state structure. */

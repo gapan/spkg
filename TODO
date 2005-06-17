@@ -1,7 +1,7 @@
 TODO
 ----
-- spilt desc to sdesc and ldesc
-- add preprocessed script to database
+- add full script to database
+- add option to do script preprocessing for faster link creation
 
 
 - implement file transactions
@@ -22,3 +22,4 @@ PROBLEMS
 - sql tranactions should return if db is busy (or try to wait for db)
 - pkg structure should be better defined (espec. required and optional fields)
 - filedb distributed checksumming
+- untgz - too heavy write load (use blockbuf efficiently to write data to a file)
