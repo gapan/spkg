@@ -26,6 +26,7 @@ POSSIBLE OPTIMIZATIONS
 ----------------------
 - untgz - use blockbuf instead of writebuf can speedup things slightly on the
           user side
+- sqlite transaction commit sucks! (few kilobytes 6 seconds)
 
 API USABILTY IMPROVEMENTS
 -------------------------

@@ -343,6 +343,7 @@ gint fdb_open(const gchar* root)
   gint j;
 
   reset_timers();
+  continue_timer(0);
 
   if (_fdb.is_open)
   {
@@ -402,7 +403,7 @@ gint fdb_open(const gchar* root)
   { /* empty idx file (create new) */
     struct file_idx_hdr head;
     memset(&head, 0, sizeof(head));
-    /*XXX: check writes */
+    /*XXX: check writes (we should actually write something here) */
     lseek(_fdb.fd_idx, 1024*1024*IDX_SIZE_LIMIT-1, SEEK_SET);
     write(_fdb.fd_idx, &z, 1);
     _fdb.size_idx = 1024*1024*IDX_SIZE_LIMIT;
@@ -496,6 +497,7 @@ gint fdb_open(const gchar* root)
   g_free(path_idx);
   g_free(path_pld);
 
+  stop_timer(0);
   return 0;
   munmap(_fdb.addr_pld, _fdb.size_pld);
  err_4:
@@ -516,13 +518,12 @@ gint fdb_open(const gchar* root)
 
 gint fdb_close()
 {
+  continue_timer(1);
   _fdb_open_check(1)
 
   _fdb.ihdr->lastid = _fdb.lastid;
   _fdb.phdr->newoff = _fdb.newoff;
 
-  print_timer(0, "fdb_get_file");
-  print_timer(1, "fdb_add_file");
 
 #if SHOW_STATS == 1
   guint32 is = (_fdb.lastid*sizeof(struct file_idx)+sizeof(struct file_idx_hdr));
@@ -541,26 +542,35 @@ gint fdb_close()
 
   g_free(_fdb.dbdir);
   memset(&_fdb, 0, sizeof(_fdb));
+  stop_timer(1);
+
+  print_timer(0, "[filedb] fdb_open");
+  print_timer(1, "[filedb] fdb_close");
+  print_timer(2, "[filedb] fdb_add_file");
+  print_timer(3, "[filedb] fdb_get_file_id");
+  print_timer(4, "[filedb] fdb_get_file");
+  print_timer(5, "[filedb] fdb_del_file");
   return 0;
 }
 
 guint32 fdb_add_file(struct fdb_file* file)
 {
   guint32 id;
-  continue_timer(1);
+  continue_timer(2);
   if (file == 0 || file->path == 0)
   {
     _fdb_set_error("can't add file: invalid argument of the function");
     return 0;
   }
   id = _ins_node(file);
-  stop_timer(1);
+  stop_timer(2);
   return id;
 }
 
 guint32 fdb_get_file_id(gchar* path)
 {
   struct file_idx *p;
+  continue_timer(3);
   guint32 hash = _hash(path);
   guint32 root = _fdb.ihdr->hashmap[hash%MAXHASH];
 
@@ -580,13 +590,14 @@ guint32 fdb_get_file_id(gchar* path)
       return 0;
     }
   }
+  stop_timer(3);
   return 0;
 }
 
 gint fdb_get_file(guint32 id, struct fdb_file* file)
 {
   struct file_pld* pld;
-  continue_timer(0);
+  continue_timer(4);
   pld = _pld(_node(id));
   if (pld == 0)
   {
@@ -596,12 +607,13 @@ gint fdb_get_file(guint32 id, struct fdb_file* file)
   file->path = pld->data;
   file->link = pld->llen?pld->data+pld->plen+1:0;
   file->mode = pld->mode;
-  stop_timer(0);
+  stop_timer(4);
   return 0;
 }
 
 gint fdb_del_file(guint32 id)
 {
+  continue_timer(5);
   struct file_idx* i = _node(id);
   if (i == 0)
   {
@@ -614,5 +626,6 @@ gint fdb_del_file(guint32 id)
     return 1;
   }
   i->refs--;
+  stop_timer(5);
   return 0;
 }

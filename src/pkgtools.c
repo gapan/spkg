@@ -279,6 +279,9 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
     }
   }
 
+  if (verbose)
+    printf("install: done installing package: %s\n", name);
+
   db_free_pkg(pkg);
   g_free(name);
   g_free(shortname);
