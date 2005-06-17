@@ -1,0 +1,46 @@
+#!/bin/sh
+# this script can be used to build static sqlite3 library for
+# use in spkg
+VER=3.2.2
+
+OMIT="
+SQLITE_OMIT_GLOBALRECOVER
+SQLITE_OMIT_AUTHORIZATION
+SQLITE_OMIT_AUTOVACUUM
+SQLITE_OMIT_BLOB_LITERAL
+SQLITE_OMIT_COMPLETE
+SQLITE_OMIT_COMPOUND_SELECT
+SQLITE_OMIT_CONFLICT_CLAUSE
+SQLITE_OMIT_DATETIME_FUNCS
+SQLITE_OMIT_EXPLAIN
+SQLITE_OMIT_FLOATING_POINT
+SQLITE_OMIT_FOREIGN_KEY
+SQLITE_OMIT_PROGRESS_CALLBACK
+SQLITE_OMIT_SCHEMA_VERSION_PRAGMAS
+SQLITE_OMIT_SUBQUERY
+SQLITE_OMIT_TCL_VARIABLE
+SQLITE_OMIT_UTF16
+"
+
+#SQLITE_OMIT_TRIGGER
+#SQLITE_OMIT_VIEW
+
+test -d sqlite-$VER || \
+tar xzf sqlite-$VER.tar.gz || exit 1
+rm -rf sqlite-build
+mkdir sqlite-build
+
+( cd sqlite-build
+  for o in $OMIT ; do OMIT_FLAGS="$OMIT_FLAGS -D$o" ; done
+  export CFLAGS="-O2 -march=i486 -mcpu=i686 -fomit-frame-pointer $OMIT_FLAGS"
+  export CXXFLAGS="-O2 -march=i486 -mcpu=i686 -fomit-frame-pointer $OMIT_FLAGS"
+  ../sqlite-$VER/configure --prefix=/usr --disable-debug --disable-tcl \
+    --enable-tempstore=always --enable-shared=no || exit 1
+  make libsqlite3.la || exit 1
+) || exit 1
+
+mkdir -p sqlite
+cp -f sqlite-build/.libs/libsqlite3.a sqlite
+cp -f sqlite-build/sqlite3.h sqlite
+
+rm -rf sqlite-build sqlite-$VER
