@@ -11,9 +11,8 @@
 
 #include "untgz.h"
 
-/** Enable or disable parent directory modification and access times 
- *  preservation. 
- */
+/* Enable or disable parent directory modification and access times 
+   preservation. */
 #define UNTGZ_PRESERVE_DIR_TIMES 0
 
 #if UNTGZ_PRESERVE_DIR_TIMES == 1
@@ -24,6 +23,7 @@
 
 /* optimal (according to the benchmark), must be multiple of 512 */
 #define BLOCKBUFSIZE (512*100)
+#define WRITEBUFSIZE (1024*16)
 
 struct untgz_state_internal {
   /* error handling */
@@ -48,6 +48,8 @@ struct untgz_state_internal {
   guchar*  bend; /* points to the end of the buffer */
   guchar*  bpos; /* points to the current block */
   gint     blockid; /* block id (512*blockid == position of the block in the input file) */
+
+  guchar   wbuf[WRITEBUFSIZE]; /* block buffer */
 
   /* status callback internal data */
   untgz_status_cb scb;
@@ -491,7 +493,6 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
   union tar_block* b;
   gchar* path;
   gsize remaining;
-  int fd;
 #if UNTGZ_PRESERVE_DIR_TIMES == 1
   gchar *dpath_tmp = 0, *dpath;
   struct utimbuf dt;
@@ -539,23 +540,23 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
       if (!i->data)
         return 1;
       remaining = s->f_size;
-//      gint blocks = s->f_size/BLOCKSIZE+(s->f_size%LOCKSIZE)?1:0;
-      fd = open(path, O_CREAT|O_TRUNC|O_WRONLY);
-      if (fd < 0)
+      FILE* f = fopen(path, "w");
+      if (f == 0)
         throw_error(s, "tgz extraction failed (can't open file): %s", strerror(errno));
+      if (setvbuf(f, i->wbuf, _IOFBF, WRITEBUFSIZE))
+        throw_error(s, "tgz extraction failed (can't setup buffer)");
       while (G_LIKELY(remaining > 0))
       {
         b = read_next_block(s, 0);
         if (b == 0)
           throw_error(s, "%d: corrupted tgz archive (missing data block)", i->blockid);
         continue_timer(7);
-        ssize_t w = write(fd, b->b, remaining>BLOCKSIZE?BLOCKSIZE:remaining);
-        if (w < 0)
+        if (fwrite(b->b, remaining>BLOCKSIZE?BLOCKSIZE:remaining, 1, f) != 1)
           throw_error(s, "tgz extraction failed (can't write to a file): %s", strerror(errno));
         stop_timer(7);
         remaining = remaining<=BLOCKSIZE?0:remaining-BLOCKSIZE;
       }
-      close(fd);
+      fclose(f);
       i->data = 0;
       break;
     }
