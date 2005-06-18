@@ -1,22 +1,16 @@
-typedef struct {
-  PyObject_HEAD
-  GSList* files;
-} Files;
+/*----------------------------------------------------------------------*\
+|* spkg - The Unofficial Slackware Linux Package Manager                *|
+|*                                      designed by Ondøej Jirman, 2005 *|
+|*----------------------------------------------------------------------*|
+|*          No copy/usage restrictions are imposed on anybody.          *|
+\*----------------------------------------------------------------------*/
+#include "pyspkg.h"
+#include <structmember.h>
 
-typedef struct {
-  PyObject_HEAD
-  GSList* cur;
-  Files* files;
-} FilesIter;
+/* Files_Type
+ ************************************************************************/
 
-static PyTypeObject Files_Type;
-static PyTypeObject FilesIter_Type;
-
-#define Files_Check(v)	((v)->ob_type == &Files_Type)
-
-/* ------------------------------------------------------------------------ */
-
-static Files* newFiles(GSList* files)
+Files* newFiles(GSList* files)
 {
   Files *self;
   self = PyObject_NEW(Files, &Files_Type);
@@ -31,20 +25,19 @@ static void Files_dealloc(Files* self)
   PyMem_DEL(self);
 }
 
-static FilesIter* newFilesIter(Files* p);
-
-static PyTypeObject Files_Type = {
+PyTypeObject Files_Type = {
   PyObject_HEAD_INIT(NULL)
   .tp_basicsize = sizeof(Files),
   .tp_name = "spkg.Files",
   .tp_flags = Py_TPFLAGS_DEFAULT,
   .tp_dealloc = (destructor)Files_dealloc,
-  .tp_iter = newFilesIter,
+  .tp_iter = (getiterfunc)newFilesIter,
 };
 
-/* ------------------------------------------------------------------------ */
+/* FilesIter_Type
+ ************************************************************************/
 
-static FilesIter* newFilesIter(Files* p)
+FilesIter* newFilesIter(Files* p)
 {
   FilesIter *self;
   self = PyObject_NEW(FilesIter, &FilesIter_Type);
@@ -62,7 +55,7 @@ static void FilesIter_dealloc(FilesIter* self)
   PyMem_DEL(self);
 }
 
-static Files* FilesIter_next(FilesIter *it)
+static File* FilesIter_next(FilesIter *it)
 {
   if (it->cur)
   {
@@ -74,7 +67,7 @@ static Files* FilesIter_next(FilesIter *it)
   return NULL;
 }
 
-static PyTypeObject FilesIter_Type = {
+PyTypeObject FilesIter_Type = {
   PyObject_HEAD_INIT(NULL)
   .tp_basicsize = sizeof(FilesIter),
   .tp_name = "spkg.FilesIter",
@@ -82,5 +75,3 @@ static PyTypeObject FilesIter_Type = {
   .tp_dealloc = (destructor)FilesIter_dealloc,
   .tp_iternext = (iternextfunc)FilesIter_next,
 };
-
-/* ------------------------------------------------------------------------ */

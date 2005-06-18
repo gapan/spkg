@@ -1,15 +1,16 @@
-typedef struct {
-  PyObject_HEAD
-  struct db_pkg* p;
-  int free;
-} Package;
+/*----------------------------------------------------------------------*\
+|* spkg - The Unofficial Slackware Linux Package Manager                *|
+|*                                      designed by Ondøej Jirman, 2005 *|
+|*----------------------------------------------------------------------*|
+|*          No copy/usage restrictions are imposed on anybody.          *|
+\*----------------------------------------------------------------------*/
+#include "pyspkg.h"
+#include <structmember.h>
 
-static PyTypeObject Package_Type;
-#define Package_Check(v)	((v)->ob_type == &Package_Type)
+/* Package_Type
+ ************************************************************************/
 
-/* ------------------------------------------------------------------------ */
-
-static Package* newPackage(struct db_pkg* p, int free)
+Package* newPackage(struct db_pkg* p, int free)
 {
   if (p == NULL)
     return NULL;
@@ -28,8 +29,6 @@ static void Package_dealloc(Package* self)
   PyMem_DEL(self);
 }
 
-/* ------------------------------------------------------------------------ */
-
 static PyObject* Package_get(Package *self, void *closure)
 {
   switch((int)closure)
@@ -44,10 +43,10 @@ static PyObject* Package_get(Package *self, void *closure)
     case 8: return PyString_FromString(self->p->location);
     case 9: return PyString_FromString(self->p->doinst);
     case 10: return PyInt_FromLong(self->p->id);
-    case 11: return newFiles(self->p->files);
+    case 11: return (PyObject*)newFiles(self->p->files);
     default:
       Py_INCREF(Py_None);
-      return Py_None;
+      return (PyObject*)Py_None;
   }
 }
 
@@ -82,8 +81,6 @@ static int Package_print(Package *self, FILE *fp, int flags)
   return 0;
 }
 
-/* ------------------------------------------------------------------------ */
-
 static PyGetSetDef Package_getseters[] = {
   {"name",       (getter)Package_get, (setter)Package_set, NULL, (void*)1},
   {"shortname",  (getter)Package_get, (setter)Package_set, NULL, (void*)2},
@@ -104,7 +101,7 @@ static PyMethodDef Package_methods[] = {
   {NULL, NULL}
 };
 
-static PyTypeObject Package_Type = {
+PyTypeObject Package_Type = {
   PyObject_HEAD_INIT(NULL)
   .tp_basicsize = sizeof(Package),
   .tp_name = "spkg.Package",

@@ -9,7 +9,6 @@
 #include <string.h>
 
 #include "sql.h"
-
 #include "bench.h"
 
 //#define trace() do { printf("trace[sql]: %s\n", __func__); } while(0)

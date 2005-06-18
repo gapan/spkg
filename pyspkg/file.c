@@ -1,15 +1,16 @@
-typedef struct {
-  PyObject_HEAD
-  struct db_file* p;
-  int free;
-} File;
+/*----------------------------------------------------------------------*\
+|* spkg - The Unofficial Slackware Linux Package Manager                *|
+|*                                      designed by Ondøej Jirman, 2005 *|
+|*----------------------------------------------------------------------*|
+|*          No copy/usage restrictions are imposed on anybody.          *|
+\*----------------------------------------------------------------------*/
+#include "pyspkg.h"
+#include <structmember.h>
 
-static PyTypeObject File_Type;
-#define File_Check(v)	((v)->ob_type == &File_Type)
+/* File_Type
+ ************************************************************************/
 
-/* ------------------------------------------------------------------------ */
-
-static File* newFile(struct db_file* p)
+File* newFile(struct db_file* p)
 {
   if (p == NULL)
     return NULL;
@@ -24,8 +25,6 @@ static void File_dealloc(File* self)
 {
   PyMem_DEL(self);
 }
-
-/* ------------------------------------------------------------------------ */
 
 static PyObject* File_get(File *self, void *closure)
 {
@@ -62,8 +61,6 @@ static int File_print(File *self, FILE *fp, int flags)
   return 0;
 }
 
-/* ------------------------------------------------------------------------ */
-
 static PyGetSetDef File_getseters[] = {
   {"path",       (getter)File_get, (setter)File_set, NULL, (void*)1},
   {"link",       (getter)File_get, (setter)File_set, NULL, (void*)2},
@@ -77,7 +74,7 @@ static PyMethodDef File_methods[] = {
   {NULL, NULL}
 };
 
-static PyTypeObject File_Type = {
+PyTypeObject File_Type = {
   PyObject_HEAD_INIT(NULL)
   .tp_basicsize = sizeof(File),
   .tp_name = "spkg.File",

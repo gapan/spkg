@@ -16,7 +16,6 @@
 #include "pkgdb.h"
 #include "sys.h"
 #include "taction.h"
-
 #include "pkgtools.h"
 
 /* private 

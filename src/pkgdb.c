@@ -18,9 +18,7 @@
 #include "sys.h"
 #include "pkgname.h"
 #include "filedb.h"
-
 #include "pkgdb.h"
-
 #include "bench.h"
 
 /* private 

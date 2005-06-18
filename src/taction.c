@@ -12,7 +12,6 @@
 #include <string.h>
 
 #include "sys.h"
-
 #include "taction.h"
 
 /* private

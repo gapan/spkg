@@ -1,25 +1,26 @@
-#include <Python.h>
-#include <structmember.h>
-
-#include "pkgdb.h"
+/*----------------------------------------------------------------------*\
+|* spkg - The Unofficial Slackware Linux Package Manager                *|
+|*                                      designed by Ondøej Jirman, 2005 *|
+|*----------------------------------------------------------------------*|
+|*          No copy/usage restrictions are imposed on anybody.          *|
+\*----------------------------------------------------------------------*/
+#include "pyspkg.h"
 #include "pkgname.h"
 
-static PyObject* ErrorObject;
+PyObject* PySpkgErrorObject;
 
-#include "file.c"
-#include "files.c"
+#define PySpkg_Method(n,a,r,d) \
+  PyDoc_STRVAR(PySpkg_DOC_##n, G_STRINGIFY(PySpkg_DOC_##n) "(" a ")" " -> " G_STRINGIFY(r) "\n\n" d); \
+  static PyObject* PySpkg_##n(PyObject* self, PyObject* args)
 
-#include "package.c"
-#include "packages.c"
-
-static PyObject* spkg_db_open(PyObject* self, PyObject* args)
+PySpkg_Method(db_open, "[root]", Null, "Open database.")
 {
   const char* root;
   if (PyArg_ParseTuple(args, "s", &root))
   {
     if (db_open(root))
     {
-      PyErr_SetString(ErrorObject, db_error()?db_error():"db err");
+      PyErr_SetString(PySpkgErrorObject, db_error()?db_error():"db err");
       return NULL;
     }
     Py_INCREF(Py_None);
@@ -31,7 +32,7 @@ static PyObject* spkg_db_open(PyObject* self, PyObject* args)
   {
     if (db_open(0))
     {
-      PyErr_SetString(ErrorObject, db_error()?db_error():"db err");
+      PyErr_SetString(PySpkgErrorObject, db_error()?db_error():"db err");
       return NULL;
     }
     Py_INCREF(Py_None);
@@ -39,11 +40,11 @@ static PyObject* spkg_db_open(PyObject* self, PyObject* args)
   }
   if (PyErr_Occurred())
     PyErr_Clear();
-  PyErr_SetString(ErrorObject, "invalid arguments");
+  PyErr_SetString(PySpkgErrorObject, "invalid arguments");
   return NULL;
 }
 
-static PyObject* spkg_db_close(PyObject* self, PyObject* args)
+PySpkg_Method(db_close, "", Null, "Close database.")
 {
   if (PyArg_ParseTuple(args, ""))
   {
@@ -51,11 +52,12 @@ static PyObject* spkg_db_close(PyObject* self, PyObject* args)
     Py_INCREF(Py_None);
     return Py_None;
   }
-  PyErr_SetString(ErrorObject, "invalid arguments");
+  PyErr_SetString(PySpkgErrorObject, "invalid arguments");
   return NULL;
 }
 
-static PyObject* spkg_parse_pkgname(PyObject* self, PyObject* args)
+PySpkg_Method(parse_pkgname, "name, part", String, 
+"Parse part from package name.")
 {
   const char* name;
   int part;
@@ -63,55 +65,60 @@ static PyObject* spkg_parse_pkgname(PyObject* self, PyObject* args)
     return NULL;
   if (parse_pkgname(name,6) != (char*)-1)
   {
-    PyErr_SetString(ErrorObject, "invalid package name");
+    PyErr_SetString(PySpkgErrorObject, "invalid package name");
     return NULL;
   }
   if (part < 0 || part > 6)
   {
-    PyErr_SetString(ErrorObject, "invalid package part");
+    PyErr_SetString(PySpkgErrorObject, "invalid package part");
     return NULL;
   }
   char* s = parse_pkgname(name,part);
   return PyString_FromString(s);
 }
 
-static PyObject* spkg_db_get_pkg(PyObject* self, PyObject* args)
+PySpkg_Method(db_get_pkg, "name, files", Package, 
+"Get package from database. You may specify if "
+"you want to extract package's filelist")
 {
   char* name;
   int files;
   if (!PyArg_ParseTuple(args, "si", &name, &files))
   {
-    PyErr_SetString(ErrorObject, "invalid arguments");
+    PyErr_SetString(PySpkgErrorObject, "invalid arguments");
     return NULL;
   }
   struct db_pkg* p = db_get_pkg(name,files);
   if (p == 0)
   {
-    PyErr_SetString(ErrorObject, db_error()?db_error():"db err");
+    PyErr_SetString(PySpkgErrorObject, db_error()?db_error():"db err");
     return NULL;
   }
   return (PyObject*)newPackage(p,1);
 }
 
-static PyObject* spkg_db_legacy_get_pkg(PyObject* self, PyObject* args)
+PySpkg_Method(db_legacy_get_pkg, "name, files", Package, 
+"Get package from legacy database. You may specify if "
+"you want to extract package's filelist")
 {
   char* name;
   int files;
   if (!PyArg_ParseTuple(args, "si", &name, &files))
   {
-    PyErr_SetString(ErrorObject, "invalid arguments");
+    PyErr_SetString(PySpkgErrorObject, "invalid arguments");
     return NULL;
   }
   struct db_pkg* p = db_legacy_get_pkg(name,files);
   if (p == 0)
   {
-    PyErr_SetString(ErrorObject, db_error()?db_error():"db err");
+    PyErr_SetString(PySpkgErrorObject, db_error()?db_error():"db err");
     return NULL;
   }
   return (PyObject*)newPackage(p,1);
 }
 
-static PyObject* spkg_db_legacy_get_packages(PyObject* self, PyObject* args)
+PySpkg_Method(db_legacy_get_packages, "", Packages,
+"Get all packages from legacy database")
 {
   char* name;
   if (!PyArg_ParseTuple(args, "", &name))
@@ -119,13 +126,14 @@ static PyObject* spkg_db_legacy_get_packages(PyObject* self, PyObject* args)
   GSList* l = db_legacy_get_packages();
   if (db_error())
   {
-    PyErr_SetString(ErrorObject, db_error());
+    PyErr_SetString(PySpkgErrorObject, db_error());
     return NULL;
   }
   return (PyObject*)newPackages(l);
 }
 
-static PyObject* spkg_db_get_packages(PyObject* self, PyObject* args)
+PySpkg_Method(db_get_packages, "", Packages,
+"Get all packages from database")
 {
   char* name;
   if (!PyArg_ParseTuple(args, "", &name))
@@ -133,46 +141,51 @@ static PyObject* spkg_db_get_packages(PyObject* self, PyObject* args)
   GSList* l = db_get_packages();
   if (db_error())
   {
-    PyErr_SetString(ErrorObject, db_error());
+    PyErr_SetString(PySpkgErrorObject, db_error());
     return NULL;
   }
   return (PyObject*)newPackages(l);
 }
 
-static PyMethodDef spkg_methods[] = {
-  { "db_open", spkg_db_open, METH_VARARGS, PyDoc_STR("db_open() -> None") },
-  { "db_close", spkg_db_close, METH_VARARGS, PyDoc_STR("db_close() -> None") },
-
-  { "db_get_pkg", spkg_db_get_pkg, METH_VARARGS, PyDoc_STR("db_get_pkg() -> None") },
-
-  { "db_legacy_get_pkg", spkg_db_legacy_get_pkg, METH_VARARGS, PyDoc_STR("db_get_pkg() -> None") },
-  { "db_legacy_get_packages", spkg_db_legacy_get_packages, METH_VARARGS, PyDoc_STR("db_get_pkg() -> None") },
-  { "db_get_packages", spkg_db_get_packages, METH_VARARGS, PyDoc_STR("db_get_pkg() -> None") },
-
-  { "parse_pkgname", spkg_parse_pkgname, METH_VARARGS, PyDoc_STR("parse_pkgname(s,i) -> s") },
+#define M(n) { G_STRINGIFY(n), PySpkg_##n, METH_VARARGS, PySpkg_DOC_##n },
+static PyMethodDef PySpkg_methods[] = {
+  M(db_open)
+  M(db_close)
+//  M(db_add_pkg)
+  M(db_get_pkg)
+//  M(db_rem_pkg)
+//  M(db_legacy_add_pkg)
+  M(db_legacy_get_pkg)
+//  M(db_legacy_rem_pkg)
+  M(db_get_packages)
+  M(db_legacy_get_packages)
+  M(parse_pkgname)
   {NULL, NULL}
 };
 
 PyDoc_STRVAR(module_doc, "Python bindings for spkg.");
 
+#define InitType(t) \
+  if (PyType_Ready(&t##_Type) < 0) return;
+
 PyMODINIT_FUNC initspkg(void)
 {
-  if (PyType_Ready(&Package_Type) < 0)
-    return;
-  if (PyType_Ready(&Packages_Type) < 0)
-    return;
-  if (PyType_Ready(&PackagesIter_Type) < 0)
-    return;
+  InitType(Package)
+  InitType(Packages)
+  InitType(PackagesIter)
+  InitType(File)
+  InitType(Files)
+  InitType(FilesIter)
 
-  PyObject *m = Py_InitModule3("spkg", spkg_methods, module_doc);
+  PyObject *m = Py_InitModule3("spkg", PySpkg_methods, module_doc);
   if (m == 0)
     return;
-  if (ErrorObject == NULL)
+  if (PySpkgErrorObject == NULL)
   {
-    ErrorObject = PyErr_NewException("spkg.error", NULL, NULL);
-    if (ErrorObject == NULL)
+    PySpkgErrorObject = PyErr_NewException("spkg.error", NULL, NULL);
+    if (PySpkgErrorObject == NULL)
       return;
   }
-  Py_INCREF(ErrorObject);
-  PyModule_AddObject(m, "error", ErrorObject);
+  Py_INCREF(PySpkgErrorObject);
+  PyModule_AddObject(m, "error", PySpkgErrorObject);
 }

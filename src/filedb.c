@@ -14,9 +14,7 @@
 #include <sys/stat.h>
 
 #include "sys.h"
-
 #include "filedb.h"
-
 #include "bench.h"
 
 /* private 

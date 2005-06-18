@@ -6,8 +6,8 @@ spkg = Extension('spkg',
   include_dirs = ['/usr/include', 'include', 'libs/sqlite', 'libs/glib'],
   libraries = ['spkg', 'glib-2.0', 'sqlite3'],
   library_dirs = ['libs/sqlite', 'libs/glib', '.build', '/usr/lib'],
-  sources = ['pyspkg/module.c'],
-  depends = ['pyspkg/package.c','pyspkg/packages.c','pyspkg/file.c','pyspkg/files.c']
+  sources = ['pyspkg/module.c','pyspkg/package.c','pyspkg/packages.c','pyspkg/file.c','pyspkg/files.c'],
+  depends = ['pyspkg/pyspkg.h']
 )
 
 setup(

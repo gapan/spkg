@@ -1,22 +1,16 @@
-typedef struct {
-  PyObject_HEAD
-  GSList* pkgs;
-} Packages;
+/*----------------------------------------------------------------------*\
+|* spkg - The Unofficial Slackware Linux Package Manager                *|
+|*                                      designed by Ondøej Jirman, 2005 *|
+|*----------------------------------------------------------------------*|
+|*          No copy/usage restrictions are imposed on anybody.          *|
+\*----------------------------------------------------------------------*/
+#include "pyspkg.h"
+#include <structmember.h>
 
-typedef struct {
-  PyObject_HEAD
-  GSList* cur;
-  Packages* pkgs;
-} PackagesIter;
+/* Packages_Type
+ ************************************************************************/
 
-static PyTypeObject Packages_Type;
-static PyTypeObject PackagesIter_Type;
-
-#define Packages_Check(v)	((v)->ob_type == &Packages_Type)
-
-/* ------------------------------------------------------------------------ */
-
-static Packages* newPackages(GSList* pkgs)
+Packages* newPackages(GSList* pkgs)
 {
   Packages *self;
   self = PyObject_NEW(Packages, &Packages_Type);
@@ -33,20 +27,19 @@ static void Packages_dealloc(Packages* self)
   PyMem_DEL(self);
 }
 
-static PackagesIter* newPackagesIter(Packages* p);
-
-static PyTypeObject Packages_Type = {
+PyTypeObject Packages_Type = {
   PyObject_HEAD_INIT(NULL)
   .tp_basicsize = sizeof(Packages),
   .tp_name = "spkg.Packages",
   .tp_flags = Py_TPFLAGS_DEFAULT,
   .tp_dealloc = (destructor)Packages_dealloc,
-  .tp_iter = newPackagesIter,
+  .tp_iter = (getiterfunc)newPackagesIter,
 };
 
-/* ------------------------------------------------------------------------ */
+/* PackagesIter_Type
+ ************************************************************************/
 
-static PackagesIter* newPackagesIter(Packages* p)
+PackagesIter* newPackagesIter(Packages* p)
 {
   PackagesIter *self;
   self = PyObject_NEW(PackagesIter, &PackagesIter_Type);
@@ -63,7 +56,7 @@ static void PackagesIter_dealloc(PackagesIter* self)
   PyMem_DEL(self);
 }
 
-static Packages* PackagesIter_next(PackagesIter *it)
+static Package* PackagesIter_next(PackagesIter *it)
 {
   if (it->cur)
   {
@@ -75,7 +68,7 @@ static Packages* PackagesIter_next(PackagesIter *it)
   return NULL;
 }
 
-static PyTypeObject PackagesIter_Type = {
+PyTypeObject PackagesIter_Type = {
   PyObject_HEAD_INIT(NULL)
   .tp_basicsize = sizeof(PackagesIter),
   .tp_name = "spkg.PackagesIter",
@@ -83,5 +76,3 @@ static PyTypeObject PackagesIter_Type = {
   .tp_dealloc = (destructor)PackagesIter_dealloc,
   .tp_iternext = (iternextfunc)PackagesIter_next,
 };
-
-/* ------------------------------------------------------------------------ */
