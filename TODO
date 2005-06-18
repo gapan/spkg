@@ -34,4 +34,3 @@ API USABILTY IMPROVEMENTS
 BINDINGS
 --------
 - untgz: bind write_data
-- pkgdb: check ref counting

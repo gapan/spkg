@@ -13,6 +13,7 @@ tgz = untgz_open('rxvt-2.7.10-i486-2.tgz')
 while tgz.get_header():
   print tgz.f_name
   tgz.write_file()
+del tgz
 @endcode
 
 <h2>How to access spkg and legacy databases using pkgdb library?</h2>
@@ -21,23 +22,24 @@ while tgz.get_header():
 #!/usr/bin/env python
 from spkg import *
 
-db_open('root')
+def pp(p):
+    print '%s (%s) c=%ukB, u=%ukB' % (p.shortname, p.version, p.csize, p.usize)
 
-p = db_legacy_get_packages()
-for pkg in p:
-  pk = db_get_pkg(pkg.name,1)
-  print pk
-  for f in pk.files:
-    print f
+if __name__ == '__main__':
+    db_open()
+    print 'Listing legacy database:'
+    pkgs = db_legacy_get_packages()
+    for p in pkgs:
+        pp(p)
 
-p = db_get_packages()
-for pkg in p:
-  pk = db_get_pkg(pkg.name,1)
-  print pk
-  for f in pk.files:
-    print f
+    print 'Listing spkg database:'
+    pkgs = db_get_packages()
+    for p in pkgs:
+        pp(p)
 
-db_close()
+    pkgs = 0
+    p = 0
+    db_close()
 @endcode
 
 <h2>More help please!</h2>

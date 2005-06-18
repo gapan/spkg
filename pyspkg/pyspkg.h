@@ -19,44 +19,48 @@ typedef struct Files_t Files;
 typedef struct FilesIter_t FilesIter;
 typedef struct Untgz_t Untgz;
 
+/* note that these objects are just refereneces to real data.
+   object duplication is not supported. */
+
 struct Package_t
 {
   PyObject_HEAD
-  struct db_pkg* p;
-  int free;
+  struct db_pkg* pkg; /* package entry */
+  Packages* pkgs;     /* if package is from Packages object */
 };
 
 struct Packages_t
 {
   PyObject_HEAD
-  GSList* pkgs;
+  GSList* pkgs; /* packages list */
 };
 
 struct PackagesIter_t
 {
   PyObject_HEAD
-  GSList* cur;
-  Packages* pkgs;
+  GSList* cur; /* current package */
+  Packages* pkgs; /* Packages to which this PackagesIter belongs */
 };
 
 struct File_t
 {
   PyObject_HEAD
-  struct db_file* p;
-  int free;
+  struct db_file* file; /* file entry */
+  PyObject* parent; /* Packages to which this PackagesIter belongs */
 };
 
 struct Files_t
 {
   PyObject_HEAD
-  GSList* files;
+  GSList* files; /* files list */
+  PyObject* parent; /* Packages to which this PackagesIter belongs */
 };
 
 struct FilesIter_t
 {
   PyObject_HEAD
   GSList* cur;
-  Files* files;
+  Files* files; /* Files to which this FilesIter belongs */
 };
 
 struct Untgz_t
@@ -75,12 +79,12 @@ extern PyTypeObject Packages_Type;
 extern PyTypeObject PackagesIter_Type;
 extern PyTypeObject Untgz_Type;
 
-extern Package* newPackage(struct db_pkg* p, int free);
+extern Package* newPackage(struct db_pkg* pkg, Packages* pkgs);
 extern Packages* newPackages(GSList* pkgs);
-extern PackagesIter* newPackagesIter(Packages* p);
-extern File* newFile(struct db_file* p);
-extern Files* newFiles(GSList* files);
-extern FilesIter* newFilesIter(Files* p);
+extern PackagesIter* newPackagesIter(Packages* pkgs);
+extern File* newFile(struct db_file* file, PyObject* parent);
+extern Files* newFiles(GSList* files, PyObject* parent);
+extern FilesIter* newFilesIter(Files* files);
 extern Untgz* newUntgz(struct untgz_state* s);
 
 #define File_Check(v) ((v)->ob_type == &File_Type)

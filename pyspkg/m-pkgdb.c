@@ -69,7 +69,7 @@ PySpkg_Method(db_get_pkg, "name, files", Package,
     PyErr_SetString(PySpkgErrorObject, db_error()?db_error():"db err");
     return NULL;
   }
-  return (PyObject*)newPackage(p,1);
+  return (PyObject*)newPackage(p,0);
 }
 
 PySpkg_Method(db_legacy_get_pkg, "name, files", Package, 
@@ -89,7 +89,7 @@ PySpkg_Method(db_legacy_get_pkg, "name, files", Package,
     PyErr_SetString(PySpkgErrorObject, db_error()?db_error():"db err");
     return NULL;
   }
-  return (PyObject*)newPackage(p,1);
+  return (PyObject*)newPackage(p,0);
 }
 
 PySpkg_Method(db_legacy_get_packages, "", Packages,
