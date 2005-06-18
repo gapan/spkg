@@ -70,7 +70,6 @@ static PyGetSetDef File_getseters[] = {
 };
 
 static PyMethodDef File_methods[] = {
-//  { "", (PyCFunction) File_demo, METH_VARARGS, PyDoc_STR("demo() -> None") },
   {NULL, NULL}
 };
 

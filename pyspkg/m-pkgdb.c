@@ -149,3 +149,17 @@ PySpkg_Method(db_legacy_rem_pkg, "name", Null,
   PyErr_SetString(PySpkgErrorObject, "not implemented");
   return NULL;
 }
+
+PySpkg_Method(db_sync_to_legacydb, "", Null,
+"Synchronize legacy database with spkg database")
+{
+  PyErr_SetString(PySpkgErrorObject, "not implemented");
+  return NULL;
+}
+
+PySpkg_Method(db_sync_from_legacydb, "", Null,
+"Synchronize spkg database with legacy database")
+{
+  PyErr_SetString(PySpkgErrorObject, "not implemented");
+  return NULL;
+}

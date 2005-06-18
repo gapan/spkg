@@ -22,6 +22,10 @@ PyDoc_STRVAR(module_doc, "Python bindings for spkg.");
 #define InitType(t) \
   if (PyType_Ready(&t##_Type) < 0) return;
 
+#define AddType(t) \
+  Py_INCREF(&t##_Type); \
+  PyModule_AddObject(m, G_STRINGIFY(t), (PyObject*)&t##_Type);
+
 PyMODINIT_FUNC initspkg(void)
 {
   InitType(Package)
@@ -43,4 +47,10 @@ PyMODINIT_FUNC initspkg(void)
   }
   Py_INCREF(PySpkgErrorObject);
   PyModule_AddObject(m, "error", PySpkgErrorObject);
+
+  AddType(Package)
+  AddType(Packages)
+  AddType(File)
+  AddType(Files)
+  AddType(Untgz)
 }

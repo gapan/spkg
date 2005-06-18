@@ -20,6 +20,7 @@
     simultaneously.</li>
     <li>Everything is librified. (see <a href="/docs.php">docs</a>) You can implement
     new commands easily.</li>
+    <li>Easy access to the package database thanks to Python bindings.</li>
   </ul>
 
  <h1>News</h1>
@@ -30,6 +31,10 @@
   and roadmap of the @SPKG@ development.</p>
 
   <dl>
+   <dt>2005-06-18</dt>
+    <dd>Many changes! Major changes are: new <a href="/dl/spkg-docs/pyspkg.html">Python
+    bindings</a> and nearly finished pkgdb API. See ChangeLog in the source tarball 
+    for details.</dd>
    <dt>2005-06-14</dt>
     <dd>SQL database wrapper API completed. Untgz documented.</dd>
    <dt>2005-06-12</dt>

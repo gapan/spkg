@@ -2,7 +2,7 @@
 from distutils.core import setup, Extension
 from glob import glob
 
-src = ['pyspkg/module.c']
+src = ['pyspkg/pyspkg.c']
 src.extend(glob('pyspkg/t-*.c'))
 src.extend(glob('pyspkg/m-*.c'))
 

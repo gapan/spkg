@@ -1,0 +1,53 @@
+/** @page pyspkg Python Bindings
+
+This page gives some basic examples on how to access spkg
+database using Python.
+
+<h2>How to extract tgz archive using untgz library?</h2>
+
+@code
+#!/usr/bin/env python
+from spkg import *
+
+tgz = untgz_open('rxvt-2.7.10-i486-2.tgz')
+while tgz.get_header():
+  print tgz.f_name
+  tgz.write_file()
+@endcode
+
+<h2>How to access spkg and legacy databases using pkgdb library?</h2>
+
+@code
+#!/usr/bin/env python
+from spkg import *
+
+db_open('root')
+
+p = db_legacy_get_packages()
+for pkg in p:
+  pk = db_get_pkg(pkg.name,1)
+  print pk
+  for f in pk.files:
+    print f
+
+p = db_get_packages()
+for pkg in p:
+  pk = db_get_pkg(pkg.name,1)
+  print pk
+  for f in pk.files:
+    print f
+
+db_close()
+@endcode
+
+<h2>More help please!</h2>
+Ok, you may use standard python help and if you are still not sure 
+what to do look at the bindings source code.
+
+@code
+#!/usr/bin/env python
+import spkg
+help(spkg)
+@endcode
+
+*/

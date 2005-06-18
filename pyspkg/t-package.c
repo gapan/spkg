@@ -97,7 +97,6 @@ static PyGetSetDef Package_getseters[] = {
 };
 
 static PyMethodDef Package_methods[] = {
-//  { "", (PyCFunction) Package_demo, METH_VARARGS, PyDoc_STR("demo() -> None") },
   {NULL, NULL}
 };
 
