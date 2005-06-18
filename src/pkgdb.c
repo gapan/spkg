@@ -843,15 +843,15 @@ GSList* db_legacy_get_packages()
 void db_free_packages(GSList* pkgs)
 {
   GSList* l;
-
   continue_timer(9);
-  
   if (pkgs == 0)
+  {
+    stop_timer(9);
     return;
+  }
   for (l=pkgs; l!=0; l=l->next)
     db_free_pkg(l->data);
   g_slist_free(pkgs);
-
   stop_timer(9);
 }
 

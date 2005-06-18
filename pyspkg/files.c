@@ -6,6 +6,7 @@ typedef struct {
 typedef struct {
   PyObject_HEAD
   GSList* cur;
+  Files* files;
 } FilesIter;
 
 static PyTypeObject Files_Type;
@@ -50,7 +51,15 @@ static FilesIter* newFilesIter(Files* p)
   if (self == NULL)
     return NULL;
   self->cur = p->files;
+  self->files = p;
+  Py_INCREF(self->files);
   return self;
+}
+
+static void FilesIter_dealloc(FilesIter* self)
+{
+  Py_DECREF(self->files);
+  PyMem_DEL(self);
 }
 
 static Files* FilesIter_next(FilesIter *it)
@@ -70,7 +79,7 @@ static PyTypeObject FilesIter_Type = {
   .tp_basicsize = sizeof(FilesIter),
   .tp_name = "spkg.FilesIter",
   .tp_flags = Py_TPFLAGS_DEFAULT,
-  .tp_dealloc = (destructor)PyObject_Del,
+  .tp_dealloc = (destructor)FilesIter_dealloc,
   .tp_iternext = (iternextfunc)FilesIter_next,
 };
 

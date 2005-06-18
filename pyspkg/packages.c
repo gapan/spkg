@@ -1,13 +1,12 @@
 typedef struct {
   PyObject_HEAD
   GSList* pkgs;
-  GSList* cur;
-  long size;
 } Packages;
 
 typedef struct {
   PyObject_HEAD
   GSList* cur;
+  Packages* pkgs;
 } PackagesIter;
 
 static PyTypeObject Packages_Type;
@@ -24,8 +23,6 @@ static Packages* newPackages(GSList* pkgs)
   if (self == NULL)
     return NULL;
   self->pkgs = pkgs;
-  self->cur = pkgs;
-  self->size = pkgs?g_slist_length(pkgs):0;
   return self;
 }
 
@@ -36,19 +33,6 @@ static void Packages_dealloc(Packages* self)
   PyMem_DEL(self);
 }
 
-/* ------------------------------------------------------------------------ */
-
-static PyObject* Packages_count(Packages *it)
-{
-  return PyInt_FromLong(it->size);
-}
-
-/* ------------------------------------------------------------------------ */
-
-static PySequenceMethods Packages_as_sequence = {
-  .sq_length = (inquiry)Packages_count
-};
-
 static PackagesIter* newPackagesIter(Packages* p);
 
 static PyTypeObject Packages_Type = {
@@ -57,7 +41,6 @@ static PyTypeObject Packages_Type = {
   .tp_name = "spkg.Packages",
   .tp_flags = Py_TPFLAGS_DEFAULT,
   .tp_dealloc = (destructor)Packages_dealloc,
-  .tp_as_sequence = &Packages_as_sequence,
   .tp_iter = newPackagesIter,
 };
 
@@ -70,7 +53,14 @@ static PackagesIter* newPackagesIter(Packages* p)
   if (self == NULL)
     return NULL;
   self->cur = p->pkgs;
+  Py_INCREF(self->pkgs = p);
   return self;
+}
+
+static void PackagesIter_dealloc(PackagesIter* self)
+{
+  Py_DECREF(self->pkgs);
+  PyMem_DEL(self);
 }
 
 static Packages* PackagesIter_next(PackagesIter *it)
@@ -90,7 +80,7 @@ static PyTypeObject PackagesIter_Type = {
   .tp_basicsize = sizeof(PackagesIter),
   .tp_name = "spkg.PackagesIter",
   .tp_flags = Py_TPFLAGS_DEFAULT,
-  .tp_dealloc = (destructor)PyObject_Del,
+  .tp_dealloc = (destructor)PackagesIter_dealloc,
   .tp_iternext = (iternextfunc)PackagesIter_next,
 };
 
