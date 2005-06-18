@@ -2,10 +2,19 @@
 from spkg import *
 
 db_open('root')
-pkg = db_get_pkg('sane-1.0.15-i486-1')
+
+p = db_legacy_get_packages()
+for pkg in p:
+  pk = db_get_pkg(pkg.name,1)
+  print pk
+  for f in pk.files:
+    print f
+
+p = db_get_packages()
+for pkg in p:
+  pk = db_get_pkg(pkg.name,1)
+  print pk
+  for f in pk.files:
+    print f
+
 db_close()
-
-#n = 'blah/sane-1.0.15-i486-1.tgz'
-#n = parse_pkgname(n,5)
-#print db_get_pkg(n)
-

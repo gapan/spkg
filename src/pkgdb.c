@@ -215,6 +215,8 @@ void db_close()
   print_timer(5, "[pkgdb] db_legacy_add_pkg");
   print_timer(6, "[pkgdb] db_free_pkg");
   print_timer(7, "[pkgdb] db_get_packages");
+  print_timer(8, "[pkgdb] db_legacy_get_packages");
+  print_timer(9, "[pkgdb] db_free_packages");
 
   print_timer(10, "[pkgdb] db_add_pkg:dbg");
 }
@@ -243,6 +245,35 @@ struct db_pkg* db_alloc_pkg(gchar* name)
   p->arch = parse_pkgname(name, 3);
   p->build = parse_pkgname(name, 4);
   return p;
+}
+
+void db_free_pkg(struct db_pkg* pkg)
+{
+  continue_timer(6);
+  struct db_pkg* p = pkg;
+  GSList* l;
+  if (p == 0)
+    return;
+  if (p->files) {
+    for (l=p->files; l!=0; l=l->next)
+    {
+      struct db_file* f = l->data;
+      g_free(f->path);
+      g_free(f->link);
+      g_free(f);
+      l->data = 0;
+    }
+    g_slist_free(p->files);
+  }
+  g_free(p->name);
+  g_free(p->location);
+  g_free(p->desc);
+  g_free(p->shortname);
+  g_free(p->version);
+  g_free(p->arch);
+  g_free(p->build);
+  g_free(p);
+  stop_timer(6);
 }
 
 struct db_file* db_alloc_file(gchar* path, gchar* link)
@@ -334,54 +365,6 @@ gint db_add_pkg(struct db_pkg* pkg)
   return 1;
 }
 
-gint db_rem_pkg(gchar* name)
-{
-  sql_query *q;
-  gint pid;
-  
-  _db_reset_error();
-  _db_open_check(1)
-
-  if (name == 0)
-  {
-    _db_set_error(DB_OTHER, "can't remove package from the database (name not given)");
-    return 1;
-  }
-  
-  /* sql error handler */
-  sql_push_context(SQL_ERRJUMP,1);
-  if (setjmp(sql_errjmp) == 1)
-  { /* sql exception occured */
-    _db_set_error(DB_OTHER, "can't remove package from the database (sql error)\n%s", sql_error());
-    sql_pop_context(0);
-    return 1;
-  }
-
-  /* check if package is in db */
-  q = sql_prep("SELECT id,files FROM packages WHERE name == '%q';", name);
-  if (!sql_step(q))
-  { /* if package does not exists */
-    _db_set_error(DB_NOTEX, "can't remove package from the database (package is not there - %s)", name);
-    sql_pop_context(0);
-    return 1;
-  }
-  pid = sql_get_int(q, 0);
-
-  guint fi_size = sql_get_size(q, 1)/sizeof(guint32);
-  guint32 *fi_array = (guint32*)sql_get_blob(q, 1);
-  guint i;
-  for (i=0; i<fi_size; i++)
-    fdb_del_file(fi_array[i]);
-  
-  sql_fini(q);
-
-  /* remove package from packages table */
-  sql_exec("DELETE FROM packages WHERE id == %d;", pid);
-
-  sql_pop_context(1);
-  return 0;
-}
-
 struct db_pkg* db_get_pkg(gchar* name, gboolean files)
 {
   sql_query *q;
@@ -461,7 +444,135 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   return 0;
 }
 
-struct db_pkg* db_legacy_get_pkg(gchar* name)
+gint db_rem_pkg(gchar* name)
+{
+  sql_query *q;
+  gint pid;
+  
+  _db_reset_error();
+  _db_open_check(1)
+
+  if (name == 0)
+  {
+    _db_set_error(DB_OTHER, "can't remove package from the database (name not given)");
+    return 1;
+  }
+  
+  /* sql error handler */
+  sql_push_context(SQL_ERRJUMP,1);
+  if (setjmp(sql_errjmp) == 1)
+  { /* sql exception occured */
+    _db_set_error(DB_OTHER, "can't remove package from the database (sql error)\n%s", sql_error());
+    sql_pop_context(0);
+    return 1;
+  }
+
+  /* check if package is in db */
+  q = sql_prep("SELECT id,files FROM packages WHERE name == '%q';", name);
+  if (!sql_step(q))
+  { /* if package does not exists */
+    _db_set_error(DB_NOTEX, "can't remove package from the database (package is not there - %s)", name);
+    sql_pop_context(0);
+    return 1;
+  }
+  pid = sql_get_int(q, 0);
+
+  guint fi_size = sql_get_size(q, 1)/sizeof(guint32);
+  guint32 *fi_array = (guint32*)sql_get_blob(q, 1);
+  guint i;
+  for (i=0; i<fi_size; i++)
+    fdb_del_file(fi_array[i]);
+  
+  sql_fini(q);
+
+  /* remove package from packages table */
+  sql_exec("DELETE FROM packages WHERE id == %d;", pid);
+
+  sql_pop_context(1);
+  return 0;
+}
+
+gint db_legacy_add_pkg(struct db_pkg* pkg)
+{
+  GSList* l;
+  FILE* pf;
+  FILE* sf;
+  gchar *ppath, *spath;
+  gint ret = 1;
+
+  continue_timer(5);
+
+  _db_reset_error();
+  _db_open_check(1)
+
+  /* check if pkg contains everthing required */
+  if (pkg == 0 || pkg->name == 0 || pkg->files == 0)
+  {
+    _db_set_error(DB_OTHER, "can't add package to the legacy database (incomplete package structure)");
+    goto err_0;
+  }
+
+  ppath = g_strdup_printf("%s/packages.spkg/%s", _db_topdir, pkg->name);
+  spath = g_strdup_printf("%s/scripts.spkg/%s", _db_topdir, pkg->name);
+
+  pf = fopen(ppath, "w");
+  if (pf == 0)
+  {
+    _db_set_error(DB_OTHER, "can't add package to the legacy database (can't open package file %s)", strerror(errno));
+    goto err_1;
+  }
+  sf = fopen(spath, "w");
+  if (sf == 0)
+  {
+    _db_set_error(DB_OTHER, "can't add package to the legacy database (can't open script file)");
+    goto err_2;
+  }
+
+  /* construct header */
+  fprintf(pf,
+    "PACKAGE NAME:              %s\n"
+    "COMPRESSED PACKAGE SIZE:   %d K\n"
+    "UNCOMPRESSED PACKAGE SIZE: %d K\n"
+    "PACKAGE LOCATION:          %s\n"
+    "PACKAGE DESCRIPTION:\n"
+    "%s"
+    "FILE LIST:\n",
+    pkg->name, pkg->csize, pkg->usize, pkg->location?pkg->location:"", pkg->desc?pkg->desc:""
+  );
+  
+  if (pkg->doinst)
+    fprintf(sf, "%s\n", pkg->doinst);
+
+  /* construct filelist and script for links creation */
+  for (l=pkg->files; l!=0; l=l->next)
+  {
+    struct db_file* f = l->data;
+    if (f->link)
+    {
+      gchar* dn = g_path_get_dirname(f->path);
+      gchar* bn = g_path_get_basename(f->path);
+      fprintf(sf, "( cd %s ; rm -rf %s )\n"
+                  "( cd %s ; ln -sf %s %s )\n", dn, bn, dn, f->link, bn);
+      g_free(bn);
+      g_free(dn);
+    }
+    else
+      fprintf(pf, "%s\n", f->path);
+  }
+
+  ret = 0;
+  fclose(sf);
+ err_2:
+  fclose(pf);
+ err_1:
+  g_free(ppath);
+  g_free(spath);
+ err_0:
+  stop_timer(5);
+  return ret;
+}
+
+struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
 {
   gint fp, fs;
   gchar *ap, *as=0;
@@ -563,6 +674,9 @@ struct db_pkg* db_legacy_get_pkg(gchar* name)
   goto err_1;
 
  parse_files:
+  if (!files)
+    goto fini;
+
   while(iter_lines(&b, &e, &n, &ln))
     p->files = g_slist_prepend(p->files, db_alloc_file(ln,0));
 
@@ -618,123 +732,21 @@ struct db_pkg* db_legacy_get_pkg(gchar* name)
   return p;
 }
 
-gint db_legacy_add_pkg(struct db_pkg* pkg)
+gint db_legacy_rem_pkg(gchar* name)
 {
-  GSList* l;
-  FILE* pf;
-  FILE* sf;
-  gchar *ppath, *spath;
+  gchar* p = g_strdup_printf("%s/packages/%s", _db_topdir, name);
+  gchar* s = g_strdup_printf("%s/scripts/%s", _db_topdir, name);
   gint ret = 1;
-
-  continue_timer(5);
-
-  _db_reset_error();
-  _db_open_check(1)
-
-  /* check if pkg contains everthing required */
-  if (pkg == 0 || pkg->name == 0 || pkg->files == 0)
+  if (sys_file_type(p, 0) == SYS_REG)
   {
-    _db_set_error(DB_OTHER, "can't add package to the legacy database (incomplete package structure)");
-    goto err_0;
+    unlink(p);
+    if (sys_file_type(s, 0) == SYS_REG)
+      unlink(p);
+    ret = 0;
   }
-
-  ppath = g_strdup_printf("%s/packages.spkg/%s", _db_topdir, pkg->name);
-  spath = g_strdup_printf("%s/scripts.spkg/%s", _db_topdir, pkg->name);
-
-  pf = fopen(ppath, "w");
-  if (pf == 0)
-  {
-    _db_set_error(DB_OTHER, "can't add package to the legacy database (can't open package file %s)", strerror(errno));
-    goto err_1;
-  }
-  sf = fopen(spath, "w");
-  if (sf == 0)
-  {
-    _db_set_error(DB_OTHER, "can't add package to the legacy database (can't open script file)");
-    goto err_2;
-  }
-
-  /* construct header */
-  fprintf(pf,
-    "PACKAGE NAME:              %s\n"
-    "COMPRESSED PACKAGE SIZE:   %d K\n"
-    "UNCOMPRESSED PACKAGE SIZE: %d K\n"
-    "PACKAGE LOCATION:          %s\n"
-    "PACKAGE DESCRIPTION:\n"
-    "%s"
-    "FILE LIST:\n",
-    pkg->name, pkg->csize, pkg->usize, pkg->location?pkg->location:"", pkg->desc?pkg->desc:""
-  );
-  
-  if (pkg->doinst)
-    fprintf(sf, "%s\n", pkg->doinst);
-
-  /* construct filelist and script for links creation */
-  for (l=pkg->files; l!=0; l=l->next)
-  {
-    struct db_file* f = l->data;
-    if (f->link)
-    {
-      gchar* dn = g_path_get_dirname(f->path);
-      gchar* bn = g_path_get_basename(f->path);
-      fprintf(sf, "( cd %s ; rm -rf %s )\n"
-                  "( cd %s ; ln -sf %s %s )\n", dn, bn, dn, f->link, bn);
-      g_free(bn);
-      g_free(dn);
-    }
-    else
-      fprintf(pf, "%s\n", f->path);
-  }
-
-  ret = 0;
-  fclose(sf);
- err_2:
-  fclose(pf);
- err_1:
-  g_free(ppath);
-  g_free(spath);
- err_0:
-  stop_timer(5);
-  return ret;
-}
-
-void db_free_pkg(struct db_pkg* pkg)
-{
-  continue_timer(6);
-  struct db_pkg* p = pkg;
-  GSList* l;
-  if (p == 0)
-    return;
-  if (p->files) {
-    for (l=p->files; l!=0; l=l->next)
-    {
-      struct db_file* f = l->data;
-      g_free(f->path);
-      g_free(f->link);
-      g_free(f);
-      l->data = 0;
-    }
-    g_slist_free(p->files);
-  }
-  g_free(p->name);
-  g_free(p->location);
-  g_free(p->desc);
-  g_free(p->shortname);
-  g_free(p->version);
-  g_free(p->arch);
-  g_free(p->build);
   g_free(p);
-  stop_timer(6);
-}
-
-void db_free_packages(GSList* pkgs)
-{
-  GSList* l;
-  if (pkgs == 0)
-    return;
-  for (l=pkgs; l!=0; l=l->next)
-    db_free_pkg(l->data);
-  g_slist_free(pkgs);
+  g_free(s);
+  return ret;
 }
 
 GSList* db_get_packages()
@@ -744,6 +756,8 @@ GSList* db_get_packages()
 
   _db_reset_error();
   _db_open_check(0)
+
+  continue_timer(7);
   
   /* sql error handler */
   sql_push_context(SQL_ERRJUMP,1);
@@ -752,6 +766,7 @@ GSList* db_get_packages()
     _db_set_error(DB_OTHER, "can't get packages from the database (sql error)\n%s", sql_error());
     sql_pop_context(0);
     db_free_packages(pkgs);
+    stop_timer(7);
     return 0;
   }
 
@@ -776,7 +791,68 @@ GSList* db_get_packages()
   }
 
   sql_pop_context(0);
+  stop_timer(7);
   return pkgs;
+}
+
+GSList* db_legacy_get_packages()
+{
+  GSList *pkgs=0;
+
+  _db_reset_error();
+  _db_open_check(0)
+
+  continue_timer(8);
+
+  gchar* pdir = g_strdup_printf("%s/packages", _db_topdir);
+  DIR* d = opendir(pdir);
+  g_free(pdir);
+  if (d == NULL)
+  {
+    _db_set_error(DB_OTHER, "can't get legacy database packages (can't open legacy db directory)");
+    goto err_0;
+  }
+  
+  struct dirent* de;
+  while ((de = readdir(d)) != NULL)
+  {
+    if (!strcmp(de->d_name,".") || !strcmp(de->d_name,".."))
+      continue;
+    struct db_pkg* p = db_legacy_get_pkg(de->d_name,1);
+    if (p == 0)
+    {
+      gchar* err = g_strdup(db_error());
+      _db_set_error(DB_OTHER, "can't get legacy database packages (internal error)\n%s", err);
+      g_free(err);
+      goto err_1;
+    }
+    pkgs = g_slist_prepend(pkgs, p);
+  }
+  closedir(d);
+
+  stop_timer(8);
+  return pkgs;
+ err_1:
+  db_free_packages(pkgs);
+  closedir(d);
+ err_0:
+  stop_timer(8);
+  return 0;
+}
+
+void db_free_packages(GSList* pkgs)
+{
+  GSList* l;
+
+  continue_timer(9);
+  
+  if (pkgs == 0)
+    return;
+  for (l=pkgs; l!=0; l=l->next)
+    db_free_pkg(l->data);
+  g_slist_free(pkgs);
+
+  stop_timer(9);
 }
 
 gint db_sync_to_legacydb()
@@ -801,9 +877,7 @@ gint db_sync_to_legacydb()
   for (l=pkgs; l!=0; l=l->next)
   { /* for each package */
     struct db_pkg* pkg = l->data;
-    struct db_pkg* p;
-
-    p = db_get_pkg(pkg->name,1);
+    struct db_pkg* p = db_get_pkg(pkg->name,1);
     if (p == 0)
     {
       gchar* err = g_strdup(db_error());
@@ -846,18 +920,14 @@ gint db_sync_from_legacydb()
     goto err_0;
   }
   
-  /*XXX: unchecked sql library call */
-  sql_exec("DELETE FROM packages;");
-
+  sql_exec("DELETE FROM packages;"); /*XXX: "unchecked" */
 
   while ((de = readdir(d)) != NULL)
   {
     struct db_pkg* p=0;
-
     if (!strcmp(de->d_name,".") || !strcmp(de->d_name,".."))
       continue;
-
-    p = db_legacy_get_pkg(de->d_name);
+    p = db_legacy_get_pkg(de->d_name,1);
     if (p == 0)
     {
       gchar* err = g_strdup(db_error());
@@ -865,7 +935,6 @@ gint db_sync_from_legacydb()
       g_free(err);
       goto err_1;
     }
-
     if (db_add_pkg(p))
     {
       gchar* err = g_strdup(db_error());
@@ -874,7 +943,6 @@ gint db_sync_from_legacydb()
       db_free_pkg(p);
       goto err_1;
     }
-
     db_free_pkg(p);
   }
 

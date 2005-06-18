@@ -84,12 +84,18 @@ extern gint db_errno();
 
 /** Create package object.
  *
- * Package name is checked and parsed.
+ * Package name is checked and automatically parsed into parts.
  *
  * @param name Package name (something like: blah-1.0-i486-1)
  * @return 0 if invalid name, \ref db_pkg object on success
  */
 extern struct db_pkg* db_alloc_pkg(gchar* name);
+
+/** Free \ref db_pkg object.
+ *
+ * @param pkg \ref db_pkg object
+ */
+extern void db_free_pkg(struct db_pkg* pkg);
 
 /** Create file object.
  *
@@ -106,13 +112,6 @@ extern struct db_file* db_alloc_file(gchar* path, gchar* link);
  */
 extern gint db_add_pkg(struct db_pkg* pkg);
 
-/** Remove package from the database.
- *
- * @param name Package name (something like: blah-1.0-i486-1)
- * @return 0 on success, 1 on error
- */
-extern gint db_rem_pkg(gchar* name);
-
 /** Get package from the database.
  *
  * @param name Package name (something like: blah-1.0-i486-1)
@@ -120,6 +119,13 @@ extern gint db_rem_pkg(gchar* name);
  * @return 0 if not found, \ref db_pkg object on success
  */
 extern struct db_pkg* db_get_pkg(gchar* name, gboolean files);
+
+/** Remove package from the database.
+ *
+ * @param name Package name (something like: blah-1.0-i486-1)
+ * @return 0 on success, 1 on error
+ */
+extern gint db_rem_pkg(gchar* name);
 
 /** Add package to the legacy database.
  *
@@ -131,21 +137,29 @@ extern gint db_legacy_add_pkg(struct db_pkg* pkg);
 /** Get package from legacy database.
  *
  * @param name Package name (something like: blah-1.0-i486-1)
+ * @param files If files should be included. (this takes extra time)
  * @return 0 if not found, \ref db_pkg object on success
  */
-extern struct db_pkg* db_legacy_get_pkg(gchar* name);
+extern struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files);
 
-/** Free \ref db_pkg object.
+/** Remove package from legacy database.
  *
- * @param pkg \ref db_pkg object
+ * @param name Package name (something like: blah-1.0-i486-1)
+ * @return 0 on success, 1 on error
  */
-extern void db_free_pkg(struct db_pkg* pkg);
+extern gint db_legacy_rem_pkg(gchar* name);
 
 /** Get packages list from the database.
  *
  * @return packages list, 0 on error
  */
 extern GSList* db_get_packages();
+
+/** Get packages list from the legacy database.
+ *
+ * @return packages list, 0 on error
+ */
+extern GSList* db_legacy_get_packages();
 
 /** Free packages list returned by \ref db_get_packages().
  *

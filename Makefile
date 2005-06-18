@@ -8,7 +8,7 @@ DESTDIR :=
 PREFIX := /usr/local
 DEBUG := no
 ASSERTS := yes
-BENCH := no
+BENCH := yes
 VERSION := 20050618
 
 #CC := gcc-3.4.4
