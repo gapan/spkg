@@ -9,6 +9,7 @@
 
 #include <Python.h>
 #include "pkgdb.h"
+#include "untgz.h"
 
 typedef struct Package_t Package;
 typedef struct Packages_t Packages;
@@ -16,6 +17,7 @@ typedef struct PackagesIter_t PackagesIter;
 typedef struct File_t File;
 typedef struct Files_t Files;
 typedef struct FilesIter_t FilesIter;
+typedef struct Untgz_t Untgz;
 
 struct Package_t
 {
@@ -57,6 +59,12 @@ struct FilesIter_t
   Files* files;
 };
 
+struct Untgz_t
+{
+  PyObject_HEAD
+  struct untgz_state* s;
+};
+
 extern PyObject* PySpkgErrorObject;
 
 extern PyTypeObject File_Type;
@@ -65,6 +73,7 @@ extern PyTypeObject FilesIter_Type;
 extern PyTypeObject Package_Type;
 extern PyTypeObject Packages_Type;
 extern PyTypeObject PackagesIter_Type;
+extern PyTypeObject Untgz_Type;
 
 extern Package* newPackage(struct db_pkg* p, int free);
 extern Packages* newPackages(GSList* pkgs);
@@ -72,11 +81,13 @@ extern PackagesIter* newPackagesIter(Packages* p);
 extern File* newFile(struct db_file* p);
 extern Files* newFiles(GSList* files);
 extern FilesIter* newFilesIter(Files* p);
+extern Untgz* newUntgz(struct untgz_state* s);
 
 #define File_Check(v) ((v)->ob_type == &File_Type)
 #define Files_Check(v) ((v)->ob_type == &Files_Type)
 #define Package_Check(v) ((v)->ob_type == &Package_Type)
 #define Packages_Check(v) ((v)->ob_type == &Packages_Type)
+#define Untgz_Check(v) ((v)->ob_type == &Untgz_Type)
 
 #include "pyspkg-meth.h"
 

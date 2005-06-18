@@ -12,7 +12,6 @@
 
 PyObject* PySpkgErrorObject;
 
-#define M(n) { G_STRINGIFY(n), PySpkg_##n, METH_VARARGS, PySpkg_DOC_##n },
 static PyMethodDef PySpkg_methods[] = {
 #include "methtab.c"
   {NULL, NULL}
@@ -31,6 +30,7 @@ PyMODINIT_FUNC initspkg(void)
   InitType(File)
   InitType(Files)
   InitType(FilesIter)
+  InitType(Untgz)
 
   PyObject *m = Py_InitModule3("spkg", PySpkg_methods, module_doc);
   if (m == 0)

@@ -1,6 +1,6 @@
 #!/bin/sh
 cat m-*.c \
-  | sed -n 's/^PySpkg_Method(\([^, ]\+\).*/M(\1)/ p' \
+  | sed -n 's/^PySpkg_Method(\([^, ]\+\).*/PySpkg_M(\1)/ p' \
   > methtab.c
 
 cat m-*.c \

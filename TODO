@@ -30,3 +30,8 @@ API USABILTY IMPROVEMENTS
 -------------------------
 - sql: use automatically last prepared query if 0 is passed as query
        to some functions
+
+BINDINGS
+--------
+- untgz: bind write_data
+- pkgdb: check ref counting
