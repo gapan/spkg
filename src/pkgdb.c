@@ -145,6 +145,12 @@ gint db_open(const gchar* root)
     _db_set_error(DB_OTHER, "can't open package database (sql error)\n%s", sql_error());
     goto err2;
   }
+  
+  if (!sql_integrity_check())
+  { /* sql exception occured */
+    _db_set_error(DB_OTHER, "can't open package database (database is corrupted)");
+    goto err2;
+  }
 
   /* sqlite setup */
   sql_exec("PRAGMA temp_store = MEMORY;");

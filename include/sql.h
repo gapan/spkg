@@ -364,6 +364,12 @@ extern void sql_set_int64(sql_query* query, gint par, gint64 val);
  */
 extern gint sql_table_exist(const gchar* name);
 
+/** Check database integrity <b>[E]</b>.
+ *
+ * @return 1 if database is OK, 0 otherwise.
+ */
+extern gint sql_integrity_check();
+
 #endif
 
 /*! @} */

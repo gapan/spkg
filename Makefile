@@ -7,8 +7,9 @@
 DESTDIR :=
 PREFIX := /usr/local
 DEBUG := no
-BENCH := yes
-VERSION := 20050617
+ASSERTS := yes
+BENCH := no
+VERSION := 20050618
 
 #CC := gcc-3.4.4
 CC := gcc
@@ -21,19 +22,18 @@ CFLAGS +=  -ggdb3 -O0
 CPPFLAGS += -D__DEBUG=1
 else
 CFLAGS += -ggdb1 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer
-#CPPFLAGS += -DG_DISABLE_ASSERT
 endif
 ifeq ($(BENCH),yes)
 CPPFLAGS += -D__BENCH=1
-else
-CPPFLAGS += -D__BENCH=0
+endif
+ifeq ($(ASSERTS),no)
+CPPFLAGS += -DG_DISABLE_ASSERT
 endif
 
 objs-spkg := main.o pkgtools.o untgz.o sys.o sql.o filedb.o pkgdb.o \
   pkgname.o taction.o
 
 # magic barrier
-.PHONY: clean mrproper all install install-strip uninstall slackpkg docs python
 export MAKEFLAGS += --no-print-directory -r
 
 objs-spkg := $(addprefix .build/, $(objs-spkg))
@@ -43,7 +43,8 @@ dep-files := $(addprefix .build/,$(addsuffix .d,$(basename $(notdir $(objs-all))
 # default
 vpath %.c src
 
-all: spkg python
+.PHONY: all
+all: spkg python-build
 
 include Makefile.tests
 
@@ -65,9 +66,18 @@ ifneq ($(dep-files),)
 -include $(dep-files)
 endif
 
-python: .build/libspkg.a
+.PHONY: python-build python-install
+python-build: .build/libspkg.a
 	( python setup.py build )
 
+python-install:
+ifneq ($(DESTDIR),)
+	( python setup.py install --root=$(DESTDIR) )
+else
+	( python setup.py install )
+endif
+
+.PHONY: install uninstall
 # installation
 install: all docs
 	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/bin
@@ -80,17 +90,13 @@ install: all docs
 	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)/html
 	install -o root -g root -m 0644 README INSTALL HACKING NEWS TODO $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)
 	install -o root -g root -m 0644 docs/html/* $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)/html
-ifneq ($(DESTDIR),)
-	( python setup.py install --root=$(DESTDIR) )
-else
-	( python setup.py install )
-endif
 
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/spkg
-	rm -f $(DESTDIR)$(PREFIX)/man/man1/spkg.1
+	rm -f $(DESTDIR)$(PREFIX)/man/man1/spkg.1.gz
 	rm -rf $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)
 
+.PHONY: slackpkg dist
 slackpkg:
 	make clean
 	rm -rf pkg
@@ -109,6 +115,7 @@ dist: docs
 	tar czf spkg-$(VERSION).tar.gz spkg-$(VERSION)
 	rm -rf spkg-$(VERSION)
 
+.PHONY: docs web web-base web-files
 docs:
 	rm -rf docs/html
 	doxygen docs/Doxyfile
@@ -130,6 +137,7 @@ web-files: docs dist #slackpkg
 
 web: web-base web-files
         
+.PHONY: clean mrproper
 clean: tests-clean
 	-rm -rf .build/*.o .build/*.a spkg build
 

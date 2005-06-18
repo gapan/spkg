@@ -270,6 +270,7 @@ gint sql_exec(const gchar* sql, ...)
   va_list ap;
   gchar* tmp;
   gint rs;
+  trace();  
 
   g_assert(_sql_db != 0);
   g_assert(sql != 0);
@@ -293,6 +294,7 @@ sql_query* sql_prep(const gchar* sql, ...)
 {
   sql_query* query;
   va_list ap;
+  trace();  
 
   g_assert(_sql_db != 0);
   g_assert(sql != 0);
@@ -323,6 +325,7 @@ gint sql_fini(sql_query* query)
 {
   g_assert(_sql_db != 0);
   g_assert(query != 0);
+  trace();  
 
   _sql_reset_error();
   if (_sql_context_popq(query))
@@ -341,6 +344,7 @@ gint sql_rest(sql_query* query)
 {
   g_assert(_sql_db != 0);
   g_assert(query != 0);
+  trace();  
 
   _sql_reset_error();
   gint rs = sqlite3_reset(query);
@@ -354,6 +358,7 @@ gint sql_step(sql_query* query)
 {
   g_assert(_sql_db != 0);
   g_assert(query != 0);
+  trace();  
 
   _sql_reset_error();
   gint rs = sqlite3_step(query);
@@ -464,12 +469,27 @@ void sql_set_null(sql_query* query, gint par)
 
 gint sql_table_exist(const gchar* name)
 {
+  trace();  
   g_assert(name != 0);
 
   gint ret = 0;
   sql_query* query = sql_prep("SELECT name FROM sqlite_master WHERE type == 'table' AND name == '%q';", name);
-  if (sql_step(query))
+  if (sql_step(query) == 1)
     ret = 1;
+  sql_fini(query);
+  return ret;
+}
+
+gint sql_integrity_check()
+{
+  trace();  
+  gint ret = 0;
+  sql_query* query = sql_prep("PRAGMA integrity_check;");
+  if (sql_step(query) == 1)
+  {
+    if (!strcmp(sql_get_text(query, 0), "ok"))
+      ret = 1;
+  }
   sql_fini(query);
   return ret;
 }

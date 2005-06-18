@@ -14,7 +14,12 @@ const gchar* root = "root";
 int main(int ac, char* av[])
 {
   int i;
-  db_open(root);
+
+  if (db_open(root))
+  {
+    fprintf(stderr, "%s\n", db_error());
+    return 1;
+  }
 
   for (i=1;i<ac;i++)
   {
