@@ -33,7 +33,7 @@ objs-spkg := main.o pkgtools.o untgz.o sys.o sql.o filedb.o pkgdb.o \
   pkgname.o taction.o
 
 # magic barrier
-.PHONY: clean mrproper all install install-strip uninstall slackpkg docs
+.PHONY: clean mrproper all install install-strip uninstall slackpkg docs python
 export MAKEFLAGS += --no-print-directory -r
 
 objs-spkg := $(addprefix .build/, $(objs-spkg))
@@ -43,7 +43,7 @@ dep-files := $(addprefix .build/,$(addsuffix .d,$(basename $(notdir $(objs-all))
 # default
 vpath %.c src
 
-all: spkg
+all: spkg python
 
 include Makefile.tests
 
@@ -65,6 +65,9 @@ ifneq ($(dep-files),)
 -include $(dep-files)
 endif
 
+python: .build/libspkg.a
+	( python setup.py build )
+
 # installation
 install: all docs
 	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/bin
@@ -72,11 +75,16 @@ install: all docs
 	strip $(DESTDIR)$(PREFIX)/bin/spkg
 	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/man/man1/
 	install -o root -g root -m 0644 docs/spkg.1 $(DESTDIR)$(PREFIX)/man/man1/
-	gzip -9 $(DESTDIR)$(PREFIX)/man/man1/spkg.1
+	gzip -f -9 $(DESTDIR)$(PREFIX)/man/man1/spkg.1
 	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)
 	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)/html
 	install -o root -g root -m 0644 README INSTALL HACKING NEWS TODO $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)
 	install -o root -g root -m 0644 docs/html/* $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)/html
+ifneq ($(DESTDIR),)
+	( python setup.py install --root=$(DESTDIR) )
+else
+	( python setup.py install )
+endif
 
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/spkg
@@ -123,7 +131,7 @@ web-files: docs dist #slackpkg
 web: web-base web-files
         
 clean: tests-clean
-	-rm -rf .build/*.o .build/*.a spkg
+	-rm -rf .build/*.o .build/*.a spkg build
 
 mrproper: clean
 	-rm -rf .build docs/html .website
