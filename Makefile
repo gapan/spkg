@@ -66,15 +66,19 @@ ifneq ($(dep-files),)
 -include $(dep-files)
 endif
 
-.PHONY: python-build python-install
-python-build: .build/libspkg.a
-	( python setup.py build )
+.PHONY: python-build python-install python-gen
 
-python-install:
+python-gen:
+	( cd pyspkg && ./gen.sh )
+
+python-build: .build/libspkg.a python-gen
+	python setup.py build
+
+python-install: .build/libspkg.a python-gen
 ifneq ($(DESTDIR),)
-	( python setup.py install --root=$(DESTDIR) )
+	python setup.py install --root=$(DESTDIR)
 else
-	( python setup.py install )
+	python setup.py install
 endif
 
 .PHONY: install uninstall

@@ -78,4 +78,6 @@ extern FilesIter* newFilesIter(Files* p);
 #define Package_Check(v) ((v)->ob_type == &Package_Type)
 #define Packages_Check(v) ((v)->ob_type == &Packages_Type)
 
+#include "pyspkg-meth.h"
+
 #endif
