@@ -66,7 +66,7 @@ ifneq ($(dep-files),)
 -include $(dep-files)
 endif
 
-.PHONY: python-build python-install python-gen
+.PHONY: python-build python-install python-gen python-clean
 
 python-gen:
 	( cd pyspkg && ./gen.sh )
@@ -80,6 +80,10 @@ ifneq ($(DESTDIR),)
 else
 	python setup.py install
 endif
+
+python-clean:
+	rm -rf build
+	rm -f pyspkg/pyspkg-meth.h pyspkg/pyspkg-doc.h pyspkg/methtab.c
 
 .PHONY: install uninstall
 # installation
@@ -141,8 +145,8 @@ web-files: docs dist #slackpkg
 
 web: web-base web-files
         
-.PHONY: clean mrproper
-clean: tests-clean
+.PHONY: clean mrproper 
+clean: tests-clean python-clean
 	-rm -rf .build/*.o .build/*.a spkg build
 
 mrproper: clean
