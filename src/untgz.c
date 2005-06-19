@@ -242,9 +242,8 @@ struct untgz_state* untgz_open(const gchar* tgzfile, untgz_status_cb scb)
   gzFile *gzf;
   struct stat st;
 
-  reset_timers();
-  start_timer(0);
-  start_timer(1);
+  continue_timer(0);
+  continue_timer(1);
 
   g_assert(tgzfile != 0);
 
@@ -297,7 +296,7 @@ struct untgz_state* untgz_open(const gchar* tgzfile, untgz_status_cb scb)
 void untgz_close(struct untgz_state* s)
 {
   g_assert(s != 0);
-  start_timer(2);
+  continue_timer(2);
   struct untgz_state_internal* i = s->i;
   gzclose(i->gzf);
   umask(i->old_umask);

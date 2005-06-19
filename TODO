@@ -18,7 +18,7 @@ PROBLEMS
 
 POSSIBLE PROBLEMS
 -----------------
-- untgz: investigate on the way the symlinks are created (is it suffic)
+- untgz: investigate on the way the symlinks are created
 - untgz: recoverable errors?
 
 POSSIBLE OPTIMIZATIONS
@@ -33,4 +33,5 @@ API USABILTY IMPROVEMENTS
 
 BINDINGS
 --------
-- untgz: bind write_data
+- untgz: buffer memmory management, add some constants for file types,
+  status callback

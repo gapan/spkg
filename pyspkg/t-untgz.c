@@ -114,9 +114,27 @@ PySpkg_TypeMethod(write_file, "[path]", Bool,
   Py_RETURN_TRUE;
 }
 
+PySpkg_TypeMethod(write_data, "", Buffer, 
+"Write current file to disk.")
+{
+  gchar* b;
+  guint s;
+  if (untgz_write_data(self->s, &b, &s))
+  {
+    if (untgz_error(self->s))
+    {
+      PyErr_SetString(PySpkgErrorObject, untgz_error(self->s));
+      return NULL;
+    }
+    Py_RETURN_FALSE;
+  }
+  return PyBuffer_FromMemory(b,s);
+}
+
 static PyMethodDef Untgz_methods[] = {
   PySpkg_TM(get_header)
   PySpkg_TM(write_file)
+  PySpkg_TM(write_data)
   {NULL, NULL}
 };
 
