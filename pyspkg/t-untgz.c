@@ -11,27 +11,98 @@
 #define PySpkg_TypeMethod(n,a,r,d) _PySpkg_TypeMethod(Untgz,n,a,r,d)
 #define PySpkg_TM(n) _PySpkg_TM(Untgz,n)
 
+/* callback wrapper */
+
+struct cb_t {
+  PyObject* o;
+  Untgz* t;
+  struct untgz_state* s;
+};
+
+static GSList* cb_list = 0;
+
+static void cb_add(PyObject* o, struct untgz_state* s, Untgz* t)
+{
+  struct cb_t* cb = g_new0(struct cb_t, 1);
+  cb->o = o;
+  cb->s = s;
+  cb->t = t;
+  cb_list = g_slist_prepend(cb_list, cb);
+}
+
+static void cb_rem(struct untgz_state* s)
+{
+  GSList* l;
+  for (l=cb_list; l!=0; l=l->next)
+  {
+    struct cb_t* cb = l->data;
+    if (s==cb->s)
+    {
+      g_free(cb);
+      cb_list = g_slist_remove_link(cb_list, l);
+      return;
+    }
+  }
+}
+
+static void cb_call(struct untgz_state* s, gsize total, gsize current)
+{
+  GSList* l;
+  for (l=cb_list; l!=0; l=l->next)
+  {
+    struct cb_t* cb = l->data;
+    if (s==cb->s)
+    {
+      PyObject* args = Py_BuildValue("(Oii)", cb->t, total, current);
+      PyEval_CallObject(cb->o, args);
+      Py_DECREF(args);
+      return;
+    }
+  }
+}
+
 /* Untgz_Type
  ************************************************************************/
 
-Untgz* newUntgz(struct untgz_state* s)
+static int Untgz_init(Untgz *self, PyObject *args, PyObject *kwds)
 {
-  if (s == NULL)
-    return NULL;
-  Untgz *self = PyObject_NEW(Untgz, &Untgz_Type);
-  if (self == NULL)
-    return NULL;
+  PyObject *cb=NULL;
+  char* path=0;
+  static char *kwlist[] = {"path", "callback", NULL};
+
+  if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|O!:Untgz", kwlist, &path, &PyFunction_Type, &cb))
+    return -1; 
+
+  struct untgz_state* s;
+  if (cb)
+    s = untgz_open(path,cb_call);
+  else
+    s = untgz_open(path,0);
+  if (s == 0)
+  {
+    PyErr_SetString(PySpkgErrorObject, "can't open tgz file");
+    return -1;
+  }
+
+  Py_XINCREF(self->callback = cb);
   self->s = s;
-  return self;
+  if (cb)
+    cb_add(cb, s, self);
+  return 0;
 }
 
 static void Untgz_dealloc(Untgz* self)
 {
-  untgz_close(self->s);
+  if (self->s)
+  {
+    cb_rem(self->s);
+    untgz_close(self->s);
+  }
+  Py_XDECREF(self->callback);
   PyMem_DEL(self);
 }
 
-#define GS_STR(n,id) case id: return PyString_FromString(self->s->n);
+#define GS_STR(n,id) case id: return self->s->n?PyString_FromString(self->s->n):PyString_FromString("");
 #define GS_INT(n,id) case id: return PyInt_FromLong(self->s->n);
 static PyObject* Untgz_get(Untgz *self, void *closure)
 {
@@ -146,5 +217,6 @@ PyTypeObject Untgz_Type = {
   .tp_dealloc = (destructor)Untgz_dealloc,
   .tp_getset = Untgz_getseters,
   .tp_methods = Untgz_methods,
-//  .tp_print = (printfunc)Untgz_print,
+  .tp_new = PyType_GenericNew,
+  .tp_init = (initproc)Untgz_init,
 };

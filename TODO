@@ -1,5 +1,6 @@
 TODO
 ----
+- handle package installation time
 - pkg structure should be better defined (espec. required and optional fields)
 - add full script to database
 - add option to do script preprocessing for faster link creation
@@ -33,5 +34,4 @@ API USABILTY IMPROVEMENTS
 
 BINDINGS
 --------
-- untgz: buffer memmory management, add some constants for file types,
-  status callback
+- untgz: buffer memmory management

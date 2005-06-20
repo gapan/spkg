@@ -45,6 +45,16 @@ PyMODINIT_FUNC initspkg(void)
     if (PySpkgErrorObject == NULL)
       return;
   }
+
+  PyModule_AddIntConstant(m, "UNTGZ_NONE", 0);
+  PyModule_AddIntConstant(m, "UNTGZ_DIR", 1);
+  PyModule_AddIntConstant(m, "UNTGZ_REG", 2);
+  PyModule_AddIntConstant(m, "UNTGZ_LNK", 3);
+  PyModule_AddIntConstant(m, "UNTGZ_SYM", 4);
+  PyModule_AddIntConstant(m, "UNTGZ_BLK", 5);
+  PyModule_AddIntConstant(m, "UNTGZ_CHR", 6);
+  PyModule_AddIntConstant(m, "UNTGZ_FIFO", 7);
+
   Py_INCREF(PySpkgErrorObject);
   PyModule_AddObject(m, "error", PySpkgErrorObject);
 

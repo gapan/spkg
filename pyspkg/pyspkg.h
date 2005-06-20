@@ -67,6 +67,7 @@ struct Untgz_t
 {
   PyObject_HEAD
   struct untgz_state* s;
+  PyObject* callback;
 };
 
 extern PyObject* PySpkgErrorObject;
@@ -85,7 +86,7 @@ extern PackagesIter* newPackagesIter(Packages* pkgs);
 extern File* newFile(struct db_file* file, PyObject* parent);
 extern Files* newFiles(GSList* files, PyObject* parent);
 extern FilesIter* newFilesIter(Files* files);
-extern Untgz* newUntgz(struct untgz_state* s);
+extern Untgz* newUntgz(struct untgz_state* s, PyObject* callback);
 
 #define File_Check(v) ((v)->ob_type == &File_Type)
 #define Files_Check(v) ((v)->ob_type == &Files_Type)

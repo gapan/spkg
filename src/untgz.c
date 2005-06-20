@@ -468,7 +468,7 @@ gint untgz_write_data(struct untgz_state* s, gchar** buf, gsize* len)
 
   if (i->errstr)
     goto err_0;
-  if (s->f_type != UNTGZ_REG || i->data == 0) /* no data for current file */
+  if (i->eof || s->f_type != UNTGZ_REG || i->data == 0) /* no data for current file */
     goto ret_1;
   if (setjmp(i->errjmp) != 0)
   {
@@ -514,14 +514,12 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
 #endif
 
   g_assert(s != 0);
-
   struct untgz_state_internal* i = s->i;
-
   continue_timer(4);
 
   if (G_UNLIKELY(i->errstr))
     goto err_0;
-  if (G_UNLIKELY(i->written))
+  if (G_UNLIKELY(i->written || i->eof))
     goto ret_1;
   if (G_UNLIKELY(setjmp(i->errjmp) != 0))
   {
