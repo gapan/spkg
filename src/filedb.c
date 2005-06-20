@@ -101,7 +101,6 @@ static __inline__ gint faststrcmp(const guint32 h1, const gchar* s1, const guint
 
 /* ondisk data structures */
 struct file_pld {
-  guint16 mode;
   guint16 plen;
   guint16 llen;
   gchar data[];
@@ -152,7 +151,6 @@ static guint32 _alloc_pld(struct fdb_file* file)
   pld = _fdb.addr_pld + offset;
   pld->plen = size_path;
   pld->llen = size_link;
-  pld->mode = file->mode;
   strcpy(pld->data, path);
   if (G_UNLIKELY(size_link))
     strcpy(pld->data+size_path+1, link);
@@ -180,7 +178,6 @@ static guint32 _update_pld(struct fdb_file* file, struct file_pld* pld)
   else
     return _alloc_pld(file);
   
-  pld->mode = file->mode;
   return (void*)pld-_fdb.addr_pld;
 }
 
@@ -604,7 +601,6 @@ gint fdb_get_file(guint32 id, struct fdb_file* file)
   }
   file->path = pld->data;
   file->link = pld->llen?pld->data+pld->plen+1:0;
-  file->mode = pld->mode;
   stop_timer(4);
   return 0;
 }

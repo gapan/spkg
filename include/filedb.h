@@ -37,7 +37,6 @@ with same path
 struct fdb_file {
   gchar* path;  /**< File path. [required] */
   gchar* link;  /**< Target of the symlink. [optional] */
-  guint16 mode; /**< File mode. */
   guint16 refs; /**< Reference count. */
 };
 

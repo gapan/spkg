@@ -328,7 +328,6 @@ gint db_add_pkg(struct db_pkg* pkg)
     struct fdb_file fdb;
     fdb.path = f->path;
     fdb.link = f->link;    
-    fdb.mode = f->mode;    
     f->id = fdb_add_file(&fdb);
     f->refs = fdb.refs;
     fi_array[i++] = f->id;
@@ -427,7 +426,6 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
     file = g_new0(struct db_file, 1);
     file->path = g_strdup(f.path);
     file->link = f.link?g_strdup(f.link):0;
-    file->mode = f.mode;
     file->id = fi_array[i];
     p->files = g_slist_prepend(p->files, file);
   }
