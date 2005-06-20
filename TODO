@@ -1,37 +1,15 @@
-TODO
-----
-- handle package installation time
-- pkg structure should be better defined (espec. required and optional fields)
-- add full script to database
-- add option to do script preprocessing for faster link creation
-- implement file transactions
-- reimplement sys_rm_rf and sys_mkdir_p in C
-- pkgtools: implement install, upgrade, remove
-- implement filedb transactions
-- finish readmes
-- fix manpage
-- add somewhere notice, that avl insert code was taken from gnuavl library
-
-PROBLEMS
---------
-- filedb locking
-- filedb distributed checksumming
-
-POSSIBLE PROBLEMS
------------------
-- untgz: investigate on the way the symlinks are created
-- untgz: recoverable errors?
-
-POSSIBLE OPTIMIZATIONS
-----------------------
-- untgz - use blockbuf instead of writebuf can speedup things slightly on the
-          user side
-
-API USABILTY IMPROVEMENTS
--------------------------
-- sql: use automatically last prepared query if 0 is passed as query
-       to some functions
-
-BINDINGS
---------
-- untgz: buffer memmory management
+[pkgdb] pkg structure should be better defined (espec. required and optional fields)
+[pkgdb] handle package installation time
+[pkgdb] add full script to database (not stripped one)
+[pyspkg:untgz] buffer memmory management
+[untgz] extraction errors too strict? :)
+[untgz] machine readable errors?
+[untgz] use blockbuf instead of writebuf can speedup things slightly on the user side
+[sql] use automatically last prepared query if 0 is passed as query to some functions
+[filedb] implement filedb transactions, locking, checksums
+[doc] finish readmes
+[doc] fix manpage
+[pkgtools] add option to do script preprocessing for faster link creation
+[pkgtools] implement file transactions
+[pkgtools] implement install, upgrade, remove
+[sys] reimplement sys_rm_rf and sys_mkdir_p in C
