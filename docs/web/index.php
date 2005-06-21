@@ -31,10 +31,9 @@
   and roadmap of the @SPKG@ development.</p>
 
   <dl>
-   <dt>2005-06-18</dt>
-    <dd>Many changes! Major changes are: new <a href="/dl/spkg-docs/pyspkg.html">Python
-    bindings</a> and nearly finished pkgdb API. See ChangeLog in the source tarball 
-    for details.</dd>
+   <dt>2005-06-21</dt>
+    <dd>I've implemented <a href="/dl/spkg-docs/pyspkg.html">Python
+    bindings</a>. Now I'm finishing pkgdb library.</dd>
    <dt>2005-06-14</dt>
     <dd>SQL database wrapper API completed. Untgz documented.</dd>
    <dt>2005-06-12</dt>

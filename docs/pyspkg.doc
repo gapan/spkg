@@ -5,6 +5,7 @@ database using Python.
 
 <h2>How to extract tgz archive using untgz library?</h2>
 
+<h3>With status callback:</h3>
 @code
 #!/usr/bin/env python
 from sys import argv, exc_info, path
@@ -34,30 +35,42 @@ for file in argv[1:]:
     print 'OK!'
 @endcode
 
+<h3>Without status callback:</h3>
+@code
+#!/usr/bin/env python
+from sys import argv, exc_info, path
+from spkg import *
+
+for file in argv[1:]:
+    try:
+        tgz = Untgz(file)
+        while tgz.get_header(): tgz.write_file()
+    except:
+        print exc_info()[1]
+@endcode
+
+
 <h2>How to access spkg and legacy databases using pkgdb library?</h2>
 
 @code
 #!/usr/bin/env python
+from sys import argv, exc_info, path
 from spkg import *
 
-def pp(p):
+def print_package(p):
     print '%s (%s) c=%ukB, u=%ukB' % (p.shortname, p.version, p.csize, p.usize)
 
-if __name__ == '__main__':
-    db_open()
-    print 'Listing legacy database:'
-    pkgs = db_legacy_get_packages()
-    for p in pkgs:
-        pp(p)
+db_open()
 
-    print 'Listing spkg database:'
-    pkgs = db_get_packages()
-    for p in pkgs:
-        pp(p)
+print 'Listing legacy database:'
+pkgs = db_legacy_get_packages()
+for p in pkgs: print_package(p)
 
-    pkgs = 0
-    p = 0
-    db_close()
+print 'Listing spkg database:'
+pkgs = db_get_packages()
+for p in pkgs: print_package(p)
+
+db_close()
 @endcode
 
 <h2>More help please!</h2>

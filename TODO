@@ -1,10 +1,9 @@
 [pkgdb] pkg structure should be better defined (espec. required and optional fields)
 [pkgdb] handle package installation time
 [pkgdb] add full script to database (not stripped one)
-[untgz] extraction errors too strict? :)
-[untgz] machine readable errors?
-[untgz] use blockbuf instead of writebuf can speedup things slightly on the user side
-[sql] use automatically last prepared query if 0 is passed as query to some functions
+[untgz] extraction errors too strict or not? :-)
+[untgz] machine readable errors? (errnos)
+[untgz] use of blockbuf instead of writebuf can speedup things slightly on the user side
 [filedb] implement filedb transactions, locking, checksums
 [doc] finish readmes
 [doc] fix manpage

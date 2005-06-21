@@ -3,21 +3,17 @@ from sys import argv, exc_info, path
 path.append('../build/lib.linux-i686-2.4')
 from spkg import *
 
-def pp(p):
+def print_package(p):
     print '%s (%s) c=%ukB, u=%ukB' % (p.shortname, p.version, p.csize, p.usize)
 
-if __name__ == '__main__':
-    db_open()
-    print 'Listing legacy database:'
-    pkgs = db_legacy_get_packages()
-    for p in pkgs:
-        pp(p)
+db_open()
 
-    print 'Listing spkg database:'
-    pkgs = db_get_packages()
-    for p in pkgs:
-        pp(p)
+print 'Listing legacy database:'
+pkgs = db_legacy_get_packages()
+for p in pkgs: print_package(p)
 
-    pkgs = 0
-    p = 0
-    db_close()
+print 'Listing spkg database:'
+pkgs = db_get_packages()
+for p in pkgs: print_package(p)
+
+db_close()
