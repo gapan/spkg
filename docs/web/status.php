@@ -14,11 +14,9 @@
   $status = array(
     array("untgz",   100, 100,  "completed!"),
     array("sql",     100, 100,  "completed!"),
-    array("filedb",   40,  80,  "atomic transactions missing"),
+    array("filedb",   80,  80,  "atomic transactions missing"),
     array("pkgdb",    80,  95,  "nearly completed"),
-    array("taction",   0,  10,  "only code skeleton is in place"),
     array("commands", 20,   0,  "partly implemented install command"),
-    array("cli",       0,   0,  "nothing done"),
   );
   function getclass($p)
   {
@@ -54,6 +52,7 @@
     array(0,"pkgdb library fully implemented", "2005-06-23"),
     array(0,"three basic commands implemented", "2005-07-08"),
     array(0,"first fully functional release", "2005-07-15"),
+    array(0,"spkg gui", "2005-08-01"),
   );
   foreach($milestones as $m)
   {
