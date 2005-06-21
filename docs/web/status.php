@@ -5,8 +5,7 @@
 
   <p>The lastest version of @SPKG@ is <strong>@VER@</strong>.</p>
 
-  <p>@SPKG@ is now under active development. Main parts of the @SPKG@ core
-  library are completed. See <a href="/dl/ChangeLog">changelog</a>
+  <p>@SPKG@ is now under active development. See <a href="/dl/ChangeLog">changelog</a>
   for details.</p>
 
   <table cellspacing="0">
@@ -16,9 +15,9 @@
     array("untgz",   100, 100,  "completed!"),
     array("sql",     100, 100,  "completed!"),
     array("filedb",   40,  80,  "atomic transactions missing"),
-    array("pkgdb",    60,  90,  "a whole lot of XXXs to be removed"),
+    array("pkgdb",    80,  95,  "nearly completed"),
     array("taction",   0,  10,  "only code skeleton is in place"),
-    array("commands",  0,   0,  "nothing done"),
+    array("commands", 20,   0,  "partly implemented install command"),
     array("cli",       0,   0,  "nothing done"),
   );
   function getclass($p)
@@ -52,12 +51,9 @@
     array(1,"existing codebase stabilized", "2005-06-04"),
     array(1,"website created", "2005-06-09"),
     array(1,"legacydb entries parser optimized", "2005-06-12"),
-    array(0,"filesystem transactions implemented", "2005-06-15"),
-    array(0,"commands framework in place", "2005-06-19"),
-    array(0,"three basic commands implemented", "2005-07-01"),
-    array(0,"testing framework for commands finished", "2005-07-15"),
-    array(0,"first fully functional release", "2005-08-01"),
-    array(0,"more commands implemented", "2005-09-01"),
+    array(0,"pkgdb library fully implemented", "2005-06-23"),
+    array(0,"three basic commands implemented", "2005-07-08"),
+    array(0,"first fully functional release", "2005-07-15"),
   );
   foreach($milestones as $m)
   {
