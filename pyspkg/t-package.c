@@ -30,33 +30,6 @@ static void Package_dealloc(Package* self)
   PyMem_DEL(self);
 }
 
-static PyObject* Package_get(Package *self, void *closure)
-{
-  switch((int)closure)
-  {
-    case 1: return PyString_FromString(self->pkg->name);
-    case 2: return PyString_FromString(self->pkg->shortname);
-    case 3: return PyString_FromString(self->pkg->version);
-    case 4: return PyString_FromString(self->pkg->arch);
-    case 5: return PyString_FromString(self->pkg->build);
-    case 6: return PyInt_FromLong(self->pkg->csize);
-    case 7: return PyInt_FromLong(self->pkg->usize);
-    case 8: return PyString_FromString(self->pkg->location);
-    case 9: return PyString_FromString(self->pkg->doinst);
-    case 10: return PyInt_FromLong(self->pkg->id);
-    case 11: return (PyObject*)newFiles(self->pkg->files, self->pkgs?(PyObject*)self->pkgs:(PyObject*)self);
-    default:
-      Py_INCREF(Py_None);
-      return (PyObject*)Py_None;
-  }
-}
-
-static int Package_set(Package *self, PyObject *value, void *closure)
-{
-  PyErr_SetString(PyExc_TypeError, "can't modify package object");
-  return -1;
-}
-
 static int Package_print(Package *self, FILE *fp, int flags)
 {
   fprintf(fp, 
@@ -82,18 +55,49 @@ static int Package_print(Package *self, FILE *fp, int flags)
   return 0;
 }
 
+static int Package_set(Package *self, PyObject *value, void *closure)
+{
+  PyErr_SetString(PyExc_TypeError, "can't modify package object");
+  return -1;
+}
+
+#define GS_STR(n,id) case id: return self->pkg->n?PyString_FromString(self->pkg->n):PyString_FromString("");
+#define GS_INT(n,id) case id: return PyInt_FromLong(self->pkg->n);
+#define GS(n,id) {G_STRINGIFY(n), (getter)Package_get, (setter)Package_set, NULL, (void*)id},
+static PyObject* Package_get(Package *self, void *closure)
+{
+  switch((int)closure)
+  {
+    GS_STR(name,1)
+    GS_STR(shortname,2)
+    GS_STR(version,3)
+    GS_STR(arch,4)
+    GS_STR(build,5)
+    GS_INT(csize,6)
+    GS_INT(usize,7)
+    GS_STR(location,8)
+    GS_STR(doinst,9)
+    GS_INT(id,10)
+    case 11:
+      return (PyObject*)newFiles(self->pkg->files, self->pkgs?(PyObject*)self->pkgs:(PyObject*)self);
+    default:
+      Py_INCREF(Py_None);
+      return (PyObject*)Py_None;
+  }
+}
+
 static PyGetSetDef Package_getseters[] = {
-  {"name",       (getter)Package_get, (setter)Package_set, NULL, (void*)1},
-  {"shortname",  (getter)Package_get, (setter)Package_set, NULL, (void*)2},
-  {"version",    (getter)Package_get, (setter)Package_set, NULL, (void*)3},
-  {"arch",       (getter)Package_get, (setter)Package_set, NULL, (void*)4},
-  {"build",      (getter)Package_get, (setter)Package_set, NULL, (void*)5},
-  {"csize",      (getter)Package_get, (setter)Package_set, NULL, (void*)6},
-  {"usize",      (getter)Package_get, (setter)Package_set, NULL, (void*)7},
-  {"location",   (getter)Package_get, (setter)Package_set, NULL, (void*)8},
-  {"doinst",     (getter)Package_get, (setter)Package_set, NULL, (void*)9},
-  {"id",         (getter)Package_get, (setter)Package_set, NULL, (void*)10},
-  {"files",      (getter)Package_get, (setter)Package_set, NULL, (void*)11},
+  GS(name,1)
+  GS(shortname,2)
+  GS(version,3)
+  GS(arch,4)
+  GS(build,5)
+  GS(csize,6)
+  GS(usize,7)
+  GS(location,8)
+  GS(doinst,9)
+  GS(id,10)
+  GS(files,11)
   {NULL}
 };
 

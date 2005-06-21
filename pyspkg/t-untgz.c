@@ -102,8 +102,15 @@ static void Untgz_dealloc(Untgz* self)
   PyMem_DEL(self);
 }
 
+static int Untgz_set(Untgz *self, PyObject *value, void *closure)
+{
+  PyErr_SetString(PyExc_TypeError, "can't modify untgz object");
+  return -1;
+}
+
 #define GS_STR(n,id) case id: return self->s->n?PyString_FromString(self->s->n):PyString_FromString("");
 #define GS_INT(n,id) case id: return PyInt_FromLong(self->s->n);
+#define GS(n,id) {G_STRINGIFY(n), (getter)Untgz_get, (setter)Untgz_set, NULL, (void*)id},
 static PyObject* Untgz_get(Untgz *self, void *closure)
 {
   switch((int)closure)
@@ -129,13 +136,6 @@ static PyObject* Untgz_get(Untgz *self, void *closure)
   }
 }
 
-static int Untgz_set(Untgz *self, PyObject *value, void *closure)
-{
-  PyErr_SetString(PyExc_TypeError, "can't modify untgz object");
-  return -1;
-}
-
-#define GS(n,id) {G_STRINGIFY(n), (getter)Untgz_get, (setter)Untgz_set, NULL, (void*)id},
 static PyGetSetDef Untgz_getseters[] = {
   GS(tgzfile,1)
   GS(usize,2)
@@ -156,7 +156,7 @@ static PyGetSetDef Untgz_getseters[] = {
 };
 
 PySpkg_TypeMethod(get_header, "", Bool, 
-"Get next file's header from archive.")
+"Get next file's header from archive. Returns true if no more headers.")
 {
   if (untgz_get_header(self->s))
   {
@@ -173,7 +173,10 @@ PySpkg_TypeMethod(get_header, "", Bool,
 PySpkg_TypeMethod(write_file, "[path]", Bool, 
 "Write current file to disk.")
 {
-  if (untgz_write_file(self->s,0))
+  char* altname = 0;
+  if (!PyArg_ParseTuple(args, "|s:write_file", &altname))
+    return NULL;
+  if (untgz_write_file(self->s,altname))
   {
     if (untgz_error(self->s))
     {
@@ -186,9 +189,10 @@ PySpkg_TypeMethod(write_file, "[path]", Bool,
 }
 
 PySpkg_TypeMethod(write_data, "", Buffer, 
-"Write current file to disk.")
+"Get buffer with file content.")
 {
   gchar* b;
+  gchar* bb;
   guint s;
   if (untgz_write_data(self->s, &b, &s))
   {
@@ -199,7 +203,14 @@ PySpkg_TypeMethod(write_data, "", Buffer,
     }
     Py_RETURN_FALSE;
   }
-  return PyBuffer_FromMemory(b,s);
+  PyObject* buf = PyBuffer_New(s);
+  if (bb)
+  {
+    PyBuffer_Type.tp_as_buffer->bf_getwritebuffer(buf, 0, (void**)&bb);
+    memcpy(bb, b, s);
+  }
+  g_free(b);
+  return (PyObject*)buf;
 }
 
 static PyMethodDef Untgz_methods[] = {

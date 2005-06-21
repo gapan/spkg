@@ -28,26 +28,6 @@ static void File_dealloc(File* self)
   PyMem_DEL(self);
 }
 
-static PyObject* File_get(File *self, void *closure)
-{
-  switch((int)closure)
-  {
-    case 1: return PyString_FromString(self->file->path);
-    case 2: return PyString_FromString(self->file->link);
-    case 3: return PyInt_FromLong(self->file->refs);
-    case 4: return PyInt_FromLong(self->file->id);
-    default:
-      Py_INCREF(Py_None);
-      return Py_None;
-  }
-}
-
-static int File_set(File *self, PyObject *value, void *closure)
-{
-  PyErr_SetString(PyExc_TypeError, "can't modify file object");
-  return -1;
-}
-
 static int File_print(File *self, FILE *fp, int flags)
 {
   fprintf(fp, 
@@ -63,11 +43,34 @@ static int File_print(File *self, FILE *fp, int flags)
   return 0;
 }
 
+static int File_set(File *self, PyObject *value, void *closure)
+{
+  PyErr_SetString(PyExc_TypeError, "can't modify file object");
+  return -1;
+}
+
+#define GS_STR(n,id) case id: return self->file->n?PyString_FromString(self->file->n):PyString_FromString("");
+#define GS_INT(n,id) case id: return PyInt_FromLong(self->file->n);
+#define GS(n,id) {G_STRINGIFY(n), (getter)File_get, (setter)File_set, NULL, (void*)id},
+static PyObject* File_get(File *self, void *closure)
+{
+  switch((int)closure)
+  {
+    GS_STR(path,1)
+    GS_STR(link,2)
+    GS_INT(id,3)
+    GS_INT(refs,4)
+    default:
+      Py_INCREF(Py_None);
+      return Py_None;
+  }
+}
+
 static PyGetSetDef File_getseters[] = {
-  {"path",       (getter)File_get, (setter)File_set, NULL, (void*)1},
-  {"link",       (getter)File_get, (setter)File_set, NULL, (void*)2},
-  {"refs",       (getter)File_get, (setter)File_set, NULL, (void*)2},
-  {"id",         (getter)File_get, (setter)File_set, NULL, (void*)3},
+  GS(path,1)
+  GS(link,2)
+  GS(id,3)
+  GS(refs,4)
   {NULL}
 };
 

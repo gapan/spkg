@@ -1,7 +1,6 @@
 [pkgdb] pkg structure should be better defined (espec. required and optional fields)
 [pkgdb] handle package installation time
 [pkgdb] add full script to database (not stripped one)
-[pyspkg:untgz] buffer memmory management
 [untgz] extraction errors too strict? :)
 [untgz] machine readable errors?
 [untgz] use blockbuf instead of writebuf can speedup things slightly on the user side
