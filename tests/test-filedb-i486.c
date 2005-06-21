@@ -28,7 +28,6 @@ int main()
 
   i=0;
   f.link = 0;
-  f.mode = 0644;
   for (j=0; j<files_cnt; j++)
   {
     f.path = files[j];

@@ -537,22 +537,13 @@ gint db_legacy_add_pkg(struct db_pkg* pkg)
   );
   
   if (pkg->doinst)
-    fprintf(sf, "%s\n", pkg->doinst);
+    fprintf(sf, "%s", pkg->doinst);
 
   /* construct filelist and script for links creation */
   for (l=pkg->files; l!=0; l=l->next)
   {
     struct db_file* f = l->data;
-    if (f->link)
-    {
-      gchar* dn = g_path_get_dirname(f->path);
-      gchar* bn = g_path_get_basename(f->path);
-      fprintf(sf, "( cd %s ; rm -rf %s )\n"
-                  "( cd %s ; ln -sf %s %s )\n", dn, bn, dn, f->link, bn);
-      g_free(bn);
-      g_free(dn);
-    }
-    else
+    if (!f->link)
       fprintf(pf, "%s\n", f->path);
   }
 
@@ -575,7 +566,6 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
   gsize sp, ss=0;
   struct db_pkg* p=0;
   gchar *tmpstr;
-  gchar *doinst = 0;
 
   if (name == 0)
     return 0;
@@ -692,23 +682,13 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
       g_free(link);
       p->files = g_slist_prepend(p->files, db_alloc_file(path,target));
     }
-    else if (!parse_cleanuplink(ln))
-    {
-      /* append doinst.sh buffer */
-      gchar* nd;
-      if (doinst)
-        nd = g_strdup_printf("%s%s\n", doinst, ln);
-      else
-        nd = g_strdup_printf("%s\n", ln);
-      g_free(doinst);
-      doinst = nd;          
-    }
     g_free(ln);
   }
 
+  p->doinst = g_strndup(as,ss-1);
+
  fini:
   p->files = g_slist_reverse(p->files);
-  p->doinst = doinst;
   goto no_err;
 
  err_1:

@@ -21,11 +21,11 @@ int main(int ac, char* av[])
   atexit(db_close);
   
   start_timer(0);
-  struct db_pkg* pkg = db_legacy_get_pkg("tetex-2.0.2-i386-1");
+  struct db_pkg* pkg = db_legacy_get_pkg("tetex-2.0.2-i386-1",1);
   stop_timer(0);
 
   start_timer(1);
-  pkg = db_legacy_get_pkg("ncurses-5.4-i486-2");
+  pkg = db_legacy_get_pkg("ncurses-5.4-i486-2",1);
   stop_timer(1);
   
   print_timer(0, "P");

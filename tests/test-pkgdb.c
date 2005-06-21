@@ -18,7 +18,7 @@ static USED void add_pkg(gchar* name)
   struct db_pkg* pkg;
   printf("loading legacy pkg %s...\n", name);
   fflush(stdout);
-  pkg = db_legacy_get_pkg(name);
+  pkg = db_legacy_get_pkg(name,1);
   if (pkg == 0)
   {
     fprintf(stderr, "%s\n", db_error());

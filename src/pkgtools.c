@@ -67,6 +67,7 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   gchar *name, *shortname;
   struct untgz_state* tgz=0;
   struct db_pkg* pkg=0;
+  gchar* doinst = 0;
 
   _pkg_reset_error();
 
@@ -162,7 +163,6 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
       gchar* buf;
       gsize len;
       untgz_write_data(tgz,&buf,&len);
-      gchar* doinst = 0;
       
       gchar *b, *e, *ln, *n=buf;
       while(iter_lines(&b, &e, &n, &ln))
@@ -192,7 +192,7 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
         }
         g_free(ln);
       }
-      pkg->doinst = doinst;
+      pkg->doinst = buf;
       continue;
     }
 

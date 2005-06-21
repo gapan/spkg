@@ -12,7 +12,7 @@ spkg = Extension('spkg',
   libraries = ['spkg', 'glib-2.0', 'sqlite3', 'z'],
   library_dirs = ['libs/sqlite', 'libs/glib', '.build', '/usr/lib'],
   sources = src,
-  depends = ['pyspkg/pyspkg.h', 'pyspkg/pyspkg-priv.h']
+  depends = ['pyspkg/pyspkg.h', 'pyspkg/pyspkg-priv.h', '.build/libspkg.a']
 )
 
 setup(
