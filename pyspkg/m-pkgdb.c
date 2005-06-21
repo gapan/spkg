@@ -11,8 +11,8 @@
 
 PySpkg_Method(db_open, "[root]", Null, "Open database.")
 {
-  const char* root;
-  if (PyArg_ParseTuple(args, "s", &root))
+  const char* root=0;
+  if (PyArg_ParseTuple(args, "|s:db_open", &root))
   {
     if (db_open(root))
     {
@@ -22,21 +22,6 @@ PySpkg_Method(db_open, "[root]", Null, "Open database.")
     Py_INCREF(Py_None);
     return Py_None;
   }
-  if (PyErr_Occurred())
-    PyErr_Clear();
-  if (PyArg_ParseTuple(args, ""))
-  {
-    if (db_open(0))
-    {
-      PyErr_SetString(PySpkgErrorObject, db_error()?db_error():"db err");
-      return NULL;
-    }
-    Py_INCREF(Py_None);
-    return Py_None;
-  }
-  if (PyErr_Occurred())
-    PyErr_Clear();
-  PyErr_SetString(PySpkgErrorObject, "invalid arguments");
   return NULL;
 }
 
@@ -48,7 +33,6 @@ PySpkg_Method(db_close, "", Null, "Close database.")
     Py_INCREF(Py_None);
     return Py_None;
   }
-  PyErr_SetString(PySpkgErrorObject, "invalid arguments");
   return NULL;
 }
 
@@ -79,10 +63,7 @@ PySpkg_Method(db_legacy_get_pkg, "name, files", Package,
   char* name;
   int files;
   if (!PyArg_ParseTuple(args, "si", &name, &files))
-  {
-    PyErr_SetString(PySpkgErrorObject, "invalid arguments");
     return NULL;
-  }
   struct db_pkg* p = db_legacy_get_pkg(name,files);
   if (p == 0)
   {
@@ -125,41 +106,41 @@ PySpkg_Method(db_get_packages, "", Packages,
 PySpkg_Method(db_add_pkg, "pkg", Null,
 "Add package to the database")
 {
-  PyErr_SetString(PySpkgErrorObject, "not implemented");
+  PyErr_SetString(PySpkgErrorObject, "not binded");
   return NULL;
 }
 
 PySpkg_Method(db_rem_pkg, "name", Null,
 "Remove package from the database")
 {
-  PyErr_SetString(PySpkgErrorObject, "not implemented");
+  PyErr_SetString(PySpkgErrorObject, "not binded");
   return NULL;
 }
 
 PySpkg_Method(db_legacy_add_pkg, "pkg", Null,
 "Add package to the legacy database")
 {
-  PyErr_SetString(PySpkgErrorObject, "not implemented");
+  PyErr_SetString(PySpkgErrorObject, "not binded");
   return NULL;
 }
 
 PySpkg_Method(db_legacy_rem_pkg, "name", Null,
 "Remove package from the legacy database")
 {
-  PyErr_SetString(PySpkgErrorObject, "not implemented");
+  PyErr_SetString(PySpkgErrorObject, "not binded");
   return NULL;
 }
 
 PySpkg_Method(db_sync_to_legacydb, "", Null,
 "Synchronize legacy database with spkg database")
 {
-  PyErr_SetString(PySpkgErrorObject, "not implemented");
+  PyErr_SetString(PySpkgErrorObject, "not binded");
   return NULL;
 }
 
 PySpkg_Method(db_sync_from_legacydb, "", Null,
 "Synchronize spkg database with legacy database")
 {
-  PyErr_SetString(PySpkgErrorObject, "not implemented");
+  PyErr_SetString(PySpkgErrorObject, "not binded");
   return NULL;
 }

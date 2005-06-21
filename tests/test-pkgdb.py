@@ -9,11 +9,9 @@ def print_package(p):
 db_open()
 
 print 'Listing legacy database:'
-pkgs = db_legacy_get_packages()
-for p in pkgs: print_package(p)
+for p in db_legacy_get_packages(): print_package(p)
 
 print 'Listing spkg database:'
-pkgs = db_get_packages()
-for p in pkgs: print_package(p)
+for p in db_get_packages(): print_package(p)
 
 db_close()
