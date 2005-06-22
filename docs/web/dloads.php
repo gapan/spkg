@@ -22,7 +22,7 @@
   <p>Prerequisites for building @SPKG@ are:</p>
   <ul>
    <li><a href="http://www.sqlite.org">sqlite-3.2.2</a> - lightweight SQL database engine</li>
-   <li><a href="http://www.gtk.org">glib-2.6.5</a> - general purporse C library</li>
+   <li><a href="http://www.gtk.org">glib-2.6.5</a> - general purpose C library</li>
   </ul>
 
  <h1>Building</h1>

@@ -1,13 +1,15 @@
+[filedb] implement filedb transactions, locking, checksums
+[filedb] store arbitrary data in filedb, multiple open filedbs (for pruning deleted files)
+
+[pkgdb] get packages should allow for multiple modes of operation (only names, no files and full)
 [pkgdb] how should we handle symlinks in pkgdb?
 [pkgdb] more open modes (for reading only, etc.)
-[pkgdb] get packages should allow for multiple modes of operation (only names, no files and full)
 [untgz] write_data and empty files?
 [pkgdb] pkg structure should be better defined (espec. required and optional fields)
 [pkgdb] handle package installation time
 [untgz] extraction errors too strict or not? :-)
 [untgz] machine readable errors? (errnos)
 [untgz] use of blockbuf instead of writebuf can speedup things slightly on the user side
-[filedb] implement filedb transactions, locking, checksums
 [doc] finish readmes
 [doc] fix manpage
 [pkgtools] add option to do script preprocessing for faster link creation
