@@ -9,9 +9,7 @@ testdir = tests
 
 compiled-tests = \
   test-pkgdb-legacy \
-  test-filedb-i486 \
-  test-filedb-speed1 \
-  test-filedb-speed2 \
+  test-filedb-speed \
   test-pkgdb \
   test-pkgtools \
   test-sql-speed \
@@ -19,7 +17,7 @@ compiled-tests = \
   test-untgz \
   test-parsers
 
-test-filedb-i486 test-filedb-speed1 test-filedb-speed2 test-sql-speed: test-files.so
+test-filedb-speed test-sql-speed: test-files.so
 
 .PHONY: tests
 tests: $(compiled-tests)

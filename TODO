@@ -1,5 +1,6 @@
-[filedb] implement filedb transactions, locking, checksums
-[filedb] store arbitrary data in filedb, multiple open filedbs (for pruning deleted files)
+[filedb] autogrow needs different pointer handling mechanism (not implemented now)
+[filedb] implement filedb transactions and locking
+[filedb] better error checking/reporting
 
 [pkgdb] get packages should allow for multiple modes of operation (only names, no files and full)
 [pkgdb] how should we handle symlinks in pkgdb?

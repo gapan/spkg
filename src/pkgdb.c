@@ -30,6 +30,7 @@ static gchar* _db_dbfile = 0;
 static gchar* _db_dbroot = 0;
 static gchar* _db_errstr = 0;
 static gint   _db_errno = 0;
+static struct fdb* _db_fdb = 0;
 
 static __inline__ void _db_reset_error()
 {
@@ -123,17 +124,18 @@ gint db_open(const gchar* root)
   }
 
   /* open file database */
-  if (fdb_open(_db_dbroot))
+  _db_fdb = fdb_open(_db_dbroot);
+  if (fdb_error(_db_fdb))
   {
-    _db_set_error(DB_OTHER, "can't open file database\n%s", fdb_error());
-    goto err1;
+    _db_set_error(DB_OTHER, "can't open file database\n%s", fdb_error(_db_fdb));
+    goto err2;
   }
 
   /* open sql database */
   if (sql_open(_db_dbfile))
   {
     _db_set_error(DB_OTHER, "can't open package database (sql open failed)\n");
-    goto err1;
+    goto err2;
   }
 
   /* setup sql error handling */
@@ -141,13 +143,13 @@ gint db_open(const gchar* root)
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
     _db_set_error(DB_OTHER, "can't open package database (sql error)\n%s", sql_error());
-    goto err2;
+    goto err3;
   }
   
   if (!sql_integrity_check())
   { /* sql exception occured */
     _db_set_error(DB_OTHER, "can't open package database (database is corrupted)");
-    goto err2;
+    goto err3;
   }
 
   /* sqlite setup */
@@ -182,13 +184,19 @@ gint db_open(const gchar* root)
   stop_timer(0);
   return 0;
 
- err2:
+ err3:
   sql_close();
+ err2:
+  fdb_close(_db_fdb);
+  _db_fdb = 0;
  err1:
   g_free(_db_dbfile);
+  _db_dbfile = 0;
   g_free(_db_dbroot);
+  _db_dbroot = 0;
  err0:
   g_free(_db_topdir);
+  _db_topdir = 0;
   return 1;
 }
 
@@ -196,7 +204,8 @@ void db_close()
 {
   continue_timer(1);
   _db_reset_error();
-  fdb_close();
+  fdb_close(_db_fdb);
+  _db_fdb = 0;
   sql_close();
   g_free(_db_dbfile);
   g_free(_db_topdir);
@@ -328,7 +337,7 @@ gint db_add_pkg(struct db_pkg* pkg)
     struct fdb_file fdb;
     fdb.path = f->path;
     fdb.link = f->link;    
-    f->id = fdb_add_file(&fdb);
+    f->id = fdb_add_file(_db_fdb, &fdb);
     f->refs = fdb.refs;
     fi_array[i++] = f->id;
   }
@@ -422,7 +431,7 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   struct db_file* file;
   for (i=0; i<fi_size; i++)
   {
-    fdb_get_file(fi_array[i], &f);
+    fdb_get_file(_db_fdb, fi_array[i], &f);
     file = g_new0(struct db_file, 1);
     file->path = g_strdup(f.path);
     file->link = f.link?g_strdup(f.link):0;
@@ -477,7 +486,7 @@ gint db_rem_pkg(gchar* name)
   guint32 *fi_array = (guint32*)sql_get_blob(q, 1);
   guint i;
   for (i=0; i<fi_size; i++)
-    fdb_del_file(fi_array[i]);
+    fdb_rem_file(_db_fdb, fi_array[i]);
   
   sql_fini(q);
 

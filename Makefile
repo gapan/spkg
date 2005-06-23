@@ -21,6 +21,7 @@ ifeq ($(DEBUG),yes)
 CFLAGS +=  -ggdb3 -O0
 CPPFLAGS += -D__DEBUG=1
 else
+#CFLAGS += -ggdb1 -O2 -march=i486 -mtune=i686 -fomit-frame-pointer
 CFLAGS += -ggdb1 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer
 endif
 ifeq ($(BENCH),yes)

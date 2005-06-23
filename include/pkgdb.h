@@ -27,9 +27,9 @@
 #define DB_EXIST  5 /**< other package with same name exist (when adding into db) */
 
 typedef enum {
-  DB_GET_ALL   0, /**< get everything */
-  DB_GET_BASIC 1, /**< get basic info (everyhing except file list and doinst.sh) */
-  DB_GET_NAMES 2  /**< get only names of packages */
+  DB_GET_ALL=0, /**< get everything */
+  DB_GET_BASIC, /**< get basic info (everyhing except file list and doinst.sh) */
+  DB_GET_NAMES  /**< get only names of packages */
 } db_get_type;
 
 /** File information structure. */

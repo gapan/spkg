@@ -7,7 +7,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "filedb.h"
-#include "bench.h"
 
 extern unsigned int files_cnt;
 extern char* files[];
@@ -16,33 +15,26 @@ int main()
 {
   gint j,id,i;
   struct fdb_file f;
+  struct fdb* db;
   
   nice(-10);
-  unlink("filedb/idx");
-  unlink("filedb/pld");
+  unlink(".filedb/idx");
+  unlink(".filedb/pld");
   
-  if (fdb_open("."))
+  db = fdb_open(".filedb");
+  if (fdb_error(db))
   {
-    printf("%s\n", fdb_error());
+    printf("%s\n", fdb_error(db));
+    fdb_close(db);
     return 1;
   }
 
-  reset_timer(0);
   i=0;
   f.link = 0;
   for (j=0; j<files_cnt; j++)
   {
     f.path = files[j];
-    continue_timer(0);
-    id = fdb_add_file(&f);
-    stop_timer(0);
-    if (++i == 5000)
-    {
-      i=0;
-      printf("%u %lg\n", j+1, get_timer(0));
-      reset_timer(0);
-    }
-
+    id = fdb_add_file(db, &f);
     if (id == 0)
     {
       printf("error\n");
@@ -50,7 +42,17 @@ int main()
     }
   }
 
-  fdb_close();
+  for (j=0; j<files_cnt; j++)
+  {
+    id = fdb_get_file_id(db,files[j]);
+    if (id == 0)
+    {
+      printf("error\n");
+      break;
+    }
+  }
+
+  fdb_close(db);
 
   return 0;
 }
