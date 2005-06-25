@@ -9,7 +9,6 @@
 #include <string.h>
 
 #include "sql.h"
-#include "bench.h"
 
 //#define trace() do { printf("trace[sql]: %s\n", __func__); } while(0)
 #define trace() do { } while (0)
@@ -51,8 +50,19 @@ static void __sql_on_error(const gchar* func, const gchar* fmt, ...)
   gchar* errtail;
   trace();  
 
+  switch (_sql_context_erract)
+  {
+    default:
+    case SQL_ERREXIT:
+      errhead = g_strdup_printf("error[sql:%s]: ", func);
+    break;
+    case SQL_ERRJUMP:
+    case SQL_ERRINFORM:
+    case SQL_ERRIGNORE:
+      errhead = g_strdup_printf("error in %s: ", func);
+  }
+
   /* store error message */
-  errhead = g_strdup_printf("error[%s]: ", func);
   va_start(ap, fmt);
   errtail = g_strdup_vprintf(fmt, ap);
   va_end(ap);
@@ -142,8 +152,6 @@ gint sql_open(const gchar* file)
 {
   trace();  
 
-  reset_timers();
-  continue_timer(0);
   g_assert(_sql_db == 0);
   g_assert(file != 0);
 
@@ -154,11 +162,9 @@ gint sql_open(const gchar* file)
   if (rs == SQLITE_OK)
   {
     _sql_db = db;
-    stop_timer(0);
     return 0;
   }
   sqlite3_close(db);
-  stop_timer(0);
   return 1;
 }
 
@@ -166,7 +172,6 @@ void sql_close()
 {
   trace();  
 
-  continue_timer(1);
   g_assert(_sql_db != 0);
 
   _sql_reset_error();
@@ -180,10 +185,6 @@ void sql_close()
   gint rs = sqlite3_close(_sql_db);
   g_assert(rs == SQLITE_OK);
   _sql_db = 0;
-  stop_timer(1);
-
-  print_timer(0, "[sql] sql_open");
-  print_timer(1, "[sql] sql_close");
 }
 
 gchar* sql_error()

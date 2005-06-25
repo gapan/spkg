@@ -14,6 +14,7 @@ const gchar* root = "root";
 int main(int ac, char* av[])
 {
   int i;
+  struct error* err = e_new();
 
   if (db_open(root))
   {
@@ -24,9 +25,10 @@ int main(int ac, char* av[])
   for (i=1;i<ac;i++)
   {
     printf("installing: %s\n", av[i]);
-    if (pkg_install(av[i], root, 0, 0))
+    if (pkg_install(av[i], root, 0, 0, err))
     {
-      printf("%s\n", pkg_error());
+      printf("%s\n", e_string(err));
+      e_free(err);
       break;
     }
   }

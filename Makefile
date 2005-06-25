@@ -32,7 +32,7 @@ CPPFLAGS += -DG_DISABLE_ASSERT
 endif
 
 objs-spkg := main.o pkgtools.o untgz.o sys.o sql.o filedb.o pkgdb.o \
-  pkgname.o taction.o
+  pkgname.o taction.o error.o
 
 # magic barrier
 export MAKEFLAGS += --no-print-directory -r

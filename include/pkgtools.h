@@ -15,13 +15,12 @@
 #define __PKGTOOLS_H
 
 #include <glib.h>
+#include "error.h"
 
-/** Returns description of the error if one occured in the last pkg
- * library call.
- *
- * @return Error string on error, 0 otherwise
- */
-extern gchar* pkg_error();
+#define PKG_OK    0 /**< no error */
+#define PKG_EXIST 1 /**< file exist */
+#define PKG_NOTEX 2 /**< file not exist */
+#define PKG_OTHER 3 /**< other error */
 
 /** Install package.
  * 
@@ -31,7 +30,13 @@ extern gchar* pkg_error();
  * @param verbose Be verbose.
  * @return 0 on success, 1 on error
  */
-extern gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gboolean verbose);
+extern gint pkg_install(
+  const gchar* pkgfile,
+  const gchar* root,
+  gboolean dryrun,
+  gboolean verbose,
+  struct error* e
+);
 
 /** Upgrade package <b>[not implemented]</b>.
  * 
@@ -41,7 +46,13 @@ extern gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun
  * @param verbose Be verbose.
  * @return 0 on success, 1 on error
  */
-extern gint pkg_upgrade(const gchar* pkgfile, const gchar* root, gboolean dryrun, gboolean verbose);
+extern gint pkg_upgrade(
+  const gchar* pkgfile,
+  const gchar* root,
+  gboolean dryrun,
+  gboolean verbose,
+  struct error* e
+);
 
 /** Remove package <b>[not implemented]</b>.
  * 
@@ -51,9 +62,14 @@ extern gint pkg_upgrade(const gchar* pkgfile, const gchar* root, gboolean dryrun
  * @param verbose Be verbose.
  * @return 0 on success, 1 on error
  */
-extern gint pkg_remove(const gchar* name, const gchar* root, gboolean dryrun, gboolean verbose);
+extern gint pkg_remove(
+  const gchar* name,
+  const gchar* root,
+  gboolean dryrun,
+  gboolean verbose,
+  struct error* e
+);
 
 #endif
 
 /*! @} */
-

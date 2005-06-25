@@ -21,14 +21,13 @@
 /* private 
  ************************************************************************/
 
-#define PLD_SIZE_LIMIT 16
-#define IDX_SIZE_LIMIT 8
+#define PLD_SIZE_LIMIT 64
+#define IDX_SIZE_LIMIT 32
 #define MAXHASH (1024*128)
 
-#define FDB_CHECKSUMS 0
+#define FDB_CHECKSUMS 1
 
-/* autogrow is not that easy, because it would require change in idx pointers
-   handling */
+/* autogrow is complicated, disabled for now (bcause not fully implemented) */
 #define FDB_AUTOGROW 0
 
 #define SHOW_STATS 1
@@ -150,6 +149,24 @@ struct file_pld {
 /* filedb on-disk data structures manipulation functions
  ************************************************************************/
 
+#if FDB_AUTOGROW == 1
+static __inline__ void _fdb_grow_mmaped_file(struct fdb* db, void* adr, gsize* size, gint fd)
+{
+  msync(adr, *size, MS_ASYNC);
+  gsize new_size = *size+GROWTH_FACTOR;
+  lseek(fd,SEEK_SET,new_size-1);
+  gchar z = 0;
+  write(fd, &z, 1);
+  void* newaddr = mremap(adr, MMAPSIZE, MMAPSIZE, /*MREMAP_MAYMOVE*/0);
+  if (newaddr == (void*)-1)
+  {
+    _fdb_set_error(db,FDB_OTHER,"autogrow failed (mremap returned with error: %s)", strerror(errno));
+    longjmp(db->errjmp,1);
+  }
+  *size = new_size;
+}
+#endif
+
 static __inline__ guint32 _fdb_new_pld(struct fdb* db, const gchar* path, const void* data, const guint16 dlen)
 {
   guint32 size_path = strlen(path);
@@ -157,9 +174,7 @@ static __inline__ guint32 _fdb_new_pld(struct fdb* db, const gchar* path, const 
   if (G_UNLIKELY(db->newoff + size_entry > db->size_pld))
   {
 #if FDB_AUTOGROW == 1
-    /*XXX: implement autogrow */
-    _fdb_set_error(db,FDB_OTHER,"autogrow not implemented (pld full)");
-    longjmp(db->errjmp,1);
+    _fdb_grow_mmaped_file(db, db->addr_pld, &db->size_pld, db->fd_pld);
 #else
     _fdb_set_error(db,FDB_OTHER,"pld file is full");
     longjmp(db->errjmp,1);
@@ -208,9 +223,7 @@ static __inline__ guint32 _fdb_new_idx(struct fdb* db, guint32 offset, guint32 h
   if (G_UNLIKELY(sizeof(struct file_idx_hdr) + id*sizeof(struct file_idx) > db->size_idx))
   {
 #if FDB_AUTOGROW == 1
-    /*XXX: implement autogrow */
-    _fdb_set_error(db,FDB_OTHER,"autogrow not implemented (idx full)");
-    longjmp(db->errjmp,1);
+    _fdb_grow_mmaped_file(db, db->addr_idx, &db->size_idx, db->fd_idx);
 #else
     _fdb_set_error(db,FDB_OTHER,"pld file is full");
     longjmp(db->errjmp,1);
@@ -555,8 +568,10 @@ struct fdb* fdb_open(const gchar* path)
   }
   
   /* get file sizes */
+  continue_timer(10);
   db->size_idx = lseek(db->fd_idx, 0, SEEK_END);
   db->size_pld = lseek(db->fd_pld, 0, SEEK_END);
+  stop_timer(10);
   if (db->size_idx == -1 || db->size_pld == -1)
   {
     _fdb_set_error(db, FDB_OTHER, "lseek failed: %s", strerror(errno));
@@ -593,9 +608,9 @@ struct fdb* fdb_open(const gchar* path)
   else
   {
     struct file_idx_hdr head;
-    if (db->size_idx != IDX_SIZE_LIMIT*1024*1024)
+    if (db->size_idx < sizeof(head))
     {
-      _fdb_set_error(db, FDB_OTHER, "invalid idx file (its size must be multiple of 4096)");
+      _fdb_set_error(db, FDB_OTHER, "invalid idx file (file too small)");
       goto err_3;
     }
 
@@ -609,7 +624,7 @@ struct fdb* fdb_open(const gchar* path)
 
     if (head.lastid*sizeof(struct file_idx)+sizeof(head) > db->size_idx)
     {
-      _fdb_set_error(db, FDB_OTHER, "invalid idx file (corrupted)");
+      _fdb_set_error(db, FDB_OTHER, "invalid idx file (file too small to fit entries given by lastid)");
       goto err_3;
     }
   }
@@ -632,9 +647,9 @@ struct fdb* fdb_open(const gchar* path)
   else
   {
     struct file_pld_hdr head;
-    if (db->size_pld != PLD_SIZE_LIMIT*1024*1024)
+    if (db->size_pld < sizeof(head))
     {
-      _fdb_set_error(db, FDB_OTHER, "invalid pld file (its size must be multiple of 4096)");
+      _fdb_set_error(db, FDB_OTHER, "invalid pld file (file too small)");
       goto err_3;
     }
 
@@ -653,10 +668,10 @@ struct fdb* fdb_open(const gchar* path)
   }
   
   /* do mmaps of payload and index */
-  db->addr_idx = mmap(0, db->size_idx, PROT_READ|PROT_WRITE, MAP_SHARED/*|MAP_LOCKED*/, db->fd_idx, 0);
+  db->addr_idx = mmap(0, db->size_idx, PROT_READ|PROT_WRITE, MAP_SHARED, db->fd_idx, 0);
   if (db->addr_idx == (void*)-1)
     goto err_3;
-  db->addr_pld = mmap(0, db->size_pld, PROT_READ|PROT_WRITE, MAP_SHARED/*|MAP_LOCKED*/, db->fd_pld, 0);
+  db->addr_pld = mmap(0, db->size_pld, PROT_READ|PROT_WRITE, MAP_SHARED, db->fd_pld, 0);
   if (db->addr_pld == (void*)-1)
     goto err_4;
   db->idx = db->addr_idx + sizeof(struct file_idx_hdr);
@@ -706,8 +721,8 @@ void fdb_close(struct fdb* db)
   guint32 is = (db->lastid*sizeof(struct file_idx)+sizeof(struct file_idx_hdr));
   guint32 ps = db->newoff;
   printf("** filedb: pld size = %u kB (%1.1lf%%), idx size = %u kB (%1.1lf%%) (%u files)\n", 
-    ps/1024, 100.0*ps/(1024*1024*PLD_SIZE_LIMIT),
-    is/1024, 100.0*is/(1024*1024*IDX_SIZE_LIMIT), db->lastid);
+    ps/1024, 100.0*ps/db->size_pld,
+    is/1024, 100.0*is/db->size_idx, db->lastid);
 #endif
 
   msync(db->addr_pld, db->size_pld, MS_ASYNC);
@@ -770,9 +785,7 @@ guint32 fdb_add_file(struct fdb* db, const struct fdb_file* file)
     _fdb_set_error(db, FDB_OTHER, "file path must be set at least");
     return 0;
   }
-  id = _fdb_insert_node(db,file);
-  if (id==0)
-    _fdb_set_error(db, FDB_OTHER, "failed to add file");
+  id = _fdb_insert_node(db,file); /* always ok */ 
   stop_timer(2);
   return id;
 }
@@ -788,7 +801,7 @@ guint32 fdb_get_file_id(struct fdb* db, const gchar* path)
   guint32 root = db->ihdr->hashmap[hash%MAXHASH];
 
   if (root == 0)
-    return 0;
+    goto not_fnd;
   for (p=_idx_from_id(db,root); p!=NULL; )
   {
     gint cmp = _fdb_strcmp(hash, path, p->hash, _pld_from_idx(db,p)->path);
@@ -801,10 +814,12 @@ guint32 fdb_get_file_id(struct fdb* db, const gchar* path)
       stop_timer(3);
       if (p->refs)
         return _id_from_idx(db,p);
-      return 0;
+      goto not_fnd;
     }
   }
   stop_timer(3);
+ not_fnd:
+  _fdb_set_error(db, FDB_NOTEX, "file not found (%s)", path);
   return 0;
 }
 
