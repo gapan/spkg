@@ -68,6 +68,7 @@ struct Untgz_t
   PyObject_HEAD
   struct untgz_state* s;
   PyObject* callback;
+  struct error* e;
 };
 
 extern PyObject* PySpkgErrorObject;

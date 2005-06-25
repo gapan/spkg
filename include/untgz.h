@@ -20,21 +20,24 @@ Following code shows typical \ref untgz_api usage.
 
 void status(struct untgz_state* tgz, gsize total, gsize current)
 {
-  printf("%d%% done\n", 100*current/total);
+  printf("%d\n", 100*current/total);
   fflush(stdout);
 }
 
 int main(int ac, char* av[])
 {
   gint i;
+  struct error* err = e_new();
+
   // For each file do:
   for (i=1;i<ac;i++)
   {
     // Open tgz file.
-    struct untgz_state* tgz = untgz_open(av[i], status);
+    struct untgz_state* tgz = untgz_open(av[i], status, err);
     if (tgz == 0)
     {
-      fprintf(stderr, "error: can't open tgz file\n");
+      e_print(err);
+      e_clean(err);
       continue;
     }
     // While we can successfully get next file's header from the archive...
@@ -48,15 +51,18 @@ int main(int ac, char* av[])
       }
     }
     // And if something went wrong...
-    if (untgz_error(tgz))
+    if (!e_ok(err))
     {
       // ...we will alert user.
-      fprintf(stderr, "error: %s\n", untgz_error(tgz));
+      e_print(err);
+      e_clean(err);
     }
     
     // Close file.
     untgz_close(tgz);
   }
+
+  e_free(err);
   return 0;
 }
 @endcode
@@ -69,8 +75,7 @@ int main(int ac, char* av[])
 #define __UNTGZ_H
 
 #include <glib.h>
-#include <zlib.h>
-#include <setjmp.h>
+#include "error.h"
 
 /** File type. */
 typedef enum { 
@@ -123,20 +128,13 @@ typedef void(*untgz_status_cb)(struct untgz_state* s, gsize total, gsize current
  *            where lseek is not posible.
  * @return Pointer to the \ref untgz_state object on success, 0 on error.
  */
-extern struct untgz_state* untgz_open(const gchar* tgzfile, untgz_status_cb scb);
+extern struct untgz_state* untgz_open(const gchar* tgzfile, untgz_status_cb scb, struct error* e);
 
 /** Close archive and free \ref untgz_state object.
  *
  * @param s Pointer to the \ref untgz_state object.
  */
 extern void untgz_close(struct untgz_state* s);
-
-/** Get last error description.
- *
- * @param s Pointer to the \ref untgz_state object.
- * @return g_malloced error string, 0 if no error.
- */
-extern gchar* untgz_error(struct untgz_state* s);
 
 /** Read next file header from the archive.
  *

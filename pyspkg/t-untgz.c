@@ -73,14 +73,16 @@ static int Untgz_init(Untgz *self, PyObject *args, PyObject *kwds)
   if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|O!:Untgz", kwlist, &path, &PyFunction_Type, &cb))
     return -1; 
 
+  self->e = e_new();
+  
   struct untgz_state* s;
   if (cb)
-    s = untgz_open(path,cb_call);
+    s = untgz_open(path,cb_call,self->e);
   else
-    s = untgz_open(path,0);
+    s = untgz_open(path,0,self->e);
   if (s == 0)
   {
-    PyErr_SetString(PySpkgErrorObject, "can't open tgz file");
+    PyErr_SetString(PySpkgErrorObject, e_string(self->e));
     return -1;
   }
 
@@ -93,6 +95,7 @@ static int Untgz_init(Untgz *self, PyObject *args, PyObject *kwds)
 
 static void Untgz_dealloc(Untgz* self)
 {
+  e_free(self->e);
   if (self->s)
   {
     cb_rem(self->s);
@@ -160,9 +163,9 @@ PySpkg_TypeMethod(get_header, "", Bool,
 {
   if (untgz_get_header(self->s))
   {
-    if (untgz_error(self->s))
+    if (!e_ok(self->e))
     {
-      PyErr_SetString(PySpkgErrorObject, untgz_error(self->s));
+      PyErr_SetString(PySpkgErrorObject, e_string(self->e));
       return NULL;
     }
     Py_RETURN_FALSE;
@@ -178,9 +181,9 @@ PySpkg_TypeMethod(write_file, "[path]", Bool,
     return NULL;
   if (untgz_write_file(self->s,altname))
   {
-    if (untgz_error(self->s))
+    if (!e_ok(self->e))
     {
-      PyErr_SetString(PySpkgErrorObject, untgz_error(self->s));
+      PyErr_SetString(PySpkgErrorObject, e_string(self->e));
       return NULL;
     }
     Py_RETURN_FALSE;
@@ -196,15 +199,15 @@ PySpkg_TypeMethod(write_data, "", Buffer,
   guint s;
   if (untgz_write_data(self->s, &b, &s))
   {
-    if (untgz_error(self->s))
+    if (!e_ok(self->e))
     {
-      PyErr_SetString(PySpkgErrorObject, untgz_error(self->s));
+      PyErr_SetString(PySpkgErrorObject, e_string(self->e));
       return NULL;
     }
     Py_RETURN_FALSE;
   }
   PyObject* buf = PyBuffer_New(s);
-  if (bb)
+  if (b)
   {
     PyBuffer_Type.tp_as_buffer->bf_getwritebuffer(buf, 0, (void**)&bb);
     memcpy(bb, b, s);

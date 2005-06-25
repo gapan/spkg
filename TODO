@@ -1,3 +1,5 @@
+[*] error reporting from open functions
+
 [filedb] autogrow needs different pointer handling mechanism (not implemented now)
 [filedb] implement filedb transactions and locking
 [filedb] better error checking/reporting

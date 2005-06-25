@@ -17,15 +17,18 @@ void status(struct untgz_state* tgz, gsize total, gsize current)
 int main(int ac, char* av[])
 {
   gint i;
+  struct error* err = e_new();
+
   // For each file do:
   for (i=1;i<ac;i++)
   {
     // Open tgz file.
-//    struct untgz_state* tgz = untgz_open(av[i], status);
-    struct untgz_state* tgz = untgz_open(av[i], 0);
+    struct untgz_state* tgz = untgz_open(av[i], status, err);
+//    struct untgz_state* tgz = untgz_open(av[i], 0, err);
     if (tgz == 0)
     {
-      fprintf(stderr, "error: can't open tgz file\n");
+      e_print(err);
+      e_clean(err);
       continue;
     }
     // While we can successfully get next file's header from the archive...
@@ -39,14 +42,17 @@ int main(int ac, char* av[])
       }
     }
     // And if something went wrong...
-    if (untgz_error(tgz))
+    if (!e_ok(err))
     {
       // ...we will alert user.
-      fprintf(stderr, "error: %s\n", untgz_error(tgz));
+      e_print(err);
+      e_clean(err);
     }
     
     // Close file.
     untgz_close(tgz);
   }
+
+  e_free(err);
   return 0;
 }

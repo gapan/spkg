@@ -77,7 +77,7 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   /*XXX: check for shortname match (maybe) */
 
   /* open tgz */
-  tgz = untgz_open(pkgfile, 0);
+  tgz = untgz_open(pkgfile, 0, e);
   if (tgz == 0)
   {
     e_set(PKG_OTHER,"can't open package file (%s)", pkgfile);
@@ -196,7 +196,7 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   }
   
   /* error occured during extraction */
-  if (untgz_error(tgz))
+  if (!e_ok(e))
   {
     /*xxx: prepend */
 //    untgz_error(tgz);
