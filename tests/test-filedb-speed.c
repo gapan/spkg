@@ -16,18 +16,15 @@ int main()
   gint j,id,i;
   struct fdb_file f;
   struct fdb* db;
+  struct error* err = e_new();
   
   nice(-10);
   unlink(".filedb/idx");
   unlink(".filedb/pld");
   
-  db = fdb_open(".filedb");
-  if (fdb_error(db))
-  {
-    printf("%s\n", fdb_error(db));
-    fdb_close(db);
-    return 1;
-  }
+  db = fdb_open(".filedb", err);
+  if (!e_ok(err))
+    goto err_0;
 
   i=0;
   f.link = 0;
@@ -35,24 +32,21 @@ int main()
   {
     f.path = files[j];
     id = fdb_add_file(db, &f);
-    if (id == 0)
-    {
-      printf("%s\n", fdb_error(db));
-      break;
-    }
+    if (!e_ok(err))
+      goto err_0;
   }
 
   for (j=0; j<files_cnt; j++)
   {
     id = fdb_get_file_id(db,files[j]);
-    if (id == 0)
-    {
-      printf("%s\n", fdb_error(db));
-      break;
-    }
+    if (!e_ok(err))
+      goto err_0;
   }
 
   fdb_close(db);
 
-  return 0;
+ err_0:
+  e_print(err);
+  e_free(err);
+  return 1;
 }

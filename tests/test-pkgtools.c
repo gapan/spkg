@@ -16,23 +16,24 @@ int main(int ac, char* av[])
   int i;
   struct error* err = e_new();
 
-  if (db_open(root))
-  {
-    fprintf(stderr, "%s\n", db_error());
-    return 1;
-  }
+  db_open(root, err);
+  if (!e_ok(err))
+    goto err_0;
+
+  atexit(db_close);
 
   for (i=1;i<ac;i++)
   {
     printf("installing: %s\n", av[i]);
-    if (pkg_install(av[i], root, 0, 0, err))
-    {
-      printf("%s\n", e_string(err));
-      e_free(err);
-      break;
-    }
+    pkg_install(av[i], root, 0, 0, err);
+    if (!e_ok(err))
+      goto err_0;
   }
 
   db_close();
+
+ err_0:
+  e_print(err);
+  e_free(err);
   return 0;
 }

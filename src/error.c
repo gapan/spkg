@@ -16,7 +16,8 @@
 
 struct error {
   gchar* string;
-  guint number;
+  gint number;
+  gint bad;
 };
 
 /* public
@@ -67,6 +68,7 @@ void e_add(
   }
   e->string = msg;
   e->number = errnum;
+  e->bad = 1;
 }
 
 void e_clean(struct error* e)
@@ -77,4 +79,16 @@ void e_clean(struct error* e)
     e->string = 0;
   }
   e->number = E_OK;
+  e->bad = 0;
+}
+
+void e_print(struct error* e)
+{
+  if (e->bad && e->string)
+    fputs(e->string, stderr);
+}
+
+gint e_ok(struct error* e)
+{
+  return !e->bad;
 }

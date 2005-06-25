@@ -14,9 +14,9 @@ PySpkg_Method(db_open, "[root]", Null, "Open database.")
   const char* root=0;
   if (PyArg_ParseTuple(args, "|s:db_open", &root))
   {
-    if (db_open(root))
+    if (db_open(root, spkg_error))
     {
-      PyErr_SetString(PySpkgErrorObject, db_error()?db_error():"db err");
+      PyErr_SetString(PySpkgErrorObject, e_string(spkg_error));
       return NULL;
     }
     Py_INCREF(Py_None);
@@ -50,7 +50,7 @@ PySpkg_Method(db_get_pkg, "name, files", Package,
   struct db_pkg* p = db_get_pkg(name,files);
   if (p == 0)
   {
-    PyErr_SetString(PySpkgErrorObject, db_error()?db_error():"db err");
+    PyErr_SetString(PySpkgErrorObject, e_string(spkg_error));
     return NULL;
   }
   return (PyObject*)newPackage(p,0);
@@ -67,7 +67,7 @@ PySpkg_Method(db_legacy_get_pkg, "name, files", Package,
   struct db_pkg* p = db_legacy_get_pkg(name,files);
   if (p == 0)
   {
-    PyErr_SetString(PySpkgErrorObject, db_error()?db_error():"db err");
+    PyErr_SetString(PySpkgErrorObject, e_string(spkg_error));
     return NULL;
   }
   return (PyObject*)newPackage(p,0);
@@ -80,9 +80,9 @@ PySpkg_Method(db_legacy_get_packages, "", Packages,
   if (!PyArg_ParseTuple(args, "", &name))
     return NULL;
   GSList* l = db_legacy_get_packages();
-  if (db_error())
+  if (!e_ok(spkg_error))
   {
-    PyErr_SetString(PySpkgErrorObject, db_error());
+    PyErr_SetString(PySpkgErrorObject, e_string(spkg_error));
     return NULL;
   }
   return (PyObject*)newPackages(l);
@@ -95,9 +95,9 @@ PySpkg_Method(db_get_packages, "", Packages,
   if (!PyArg_ParseTuple(args, "", &name))
     return NULL;
   GSList* l = db_get_packages();
-  if (db_error())
+  if (!e_ok(spkg_error))
   {
-    PyErr_SetString(PySpkgErrorObject, db_error());
+    PyErr_SetString(PySpkgErrorObject, e_string(spkg_error));
     return NULL;
   }
   return (PyObject*)newPackages(l);

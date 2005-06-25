@@ -69,8 +69,18 @@ extern void e_add(
  */
 extern void e_clean(struct error* e);
 
-#define e_handler(jb) if (setjmp(jb))
-#define e_handle(jb) longjmp(jb,1)
+/** Print error message.
+ * 
+ * @param e Error object.
+ */
+extern void e_print(struct error* e);
+
+/** Returns true if no error occured.
+ * 
+ * @param e Error object.
+ * @return true if ok.
+ */
+extern gint e_ok(struct error* e);
 
 #endif
 

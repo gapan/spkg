@@ -28,6 +28,7 @@
  * @param root Root directory.
  * @param dryrun Don't touch filesystem or database.
  * @param verbose Be verbose.
+ * @param e Error object.
  * @return 0 on success, 1 on error
  */
 extern gint pkg_install(
@@ -44,6 +45,7 @@ extern gint pkg_install(
  * @param root Root directory.
  * @param dryrun Don't touch filesystem or database.
  * @param verbose Be verbose.
+ * @param e Error object.
  * @return 0 on success, 1 on error
  */
 extern gint pkg_upgrade(
@@ -60,6 +62,7 @@ extern gint pkg_upgrade(
  * @param root Root directory.
  * @param dryrun Don't touch filesystem or database.
  * @param verbose Be verbose.
+ * @param e Error object.
  * @return 0 on success, 1 on error
  */
 extern gint pkg_remove(

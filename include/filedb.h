@@ -18,6 +18,7 @@ rem)
 #define __FILEDB_H
 
 #include <glib.h>
+#include "error.h"
 
 /** Filedb handle. */
 struct fdb;
@@ -38,33 +39,17 @@ struct fdb_file {
 
 /** Open file database.
  *
- * You should check for errors using \ref fdb_error(). If fd was
- * successfully open, \ref fdb_error() will return 0.
- *
  * @param path Path to the file database directory.
- * @return fdb handle (always)
+ * @param e Error object.
+ * @return fdb handle if ok
  */
-extern struct fdb* fdb_open(const gchar* path);
+extern struct fdb* fdb_open(const gchar* path, struct error* e);
 
 /** Close file database.
  *
  * @param db File database handle.
  */
 extern void fdb_close(struct fdb* db);
-
-/** Returns description of the error if one occured in the last filedb library call.
- *
- * @param db File database handle.
- * @return Error string on error, 0 otherwise
- */
-extern const gchar* fdb_error(struct fdb* db);
-
-/** Returns error number (status of the last fdb library function call).
- *
- * @param db File database handle.
- * @return Error number
- */
-extern gint fdb_errno(struct fdb* db);
 
 /** Add file to the database.
  *

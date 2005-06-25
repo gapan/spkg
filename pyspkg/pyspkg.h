@@ -94,6 +94,8 @@ extern Untgz* newUntgz(struct untgz_state* s, PyObject* callback);
 #define Packages_Check(v) ((v)->ob_type == &Packages_Type)
 #define Untgz_Check(v) ((v)->ob_type == &Untgz_Type)
 
+extern struct error* spkg_error;
+
 #include "pyspkg-meth.h"
 
 #endif

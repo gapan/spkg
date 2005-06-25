@@ -11,6 +11,7 @@
 #include "pyspkg-doc.h"
 
 PyObject* PySpkgErrorObject;
+struct error* spkg_error = 0;
 
 static PyMethodDef PySpkg_methods[] = {
 #include "methtab.c"
@@ -45,6 +46,8 @@ PyMODINIT_FUNC initspkg(void)
     if (PySpkgErrorObject == NULL)
       return;
   }
+
+  spkg_error = e_new();
 
   PyModule_AddIntConstant(m, "UNTGZ_NONE", 0);
   PyModule_AddIntConstant(m, "UNTGZ_DIR", 1);

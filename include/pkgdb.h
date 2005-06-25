@@ -15,6 +15,7 @@
 #define __PKGDB_H
 
 #include <glib.h>
+#include "error.h"
 
 /** Directory where the package database is stored. */
 #define PKGDB_DIR "var/log"
@@ -65,27 +66,14 @@ struct db_pkg {
 /** Open package database.
  *
  * @param root root directory
+ * @param e Error object.
  * @return 0 on success, 1 on error
  */
-extern gint db_open(const gchar* root);
+extern gint db_open(const gchar* root, struct error* e);
 
 /** Close package database. 
  */
 extern void db_close();
-
-/** Returns description of the error if one occured in the last pkgdb
- * library call.
- *
- * @return Error string on error, 0 otherwise
- */
-extern gchar* db_error();
-
-/** Returns the error number if error occured in the last pkgdb
- * library call.
- *
- * @return Nonzero error number on error, 0 otherwise
- */
-extern gint db_errno();
 
 /** Create package object.
  *
