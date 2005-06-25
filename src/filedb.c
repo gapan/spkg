@@ -10,6 +10,7 @@
 #include <glib.h>
 #include <string.h>
 #include <errno.h>
+#include <setjmp.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 
@@ -51,7 +52,11 @@ struct fdb {
   void* addr_pld;
   gsize size_pld; /* mmaped sizes */
   gsize size_idx;
+  
+  jmp_buf errjmp; /* where to jump on error */
 };
+
+/* error handling */
 
 static __inline__ void _fdb_reset_error(struct fdb* db)
 {
@@ -63,26 +68,28 @@ static __inline__ void _fdb_reset_error(struct fdb* db)
   }
 }
 
-#define _fdb_open_check(v) \
-  G_STMT_START { \
-  if (!db->is_open) \
-  { \
-    _fdb_set_error(db,FDB_NOPEN,"trying to access closed file database"); \
-    return v; \
-  } \
-  } G_STMT_END
-
 #define _fdb_set_error(d, n, fmt, args...) __fdb_set_error(d, n, __func__, fmt, ##args)
 static void __fdb_set_error(struct fdb* db, gint num, const gchar* func, const gchar* fmt, ...)
 {
-  _fdb_reset_error(db);
+  /* create error string from format and arguments */
   va_list ap;
   va_start(ap, fmt);
   gchar* err = g_strdup_vprintf(fmt, ap);
   va_end(ap);
-  db->errstr = g_strdup_printf("error[filedb:%s]: %s", func, err);
-  db->errnum = num;
+  /* append to the previous error string */
+  gchar* err2;
+  if (db->errstr)
+  {
+    err2 = g_strdup_printf("%s\nerror[filedb:%s]: %s", db->errstr, func, err);
+    g_free(db->errstr);
+  }
+  else
+  {
+    err2 = g_strdup_printf("error[filedb:%s]: %s", func, err);
+  }
   g_free(err);
+  db->errstr = err2;
+  db->errnum = num;
 }
 
 static __inline__ guint _fdb_hash(const gchar* path)
@@ -150,10 +157,12 @@ static __inline__ guint32 _fdb_new_pld(struct fdb* db, const gchar* path, const 
   if (G_UNLIKELY(db->newoff + size_entry > db->size_pld))
   {
 #if FDB_AUTOGROW == 1
-    /*XXX: grow payload file */
-    return 0;
+    /*XXX: implement autogrow */
+    _fdb_set_error(db,FDB_OTHER,"autogrow not implemented (pld full)");
+    longjmp(db->errjmp,1);
 #else
-    return 0;
+    _fdb_set_error(db,FDB_OTHER,"pld file is full");
+    longjmp(db->errjmp,1);
 #endif
   }
   guint32 offset = db->newoff;
@@ -199,9 +208,13 @@ static __inline__ guint32 _fdb_new_idx(struct fdb* db, guint32 offset, guint32 h
   if (G_UNLIKELY(sizeof(struct file_idx_hdr) + id*sizeof(struct file_idx) > db->size_idx))
   {
 #if FDB_AUTOGROW == 1
+    /*XXX: implement autogrow */
+    _fdb_set_error(db,FDB_OTHER,"autogrow not implemented (idx full)");
+    longjmp(db->errjmp,1);
+#else
+    _fdb_set_error(db,FDB_OTHER,"pld file is full");
+    longjmp(db->errjmp,1);
 #endif
-    /*XXX: grow index file */
-    return 0;
   }
   struct file_idx* idx = db->idx+db->lastid;
   idx->off = offset;
@@ -243,15 +256,24 @@ static __inline__ void _parse_pld_data(struct fdb_file* file, const void* data, 
 /* functions for index access (db is always ok, idx is always ok) */
 static __inline__ struct file_idx* _idx_from_id(struct fdb* db, guint32 id)
 {
-  if (id==0||id>db->lastid)
+  if (id == 0)
     return 0;
+  if (id > db->lastid)
+  {
+    _fdb_set_error(db,FDB_OTHER,"invlaid idx id (%d)", id);
+    longjmp(db->errjmp,1);
+  }
   struct file_idx* idx = db->idx+(id-1);
 #if FDB_CHECKSUMS == 1
   guint8 sum=0;
   gint i; 
   for (i=0; i<sizeof(struct file_idx); i++)
     sum += ((guint8*)idx)[i];
-  g_assert(sum == 0xff);
+  if (sum != 0xff)
+  {
+    _fdb_set_error(db,FDB_OTHER,"invlaid checksum of idx entry no.: %d", id);
+    longjmp(db->errjmp,1);
+  }
 #endif
   return idx;
 }
@@ -307,15 +329,22 @@ static __inline__ void _idx_set_off(struct file_idx* idx, guint32 off)
 
 static __inline__ struct file_pld* _pld_from_idx(struct fdb* db, struct file_idx* idx)
 {
-  g_assert(idx->off < db->size_pld);
-  g_assert(idx->off != 0);
+  if (idx->off >= db->size_pld || idx->off == 0)
+  {
+    _fdb_set_error(db,FDB_OTHER,"invlaid pld offset (0x%08X)", idx->off);
+    longjmp(db->errjmp,1);
+  }
   struct file_pld* pld = db->addr_pld+idx->off;
 #if FDB_CHECKSUMS == 1
   guint8 sum=0;
   gint i; 
   for (i=0; i<sizeof(struct file_pld); i++)
     sum += ((guint8*)pld)[i];
-  g_assert(sum == 0xff);
+  if (sum != 0xff)
+  {
+    _fdb_set_error(db,FDB_OTHER,"invlaid checksum of pld entry at offset: 0x%08X", idx->off);
+    longjmp(db->errjmp,1);
+  }
 #endif
   /* checksum pld */
   return pld;
@@ -341,7 +370,8 @@ static guint32 _fdb_insert_node(struct fdb* db, const struct fdb_file* file)
   guint32 dlen;
   _build_pld_data(file, &data, &dlen);
 
-  /*HACK: only lnk[0] of z can be modified from now on */
+  /*HACK: only lnk[0] of z can be modified from now on (and must not be modified
+  by _idx_set_* functions if z remains unchanged) */
   z = (struct file_idx *)&db->ihdr->hashmap[shash]; /* root node pointer */
   y = _idx_from_id(db,db->ihdr->hashmap[shash]); /* root node pointer */
   dir = 0;
@@ -359,19 +389,8 @@ static guint32 _fdb_insert_node(struct fdb* db, const struct fdb_file* file)
     da[k++] = dir = cmp > 0;
   }
 
-//  continue_timer(10);
-  id = _fdb_new_pld(db, file->path, data, dlen);
-//  stop_timer(10);
-#if (PARANOID_CHECKS == 1)
-  if (G_UNLIKELY(id == 0))
-    return 0;
-#endif
+  id = _fdb_new_pld(db, file->path, data, dlen); /* id = offset */
   id = _fdb_new_idx(db, id, hash);
-#if (PARANOID_CHECKS == 1)
-  if (G_UNLIKELY(id == 0))
-    return 0;
-#endif
-
   i = _idx_from_id(db, id);
 
 #if FDB_CHECKSUMS == 1
@@ -405,7 +424,11 @@ static guint32 _fdb_insert_node(struct fdb* db, const struct fdb_file* file)
     }
     else
     {
-      g_assert (x->bal == +1);
+      if (G_UNLIKELY(x->bal != +1))
+      {
+        _fdb_set_error(db,FDB_OTHER,"corrupted idx file (broken AVL tree)");
+        longjmp(db->errjmp,1);
+      }
       w = _idx_from_id(db,x->lnk[1]);
       _idx_set_lnk(x,1,w->lnk[0]);
       _idx_set_lnk(w,0,_id_from_idx(db,x));
@@ -442,7 +465,11 @@ static guint32 _fdb_insert_node(struct fdb* db, const struct fdb_file* file)
     }
     else
     {
-      g_assert(x->bal == -1);
+      if (G_UNLIKELY(x->bal != -1))
+      {
+        _fdb_set_error(db,FDB_OTHER,"corrupted idx file (broken AVL tree)");
+        longjmp(db->errjmp,1);
+      }
       w = _idx_from_id(db,x->lnk[0]);
       _idx_set_lnk(x,0,w->lnk[1]);
       _idx_set_lnk(w,1,_id_from_idx(db,x));
@@ -716,12 +743,27 @@ gint fdb_errno(struct fdb* db)
   return db->errnum;
 }
 
+#define _fdb_call_entry_checks(v) \
+  g_assert(db != 0); \
+  _fdb_reset_error(db); \
+  if (!db->is_open) \
+  { \
+    _fdb_set_error(db,FDB_NOPEN,"file database is NOT open"); \
+    return v; \
+  } \
+  if (G_UNLIKELY(setjmp(db->errjmp) != 0)) \
+  { \
+    _fdb_set_error(db,FDB_OTHER,"internal error"); \
+    return v; \
+  }
+
 guint32 fdb_add_file(struct fdb* db, const struct fdb_file* file)
 {
-  g_assert(db != 0);
   g_assert(file != 0);
-  _fdb_open_check(0);
+  _fdb_call_entry_checks(0)
+
   guint32 id;
+
   continue_timer(2);
   if (file->path == 0)
   {
@@ -737,9 +779,9 @@ guint32 fdb_add_file(struct fdb* db, const struct fdb_file* file)
 
 guint32 fdb_get_file_id(struct fdb* db, const gchar* path)
 {
-  g_assert(db != 0);
   g_assert(path != 0);
-  _fdb_open_check(0);
+  _fdb_call_entry_checks(0)
+
   struct file_idx *p;
   continue_timer(3);
   guint32 hash = _fdb_hash(path);
@@ -768,15 +810,16 @@ guint32 fdb_get_file_id(struct fdb* db, const gchar* path)
 
 gint fdb_get_file(struct fdb* db, const guint32 id, struct fdb_file* file)
 {
-  g_assert(db != 0);
   g_assert(file != 0);
-  _fdb_open_check(0);
+  _fdb_call_entry_checks(1)
+
   struct file_pld* pld;
   continue_timer(4);
   pld = _pld_from_idx(db,_idx_from_id(db,id));
   if (pld == 0)
   {
     _fdb_set_error(db, FDB_OTHER, "invalid file id");
+    stop_timer(4);
     return 1;
   }
   _parse_pld_data(file, pld->path+pld->doff, pld->dlen);
@@ -786,18 +829,14 @@ gint fdb_get_file(struct fdb* db, const guint32 id, struct fdb_file* file)
 
 gint fdb_rem_file(struct fdb* db, const guint32 id)
 {
-  g_assert(db != 0);
-  _fdb_open_check(1);
+  _fdb_call_entry_checks(1)
+
   continue_timer(5);
   struct file_idx* i = _idx_from_id(db,id);
-  if (i == 0)
-  {
-    _fdb_set_error(db, FDB_OTHER, "invalid file id");
-    return 1;
-  }
   if (i->refs == 0)
   {
-    _fdb_set_error(db, FDB_NOTEX, "file is not in database");
+    _fdb_set_error(db, FDB_NOTEX, "file already has zero refs");
+    stop_timer(5);
     return 1;
   }
   i->refs--;

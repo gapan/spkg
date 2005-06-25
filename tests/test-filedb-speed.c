@@ -37,7 +37,7 @@ int main()
     id = fdb_add_file(db, &f);
     if (id == 0)
     {
-      printf("error\n");
+      printf("%s\n", fdb_error(db));
       break;
     }
   }
@@ -47,7 +47,7 @@ int main()
     id = fdb_get_file_id(db,files[j]);
     if (id == 0)
     {
-      printf("error\n");
+      printf("%s\n", fdb_error(db));
       break;
     }
   }

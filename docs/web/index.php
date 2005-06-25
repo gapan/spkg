@@ -34,8 +34,7 @@
    <dt>2005-06-25</dt>
     <dd>Filedb library implementats autogrow, locking, fast distributed
     checksumming and per file storing of arbitrary data. It is possible
-    to open multiple filedb databases at once. Pkgdb library is finished.
-    I'm going to implement 3 basic commands.</dd>
+    to open multiple filedb databases at once. Pkgdb library is finished.</dd>
    <dt>2005-06-21</dt>
     <dd>I've implemented <a href="/dl/spkg-docs/pyspkg.html">Python
     bindings</a>. Now I'm finishing pkgdb library.</dd>

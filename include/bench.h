@@ -10,7 +10,7 @@
 #include <asm/msr.h>
 
 /* tics per second (this is constant for my 1GHz athlon) */
-#define TPS 1500000000ull
+#define TPS 1000000000ull
 #define CNT 16
 
 /* [0] = start tics, [1] = accumulated tics, [2] = times stopped/continued */
