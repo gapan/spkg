@@ -107,12 +107,12 @@ union tar_block {
   guchar b[BLOCKSIZE];
 };
 
-#define e_set(fmt, args...) e_add(s->i->err, "untgz", __func__, E_ERROR, fmt, ##args)
+#define e_set(n, fmt, args...) e_add(s->i->err, "untgz", __func__, n, fmt, ##args)
 #define e_jump() longjmp(s->i->errjmp, 1)
 
-#define e_throw(fmt, args...) \
+#define e_throw(n, fmt, args...) \
   G_STMT_START { \
-  e_set(fmt, ##args); \
+  e_set(n, fmt, ##args); \
   e_jump(); \
   } G_STMT_END
 
@@ -133,7 +133,7 @@ static guint getoct(struct untgz_state* s, gchar *p, guint w)
     if (G_UNLIKELY(c == 0x20))
       break;
     else if (G_UNLIKELY(c == 0x10))
-      e_throw("%d: corrupted tgz archive (checksumming data block?)", s->i->blockid);
+      e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] corrupted tgz archive (bad oct - possibly trying to checksum data block)", s->i->blockid);
     else
       r = r*8+c;
   }
@@ -152,7 +152,7 @@ static void validate_header_csum(struct untgz_state* s)
   for (n=0; G_LIKELY(n<BLOCKSIZE); n+=2)
     real_csum += b->b[n] + b->b[n+1];
   if (G_UNLIKELY(real_csum != head_csum))
-    e_throw("%d: corrupted tgz archive (invalid header checksum)", i->blockid);
+    e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] corrupted tgz archive (invalid header checksum)", i->blockid);
 }
 
 /* this function returns pointer to the next tar block
@@ -172,8 +172,8 @@ static union tar_block* read_next_block(struct untgz_state* s, gboolean is_heade
     if (read < BLOCKSIZE)
     {
       if (read == 0 && !gzeof(i->gzf))
-        e_throw("%d: corrupted tgz archive (gzread failed)", i->blockid);
-      e_throw("%d: corrupted tgz archive (early EOF)", i->blockid);
+        e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] corrupted tgz archive (gzread failed)", i->blockid);
+      e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] corrupted tgz archive (early EOF)", i->blockid);
     }
     i->bpos = i->bbuf;
     i->bend = i->bbuf + read;
@@ -232,7 +232,7 @@ static gchar* strnappend(gchar* dst, gchar* src, gsize size)
 
 struct untgz_state* untgz_open(const gchar* tgzfile, untgz_status_cb scb, struct error* e)
 {
-  struct untgz_state* s;
+  struct untgz_state* s=0;
   gzFile *gzf;
   struct stat st;
 
@@ -243,7 +243,10 @@ struct untgz_state* untgz_open(const gchar* tgzfile, untgz_status_cb scb, struct
   g_assert(tgzfile != 0);
 
   if (stat(tgzfile, &st) == -1)
+  {
+    e_set(E_ERROR, "can't stat file: %s", tgzfile);
     return 0;
+  }
   
   /* get total size of uncompressed data from gzipped file 
      (read last four bytes in the file) */
@@ -252,14 +255,19 @@ struct untgz_state* untgz_open(const gchar* tgzfile, untgz_status_cb scb, struct
   {
     gint fd = open(tgzfile, O_RDONLY);
     if (fd < 0)
+    {
+      e_set(E_ERROR, "can't open file: %s (try not using callback)", tgzfile);
       return 0;
+    }
     if (lseek(fd, -4, SEEK_END) == (off_t)-1)
     { 
+      e_set(E_ERROR, "can't lseek file: %s (try not using callback)", tgzfile);
       close(fd);
       return 0;
     }
     if (read(fd, &size, 4) != 4)
     {
+      e_set(E_ERROR, "can't read file: %s (try not using callback)", tgzfile);
       close(fd);
       return 0;
     }
@@ -268,7 +276,10 @@ struct untgz_state* untgz_open(const gchar* tgzfile, untgz_status_cb scb, struct
   
   gzf = gzopen(tgzfile, "rb");
   if (gzf == 0)
+  {
+    e_set(E_ERROR, "can't gzopen file: %s", tgzfile);
     return 0;
+  }
 
   s = g_new0(struct untgz_state,1);
   s->i = g_new0(struct untgz_state_internal,1);
@@ -331,14 +342,14 @@ gint untgz_get_header(struct untgz_state* s)
 
   if (G_UNLIKELY(i->errblock))
   {
-    e_set("%d: untgz is blocked", i->blockid);
+    e_set(E_ERROR|UNTGZ_BLOCKED, "[block:%d] untgz is blocked", i->blockid);
     goto err_0;
   }
   else if (G_UNLIKELY(i->eof))
     goto ret_1;
   if (G_UNLIKELY(setjmp(i->errjmp) != 0))
   {
-    e_set("error thrown");
+    e_set(E_PASS, "error thrown");
     goto err_0;
   }
   
@@ -349,7 +360,7 @@ gint untgz_get_header(struct untgz_state* s)
     while (G_LIKELY(remaining > 0))
     {
       if (read_next_block(s, 0) == 0)
-        e_throw("%d: corrupted tgz archive (missing data block)", i->blockid);
+        e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] corrupted tgz archive (missing data block)", i->blockid);
       remaining = remaining<=BLOCKSIZE?0:remaining-BLOCKSIZE;
     }
   }
@@ -381,7 +392,7 @@ gint untgz_get_header(struct untgz_state* s)
       {
         b = read_next_block(s, 0);
         if (b == 0)
-          e_throw("%d: corrupted tgz archive (missing longlink data block)", i->blockid);
+          e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] corrupted tgz archive (missing longlink data block)", i->blockid);
         s->f_link = strnappend(s->f_link, (gchar*)b->b, BLOCKSIZE);
         remaining = remaining<=BLOCKSIZE?0:remaining-BLOCKSIZE;
       }
@@ -393,7 +404,7 @@ gint untgz_get_header(struct untgz_state* s)
       {
         b = read_next_block(s, 0);
         if (b == 0)
-          e_throw("%d: corrupted tgz archive (missing longname data block)", i->blockid);
+          e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] corrupted tgz archive (missing longname data block)", i->blockid);
         s->f_name = strnappend(s->f_name, (gchar*)b->b, BLOCKSIZE);
         remaining = remaining<=BLOCKSIZE?0:remaining-BLOCKSIZE;
       }
@@ -422,19 +433,19 @@ gint untgz_get_header(struct untgz_state* s)
     case LNKTYPE: s->f_type = UNTGZ_LNK; break;
     case CHRTYPE: s->f_type = UNTGZ_CHR; break;
     case BLKTYPE: s->f_type = UNTGZ_BLK; break;
-    default: e_throw("%d: \"corrupted\" tgz archive (unimplemented typeflag [%c])", i->blockid, b->h.typeflag);
+    default: e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] \"corrupted\" tgz archive (unimplemented typeflag [%c])", i->blockid, b->h.typeflag);
   }
 
   if (s->f_name == 0)
     s->f_name = g_strndup(b->h.name, SHORTNAMESIZE);
   /* just one more (unnecessary) check */
   else if (strncmp(s->f_name, b->h.name, SHORTNAMESIZE-1)) /* -1 because it's zero terminated */
-    e_throw("%d: corrupted tgz archive (longname mismatch)", i->blockid);
+    e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] corrupted tgz archive (longname mismatch)", i->blockid);
   if (s->f_link == 0)
     s->f_link = g_strndup(b->h.linkname, SHORTNAMESIZE);
   /* just one more (unnecessary) check */
   else if (strncmp(s->f_link, b->h.linkname, SHORTNAMESIZE-1)) /* -1 because it's zero terminated */
-    e_throw("%d: corrupted tgz archive (longlink mismatch)", i->blockid);
+    e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] corrupted tgz archive (longlink mismatch)", i->blockid);
 
   stop_timer(3);
   return 0;
@@ -463,7 +474,7 @@ gint untgz_write_data(struct untgz_state* s, gchar** buf, gsize* len)
 
   if (G_UNLIKELY(i->errblock))
   {
-    e_set("%d: untgz is blocked", i->blockid);
+    e_set(E_ERROR|UNTGZ_BLOCKED, "[block:%d] untgz is blocked", i->blockid);
     goto err_0;
   }
   else if (i->eof || s->f_type != UNTGZ_REG || i->data == 0) /* no data for current file */
@@ -471,7 +482,7 @@ gint untgz_write_data(struct untgz_state* s, gchar** buf, gsize* len)
   if (setjmp(i->errjmp) != 0)
   {
     g_free(buffer);
-    e_set("error thrown");
+    e_set(E_PASS, "error thrown");
     goto err_0;
   }
 
@@ -481,7 +492,7 @@ gint untgz_write_data(struct untgz_state* s, gchar** buf, gsize* len)
   {
     b = read_next_block(s, 0);
     if (b == 0)
-      e_throw("%d: corrupted tgz archive (missing data block)", i->blockid);
+      e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] corrupted tgz archive (missing data block)", i->blockid);
     memcpy(buffer+position, b, remaining>BLOCKSIZE?BLOCKSIZE:remaining);
     remaining = remaining<=BLOCKSIZE?0:remaining-BLOCKSIZE;
     position += BLOCKSIZE;
@@ -518,7 +529,7 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
 
   if (G_UNLIKELY(i->errblock))
   {
-    e_set("%d: untgz is blocked", i->blockid);
+    e_set(E_ERROR|UNTGZ_BLOCKED, "[block:%d] untgz is blocked", i->blockid);
     goto err_0;
   }
   else if (G_UNLIKELY(i->written || i->eof))
@@ -528,7 +539,7 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
 #if UNTGZ_PRESERVE_DIR_TIMES == 1
     g_free(dpath_tmp);
 #endif
-    e_set("error thrown");
+    e_set(E_PASS, "error thrown");
     goto err_0;
   }
 
@@ -543,7 +554,7 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
     dpath_tmp = g_strdup(path);
     dpath = dirname(dpath_tmp);
     if (stat(dpath, &st) == -1)
-      e_throw("tgz extraction failed (can't stat parent directory): %s", strerror(errno));
+      e_throw(E_ERROR, "can't stat parent directory: %s", strerror(errno));
     dt.actime = st.st_atime;
     dt.modtime = st.st_mtime;
   }
@@ -558,17 +569,17 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
       remaining = s->f_size;
       FILE* f = fopen(path, "w");
       if (f == 0)
-        e_throw("tgz extraction failed (can't open file): %s", strerror(errno));
+        e_throw(E_ERROR|UNTGZ_BADIO, "can't open file for writing: %s", strerror(errno));
       if (setvbuf(f, i->wbuf, _IOFBF, WRITEBUFSIZE))
-        e_throw("tgz extraction failed (can't setup buffer)");
+        e_throw(E_ERROR|UNTGZ_BADIO, "can't setup write buffer");
       while (G_LIKELY(remaining > 0))
       {
         b = read_next_block(s, 0);
         if (b == 0)
-          e_throw("%d: corrupted tgz archive (missing data block)", i->blockid);
+          e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] corrupted tgz archive (missing data block)", i->blockid);
         continue_timer(7);
         if (fwrite(b->b, remaining>BLOCKSIZE?BLOCKSIZE:remaining, 1, f) != 1)
-          e_throw("tgz extraction failed (can't write to a file): %s", strerror(errno));
+          e_throw(E_ERROR|UNTGZ_BADIO, "can't write to a file: %s", strerror(errno));
         stop_timer(7);
         remaining = remaining<=BLOCKSIZE?0:remaining-BLOCKSIZE;
       }
@@ -578,44 +589,44 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
     }
     case UNTGZ_SYM:
       if (symlink(s->f_link, path) == -1)
-        e_throw("tgz extraction failed (can't create symlink): %s", strerror(errno));
+        e_throw(E_ERROR|UNTGZ_BADIO, "can't create symlink: %s", strerror(errno));
       break;
     case UNTGZ_LNK:
       if (link(s->f_link, path) == -1)
-        e_throw("tgz extraction failed (can't create hardlink): %s", strerror(errno));
+        e_throw(E_ERROR|UNTGZ_BADIO, "can't create hardlink: %s", strerror(errno));
       break;
     case UNTGZ_CHR:
       if (mknod(path, S_IFCHR, (dev_t)((((s->f_devmaj & 0xFF) 
             << 8) & 0xFF00) | (s->f_devmin & 0xFF))) == -1)
-        e_throw("tgz extraction failed (can't create chrdev): %s", strerror(errno));
+        e_throw(E_ERROR|UNTGZ_BADIO, "can't create chrdev: %s", strerror(errno));
       break;
     case UNTGZ_BLK:
       if (mknod(path, S_IFBLK, (dev_t)((((s->f_devmaj & 0xFF) 
             << 8) & 0xFF00) | (s->f_devmin & 0xFF))) == -1)
-        e_throw("tgz extraction failed (can't create blkdev): %s", strerror(errno));
+        e_throw(E_ERROR|UNTGZ_BADIO, "can't create blkdev: %s", strerror(errno));
       break;
     case UNTGZ_DIR:
       /* because of the way tar stores directories, there 
          is no need to have mkdir_r here */
       if (mkdir(path, 0755) == -1 && errno != EEXIST)
-        e_throw("tgz extraction failed (can't create directory): %s", strerror(errno));
+        e_throw(E_ERROR|UNTGZ_BADIO, "can't create directory: %s", strerror(errno));
       break;
     default:
-      e_throw("tgz extraction failed (unknown file type [%d])", s->f_type);
+      e_throw(E_ERROR, "unknown file type [%d]", s->f_type);
       break;
   }
 
   if (chown(path, s->f_uid, s->f_gid) == -1)
-    e_throw("tgz extraction failed (can't chown file): %s", strerror(errno));
+    e_throw(E_ERROR|UNTGZ_BADMETA, "can't chown file: %s", strerror(errno));
   if (chmod(path, s->f_mode) == -1)
-    e_throw("tgz extraction failed (can't chmod file): %s", strerror(errno));
+    e_throw(E_ERROR|UNTGZ_BADMETA, "can't chmod file: %s", strerror(errno));
   t.actime = t.modtime = s->f_mtime;
   if (utime(path, &t) == -1)
-    e_throw("tgz extraction failed (can't utime file): %s", strerror(errno));
+    e_throw(E_ERROR|UNTGZ_BADMETA, "can't utime file: %s", strerror(errno));
 
 #if UNTGZ_PRESERVE_DIR_TIMES == 1
   if (utime(dpath, &dt) == -1)
-    e_throw("tgz extraction failed (can't utime parent directory): %s", strerror(errno));
+    e_throw(E_ERROR|UNTGZ_BADMETA, "can't utime parent directory: %s", strerror(errno));
   g_free(dpath_tmp);
 #endif
 

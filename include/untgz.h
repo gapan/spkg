@@ -77,6 +77,12 @@ int main(int ac, char* av[])
 #include <glib.h>
 #include "error.h"
 
+#define UNTGZ_CORRUPT E(0) /**< archive is corrupt */
+#define UNTGZ_BLOCKED E(1) /**< untgz is blocked because of corrupt archive */
+#define UNTGZ_BADIO E(2) /**< can't open/write/create/update/whatever file */
+#define UNTGZ_BADMETA E(3) /**< can't set metainformation for extracted file 
+                           (file was extracted successfully!) */
+
 /** File type. */
 typedef enum { 
   UNTGZ_NONE=0, /**< nothing read yet */

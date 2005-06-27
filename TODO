@@ -1,20 +1,12 @@
-[!*] error reporting from *_open functions possible
-[!*] go through code and tests to check if all errors were converted
-    to the new error handling
-
 [!filedb] implement filedb transactions and locking (easy)
 
 [pkgdb] get packages should allow for multiple modes of operation (only names, no files and full)
 [pkgdb] how should we handle symlinks in pkgdb?
 [pkgdb] more open modes (read only - to allow easy access to database for nonprivileged)
 
-[!untgz] write_data and empty files? is that properly handled?
-
 [pkgdb] pkg structure should be better defined (espec. required and optional fields)
 [pkgdb] handle package installation time
 
-[untgz] extraction errors. are they too strict or not? :-)
-[untgz] machine readable errors? (errnos) (code is in place. just define errnos and return them appropriately)
 [untgz] use of blockbuf instead of writebuf can speedup things slightly on the user side
 
 [pkgtools] add option to do script preprocessing for faster link creation
