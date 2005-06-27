@@ -236,7 +236,6 @@ struct untgz_state* untgz_open(const gchar* tgzfile, untgz_status_cb scb, struct
   gzFile *gzf;
   struct stat st;
 
-  /*XXX: detailed error reporting */
   continue_timer(0);
   continue_timer(1);
 
