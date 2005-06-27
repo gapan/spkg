@@ -47,7 +47,7 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   /* check if file exist */
   if (sys_file_type(pkgfile,1) != SYS_REG)
   {
-    e_set(PKG_OTHER,"package file does not exist (%s)", pkgfile);
+    e_set(E_ERROR|PKG_NOTEX,"package file does not exist (%s)", pkgfile);
     goto err0;
   }
 
@@ -55,7 +55,7 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   if ((name = parse_pkgname(pkgfile,5)) == 0 
       || (shortname = parse_pkgname(pkgfile,1)) == 0)
   {
-    e_set(PKG_OTHER,"package name is invalid (%s)", pkgfile);
+    e_set(E_ERROR|PKG_BADNAME,"package name is invalid (%s)", pkgfile);
     goto err0;
   }
 
@@ -63,13 +63,13 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   pkg = db_get_pkg(name,0);
   if (pkg)
   {
-    e_set(PKG_OTHER,"package is already installed (%s)", name);
+    e_set(E_ERROR|PKG_EXIST,"package is already installed (%s)", name);
     db_free_pkg(pkg);
     goto err1;
   }
-  if (e_errno(e) != DB_NOTEX)
+  if (! (e_errno(e) & DB_NOTEX))
   {
-    e_set(PKG_OTHER,"internal error (%s)", name);
+    e_set(E_ERROR,"internal error (%s)", name);
     goto err1;
   }
   e_clean(e);
@@ -80,7 +80,7 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   tgz = untgz_open(pkgfile, 0, e);
   if (tgz == 0)
   {
-    e_set(PKG_OTHER,"can't open package file (%s)", pkgfile);
+    e_set(E_ERROR|PKG_NOTEX,"can't open package file (%s)", pkgfile);
     goto err1;
   }
 
@@ -92,7 +92,7 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   {
     if (ta_initialize())
     {
-      e_set(PKG_OTHER,"can't initialize transaction");
+      e_set(E_ERROR,"can't initialize transaction");
       goto err2;
     }
   }
@@ -108,7 +108,7 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
     if (tgz->f_name[0] == '/') /* XXX: what checks are neccessary? */
     {
       /* some damned fucker created this package to mess our system */
-      e_set(PKG_OTHER,"package contains files with absolute paths");
+      e_set(E_ERROR|PKG_CORRUPT,"package contains files with absolute paths");
       goto err3;
     }
 
@@ -200,7 +200,7 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   {
     /*xxx: prepend */
 //    untgz_error(tgz);
-    e_set(PKG_OTHER,"package is corrupted (%s)", pkgfile);
+    e_set(E_ERROR|PKG_CORRUPT,"package is corrupted (%s)", pkgfile);
     goto err3;
   }
 
@@ -241,12 +241,12 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
       printf("install: updating database with package: %s\n", name);
     if (db_legacy_add_pkg(pkg))
     {
-      e_set(PKG_OTHER,"can't add package to the legacy database");
+      e_set(E_ERROR|PKG_DB,"can't add package to the legacy database");
       goto err3;
     }
     if (db_add_pkg(pkg))
     {
-      e_set(PKG_OTHER,"can't add package to the database");
+      e_set(E_ERROR|PKG_DB,"can't add package to the database");
       goto err3;
     }
   }
@@ -274,16 +274,12 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
 
 gint pkg_upgrade(const gchar* pkgfile, const gchar* root, gboolean dryrun, gboolean verbose, struct error* e)
 {
-  /* check package db */
-  /* check target files */
-  /*  */
-  return 0;
+  e_set(E_FATAL,"command is not implemented");
+  return 1;
 }
 
 gint pkg_remove(const gchar* pkgfile, const gchar* root, gboolean dryrun, gboolean verbose, struct error* e)
 {
-  /* check package db */
-  /* check target files */
-  /*  */
-  return 0;
+  e_set(E_FATAL,"command is not implemented");
+  return 1;
 }

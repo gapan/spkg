@@ -17,10 +17,11 @@
 #include <glib.h>
 #include "error.h"
 
-#define PKG_OK    0 /**< no error */
-#define PKG_EXIST 1 /**< file exist */
-#define PKG_NOTEX 2 /**< file not exist */
-#define PKG_OTHER 3 /**< other error */
+#define PKG_EXIST E(0) /**< package exist */
+#define PKG_NOTEX E(1) /**< package not exist */
+#define PKG_BADNAME E(2) /**< package has invalid name */
+#define PKG_CORRUPT E(3) /**< package is corrupted */
+#define PKG_DB E(4) /**< package database error */
 
 /** Install package.
  * 
