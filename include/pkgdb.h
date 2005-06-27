@@ -20,12 +20,12 @@
 /** Directory where the package database is stored. */
 #define PKGDB_DIR "var/log"
 
-#define DB_OK     0 /**< ok */
-#define DB_CLOSED 1 /**< database is [already] closed (on any call except db_open) */
-#define DB_OPEN   2 /**< database is already open (when opening) */
-#define DB_OTHER  3 /**< other error */
-#define DB_NOTEX  4 /**< package not exist (when getting from db) */
-#define DB_EXIST  5 /**< other package with same name exist (when adding into db) */
+#define DB_NOPEN   E(0) /**< database is not open */
+#define DB_OPEN    E(1) /**< database is already open (when opening) */
+#define DB_CORRUPT E(2) /**< database is corrupted */
+#define DB_NOTEX   E(3) /**< package not exist in database */
+#define DB_EXIST   E(4) /**< package already in database */
+#define DB_SQL     E(5) /**< sqlite error */
 
 typedef enum {
   DB_GET_ALL=0, /**< get everything */

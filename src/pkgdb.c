@@ -36,7 +36,7 @@ static struct fdb* _db_fdb = 0;
 #define _db_open_check(v) \
   if (!_db_is_open) \
   { \
-    e_set(DB_CLOSED, "package database is NOT open"); \
+    e_set(E_ERROR|DB_NOPEN, "package database is NOT open"); \
     return v; \
   }
 
@@ -58,7 +58,7 @@ gint db_open(const gchar* root, struct error* e)
   
   if (_db_is_open)
   {
-    e_set(DB_OPEN, "can't open package database (it is already open)");
+    e_set(E_ERROR|DB_OPEN, "package database is already open");
     return 1;
   }
   
@@ -87,7 +87,7 @@ gint db_open(const gchar* root, struct error* e)
       /* if it is still not a directory, return with error */
       if (sys_file_type(tmpdir,1) != SYS_DIR)
       {
-        e_set(DB_OTHER, "can't open package database (%s should be an accessible directory)", tmpdir);
+        e_set(E_FATAL, "%s should be an accessible directory", tmpdir);
         g_free(tmpdir);
         goto err0;
       }
@@ -100,7 +100,7 @@ gint db_open(const gchar* root, struct error* e)
   _db_dbfile = g_strdup_printf("%s/%s", _db_dbroot, "spkg.db");
   if (sys_file_type(_db_dbfile,0) != SYS_REG && sys_file_type(_db_dbfile,0) != SYS_NONE)
   {
-    e_set(DB_OTHER, "can't open package database (%s is not accessible)", _db_dbfile);
+    e_set(E_FATAL, "file %s is not accessible", _db_dbfile);
     goto err1;
   }
 
@@ -108,14 +108,14 @@ gint db_open(const gchar* root, struct error* e)
   _db_fdb = fdb_open(_db_dbroot, e);
   if (_db_fdb == 0)
   {
-    e_set(DB_OTHER, "can't open file database");
+    e_set(E_FATAL, "can't open file database");
     goto err1;
   }
 
   /* open sql database */
   if (sql_open(_db_dbfile))
   {
-    e_set(DB_OTHER, "can't open package database (sql open failed)");
+    e_set(E_FATAL, "sql_open failed");
     goto err2;
   }
 
@@ -123,13 +123,13 @@ gint db_open(const gchar* root, struct error* e)
   sql_push_context(SQL_ERRJUMP,0);
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
-    e_set(DB_OTHER, "%s", sql_error());
+    e_set(E_FATAL, "%s", sql_error());
     goto err3;
   }
   
   if (!sql_integrity_check())
   { /* sql exception occured */
-    e_set(DB_OTHER, "can't open package database (database is corrupted)");
+    e_set(E_FATAL|DB_CORRUPT, "package database (database is corrupted)");
     goto err3;
   }
 
@@ -164,7 +164,6 @@ gint db_open(const gchar* root, struct error* e)
   _db_is_open = 1;
   stop_timer(0);
   return 0;
-
  err3:
   sql_close();
  err2:
@@ -204,17 +203,17 @@ void db_close()
   print_timer(7, "[pkgdb] db_get_packages");
   print_timer(8, "[pkgdb] db_legacy_get_packages");
   print_timer(9, "[pkgdb] db_free_packages");
-
   print_timer(10, "[pkgdb] db_add_pkg:dbg");
 }
 
 struct db_pkg* db_alloc_pkg(gchar* name)
 {
   struct db_pkg* p;
-
   if (name == 0 || !parse_pkgname(name, 6))
+  {
+    e_set(E_ERROR, "invalid package name");
     return 0;
-    
+  }
   p = g_new0(struct db_pkg, 1);
   p->name = parse_pkgname(name, 5);
   p->shortname = parse_pkgname(name, 1);
@@ -274,14 +273,14 @@ gint db_add_pkg(struct db_pkg* pkg)
   if (pkg == 0 || pkg->name == 0 || pkg->shortname == 0 
       || pkg->version == 0 || pkg->build == 0 || pkg->files == 0)
   {
-    e_set(DB_OTHER, "incomplete package structure");
+    e_set(E_BADARG, "incomplete package structure");
     goto err_0;
   }
   /* sql error handler */
   sql_push_context(SQL_ERRJUMP,1);
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
-    e_set(DB_OTHER, "%s", sql_error());
+    e_set(E_FATAL|DB_SQL, "%s", sql_error());
     sql_pop_context(0);
     goto err_0;
   }
@@ -290,7 +289,7 @@ gint db_add_pkg(struct db_pkg* pkg)
   q = sql_prep("SELECT id FROM packages WHERE name == '%q';", pkg->name);
   if (sql_step(q))
   { /* if package exists */
-    e_set(DB_EXIST, "package is already in database (%s)", pkg->name);
+    e_set(E_ERROR|DB_EXIST, "package is already in database (%s)", pkg->name);
     sql_pop_context(0);
     goto err_0;
   }
@@ -351,7 +350,7 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
 
   if (name == 0)
   {
-    e_set(DB_OTHER, "package name missing");
+    e_set(E_BADARG, "package name missing");
     goto err_0;
   }
 
@@ -359,7 +358,7 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   sql_push_context(SQL_ERRJUMP,1);
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
-    e_set(DB_OTHER, "%s", sql_error());
+    e_set(E_FATAL|DB_SQL, "%s", sql_error());
     sql_pop_context(0);
     db_free_pkg(p);
     goto err_0;
@@ -369,7 +368,7 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
                    " usize, desc, location, files, doinst FROM packages WHERE name == '%q';", name);
   if (!sql_step(q))
   {
-    e_set(DB_NOTEX, "package is NOT in database (%s)", name);
+    e_set(E_ERROR|DB_NOTEX, "package is NOT in database (%s)", name);
     sql_pop_context(0);
     goto err_0;
   }
@@ -426,7 +425,7 @@ gint db_rem_pkg(gchar* name)
 
   if (name == 0)
   {
-    e_set(DB_OTHER, "name needed");
+    e_set(E_BADARG, "name needed");
     return 1;
   }
   
@@ -434,7 +433,7 @@ gint db_rem_pkg(gchar* name)
   sql_push_context(SQL_ERRJUMP,1);
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
-    e_set(DB_OTHER, "%s", sql_error());
+    e_set(E_FATAL|DB_SQL, "%s", sql_error());
     sql_pop_context(0);
     return 1;
   }
@@ -443,7 +442,7 @@ gint db_rem_pkg(gchar* name)
   q = sql_prep("SELECT id,files FROM packages WHERE name == '%q';", name);
   if (!sql_step(q))
   { /* if package does not exists */
-    e_set(DB_NOTEX, "package is NOT in database (%s)", name);
+    e_set(E_ERROR|DB_NOTEX, "package is NOT in database (%s)", name);
     sql_pop_context(0);
     return 1;
   }
@@ -479,7 +478,7 @@ gint db_legacy_add_pkg(struct db_pkg* pkg)
   /* check if pkg contains everthing required */
   if (pkg == 0 || pkg->name == 0 || pkg->files == 0)
   {
-    e_set(DB_OTHER, "incomplete package structure");
+    e_set(E_BADARG, "incomplete package structure");
     goto err_0;
   }
 
@@ -489,13 +488,13 @@ gint db_legacy_add_pkg(struct db_pkg* pkg)
   pf = fopen(ppath, "w");
   if (pf == 0)
   {
-    e_set(DB_OTHER, "can't open package file (%s)", strerror(errno));
+    e_set(E_FATAL, "can't open package file (%s)", strerror(errno));
     goto err_1;
   }
   sf = fopen(spath, "w");
   if (sf == 0)
   {
-    e_set(DB_OTHER, "can't open script file");
+    e_set(E_FATAL, "can't open script file");
     goto err_2;
   }
 
@@ -713,7 +712,7 @@ GSList* db_get_packages()
   sql_push_context(SQL_ERRJUMP,1);
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
-    e_set(DB_OTHER, "%s", sql_error());
+    e_set(E_FATAL|DB_SQL, "%s", sql_error());
     sql_pop_context(0);
     db_free_packages(pkgs);
     stop_timer(7);
@@ -758,7 +757,7 @@ GSList* db_legacy_get_packages()
   g_free(pdir);
   if (d == NULL)
   {
-    e_set(DB_OTHER, "can't open legacy db directory");
+    e_set(E_FATAL, "can't open legacy db directory");
     goto err_0;
   }
   
@@ -770,7 +769,7 @@ GSList* db_legacy_get_packages()
     struct db_pkg* p = db_legacy_get_pkg(de->d_name,1);
     if (p == 0)
     {
-      e_set(DB_OTHER, "can't get legacy package");
+      e_set(E_FATAL, "can't get legacy package");
       goto err_1;
     }
     pkgs = g_slist_prepend(pkgs, p);
@@ -814,7 +813,7 @@ gint db_sync_to_legacydb()
     return 0; /* no packages */
   else if (pkgs == 0)
   {
-    e_set(DB_OTHER, "can't get package list");
+    e_set(E_FATAL, "can't get package list");
     goto err_0;
   }
  
@@ -824,12 +823,12 @@ gint db_sync_to_legacydb()
     struct db_pkg* p = db_get_pkg(pkg->name,1);
     if (p == 0)
     {
-      e_set(DB_OTHER, "can't get package from database");
+      e_set(E_FATAL, "can't get package from database");
       goto err_1;
     }
     if (db_legacy_add_pkg(p))
     {
-      e_set(DB_OTHER, "can't add package to legacy database");
+      e_set(E_FATAL, "can't add package to legacy database");
       goto err_1;
     }
     db_free_pkg(p);
@@ -855,7 +854,7 @@ gint db_sync_from_legacydb()
   g_free(tmpstr);
   if (d == NULL)
   {
-    e_set(DB_OTHER, "legacy database directory not found");
+    e_set(E_FATAL, "legacy database directory not found");
     goto err_0;
   }
   
@@ -869,12 +868,12 @@ gint db_sync_from_legacydb()
     p = db_legacy_get_pkg(de->d_name,1);
     if (p == 0)
     {
-      e_set(DB_OTHER, "can't get legacy package");
+      e_set(E_FATAL, "can't get legacy package");
       goto err_1;
     }
     if (db_add_pkg(p))
     {
-      e_set(DB_OTHER, "can't add package to database");
+      e_set(E_FATAL, "can't add package to database");
       db_free_pkg(p);
       goto err_1;
     }
