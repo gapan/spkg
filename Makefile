@@ -9,7 +9,7 @@ PREFIX := /usr/local
 DEBUG := no
 ASSERTS := yes
 BENCH := yes
-VERSION := 20050621
+VERSION := 20050627
 
 #CC := gcc-3.4.4
 CC := gcc
@@ -141,6 +141,7 @@ web-files: docs dist #slackpkg
 	mkdir -p .website/dl/spkg-docs
 	cp -r docs/html/* .website/dl/spkg-docs
 	tla changelog > .website/dl/ChangeLog
+	cp TODO .website/dl/TODO
 	( cd .website/dl ; tar czf spkg-docs.tar.gz spkg-docs )
 	mv spkg-$(VERSION).tar.gz .website/dl
 #	mv spkg-$(VERSION)-i486-1.tgz .website/dl

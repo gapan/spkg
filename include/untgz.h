@@ -126,6 +126,7 @@ typedef void(*untgz_status_cb)(struct untgz_state* s, gsize total, gsize current
  *            Note that if archive is corrupted, behavior is undefined.
  *            Also note, that use of callback is not possible on files
  *            where lseek is not posible.
+ * @param e Error object.
  * @return Pointer to the \ref untgz_state object on success, 0 on error.
  */
 extern struct untgz_state* untgz_open(const gchar* tgzfile, untgz_status_cb scb, struct error* e);

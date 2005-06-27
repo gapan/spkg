@@ -6,7 +6,7 @@
   <p>The lastest version of @SPKG@ is <strong>@VER@</strong>.</p>
 
   <p>@SPKG@ is now under active development. See <a href="/dl/ChangeLog">changelog</a>
-  for details.</p>
+  and <a href="/dl/TODO">TODO</a> for details.</p>
 
   <table cellspacing="0">
     <tr><th>library part</th><th>docs</th><th>code</th><th>status description</th></tr>
@@ -48,7 +48,7 @@
     array(1,"extremly fast filedb library is implemented", "2005-06-01"),
     array(1,"existing codebase is stabilized", "2005-06-04"),
     array(1,"website created", "2005-06-09"),
-    array(1,"pkgdb library is fully implemented", "2005-06-25"),
+    array(1,"pkgdb library is fully implemented", "2005-06-28"),
     array(0,"three basic commands are implemented", "2005-07-08"),
     array(0,"first fully functional RC version is released", "2005-07-15"),
     array(0,"first stable version is released, PyGTK graphical interface", "2005-08-01"),

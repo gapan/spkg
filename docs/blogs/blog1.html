@@ -1,6 +1,31 @@
-<p>Tak u¾ mì pøestalo bavit (ne ¾e by mì to tedy nìkdy bavilo :-)) èekat na instalaci a hlavnì upgrade balíèkù pomocí pkgtools.</p>
+<p>
+ Tak u¾ mì pøestalo bavit (ne ¾e by mì to tedy nìkdy bavilo :-)) èekat
+ na instalaci a hlavnì upgrade balíèkù pomocí pkgtools.
+</p>
 <break>
-<p>Jinak je Slackware moc pìkná distribuce, ale ten balíèkovací mana¾er, to je fakt bída. Kdo vidìl obsah skriptu removepkg, musí uznat ¾e pokusy o optimalizaci pro rychlost v bashi nevypadají pøíli¹ vábnì a v pøípadì removepkg nejsou ani pøíli¹ úspì¹né. O robustnosti se netøeba vùbec bavit, kdy¾ nìco sel¾e (tøeba user udìlá z dlouhé chvíle ctrl+C pøi upgrade glibc) je po srandì. Vùbec spu¹tìní removepkg, kdy¾ zrovna data nejsou v cache je taky zá¾itek. Installpkg rozbaluje archiv úplnì zbyteènì dvakrát, upgradepkg jakbysmet. Prostì bída.</p>
-<p>Funkce zobrazení nainstalovaných balíèkù pomocí pkgtool je taky kapitola sama pro sebe. Kolika lidem u¾ ze¹edivìly vlasy pøi sledování tohoto nápisu - <i>Please wait while Pkgtool scans your system to determine which packages you have installed and prepares a list for you.</i> Operace, která by mìla trvat pár milisekund, trvá na 1.5GHz Pentiu 4, svìte dr¾ se, 40 sekund!</p>
-<p>Tak jsem se s tím pøed dvìma mìsíci rozhodl nìco udìlat a zaèal reimplementovat pkgtools v C.</p>
-<p>Více pøí¹tì. Zatím dávám jen <a href="http://spkg.megous.com">odkaz</a> na stránky s projektem.</p>
+<p>
+ Jinak je Slackware moc pìkná distribuce, ale ten balíèkovací mana¾er,
+ to je fakt bída. Kdo vidìl obsah skriptu removepkg, musí uznat ¾e pokusy
+ o optimalizaci pro rychlost v bashi nevypadají pøíli¹ vábnì a v pøípadì
+ removepkg nejsou ani pøíli¹ úspì¹né. O robustnosti se netøeba vùbec
+ bavit, kdy¾ nìco sel¾e (tøeba user udìlá z dlouhé chvíle ctrl+C pøi
+ upgrade glibc) je po srandì. Vùbec spu¹tìní removepkg, kdy¾ zrovna data
+ nejsou v cache je taky zá¾itek. Installpkg rozbaluje archiv úplnì
+ zbyteènì dvakrát, upgradepkg jakbysmet. Prostì bída.
+</p>
+<p>
+ Funkce zobrazení nainstalovaných balíèkù pomocí pkgtool je taky
+ kapitola sama pro sebe. Kolika lidem u¾ ze¹edivìly vlasy pøi sledování
+ tohoto nápisu - <i>Please wait while Pkgtool scans your system to
+ determine which packages you have installed and prepares a list for
+ you.</i> Operace, která by mìla trvat pár milisekund, trvá na 1.5GHz
+ Pentiu 4, svìte dr¾ se, 40 sekund!
+</p>
+<p>
+ Tak jsem se s tím pøed dvìma mìsíci rozhodl nìco udìlat a zaèal
+ reimplementovat pkgtools v C.
+</p>
+<p>
+ Více pøí¹tì. Zatím dávám jen <a href="http://spkg.megous.com">odkaz</a>
+ na stránky s projektem.
+</p>
