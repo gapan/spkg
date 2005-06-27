@@ -31,11 +31,10 @@ struct fdb_file {
   gchar* link;  /**< Target of the symlink. [optional] */
 };
 
-#define FDB_OK    0 /**< no error */
-#define FDB_EXIST 1 /**< file exist */
-#define FDB_NOTEX 2 /**< file not exist */
-#define FDB_OTHER 3 /**< other error */
-#define FDB_NOPEN 2 /**< filedb not open */
+#define FDB_NOTEX   E(0) /**< file not exist in database */
+#define FDB_NOPEN   E(1) /**< database is not open */
+#define FDB_FULL    E(2) /**< db full */
+#define FDB_CORRUPT E(3) /**< db corrupted */
 
 /** Open file database.
  *

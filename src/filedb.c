@@ -18,19 +18,16 @@
 #include "filedb.h"
 #include "bench.h"
 
+/*XXX: compile time tweakable constants */
+/* reasonable defaults (this should be enough for all, ha ha...) */
+#define IDX_SIZE_LIMIT 20
+#define PLD_SIZE_LIMIT (2*IDX_SIZE_LIMIT) /* just an empirically determined value */
+#define MAXHASH (1024*128)
+#define FDB_CHECKSUMS 1
+#define SHOW_STATS 1
+
 /* private 
  ************************************************************************/
-
-#define PLD_SIZE_LIMIT 64
-#define IDX_SIZE_LIMIT 32
-#define MAXHASH (1024*128)
-
-#define FDB_CHECKSUMS 1
-
-/* autogrow is complicated, disabled for now (bcause not fully implemented) */
-#define FDB_AUTOGROW 0
-
-#define SHOW_STATS 1
 
 struct fdb {
   gboolean is_open; /* flase if not open (may not be true if error occured during open) */
@@ -114,36 +111,14 @@ struct file_pld {
 /* filedb on-disk data structures manipulation functions
  ************************************************************************/
 
-#if FDB_AUTOGROW == 1
-static __inline__ void _fdb_grow_mmaped_file(struct fdb* db, void* adr, gsize* size, gint fd)
-{
-  msync(adr, *size, MS_ASYNC);
-  gsize new_size = *size+GROWTH_FACTOR;
-  lseek(fd,SEEK_SET,new_size-1);
-  gchar z = 0;
-  write(fd, &z, 1);
-  void* newaddr = mremap(adr, MMAPSIZE, MMAPSIZE, /*MREMAP_MAYMOVE*/0);
-  if (newaddr == (void*)-1)
-  {
-    e_set(FDB_OTHER,"autogrow failed (mremap returned with error: %s)", strerror(errno));
-    longjmp(db->errjmp,1);
-  }
-  *size = new_size;
-}
-#endif
-
 static __inline__ guint32 _fdb_new_pld(struct fdb* db, const gchar* path, const void* data, const guint16 dlen)
 {
   guint32 size_path = strlen(path);
   guint32 size_entry = sizeof(struct file_pld) + size_path+1 + dlen;
   if (G_UNLIKELY(db->newoff + size_entry > db->size_pld))
   {
-#if FDB_AUTOGROW == 1
-    _fdb_grow_mmaped_file(db, db->addr_pld, &db->size_pld, db->fd_pld);
-#else
-    e_set(FDB_OTHER,"pld file is full");
+    e_set(E_FATAL|FDB_FULL,"pld file is full");
     longjmp(db->errjmp,1);
-#endif
   }
   guint32 offset = db->newoff;
   struct file_pld* pld = db->addr_pld + offset;
@@ -187,12 +162,8 @@ static __inline__ guint32 _fdb_new_idx(struct fdb* db, guint32 offset, guint32 h
   guint32 id = db->lastid+1;
   if (G_UNLIKELY(sizeof(struct file_idx_hdr) + id*sizeof(struct file_idx) > db->size_idx))
   {
-#if FDB_AUTOGROW == 1
-    _fdb_grow_mmaped_file(db, db->addr_idx, &db->size_idx, db->fd_idx);
-#else
-    e_set(FDB_OTHER,"pld file is full");
+    e_set(E_FATAL|FDB_FULL,"pld file is full");
     longjmp(db->errjmp,1);
-#endif
   }
   struct file_idx* idx = db->idx+db->lastid;
   idx->off = offset;
@@ -238,7 +209,7 @@ static __inline__ struct file_idx* _idx_from_id(struct fdb* db, guint32 id)
     return 0;
   if (id > db->lastid)
   {
-    e_set(FDB_OTHER,"invlaid idx id (%d)", id);
+    e_set(E_FATAL,"invlaid idx id (%d)", id);
     longjmp(db->errjmp,1);
   }
   struct file_idx* idx = db->idx+(id-1);
@@ -249,7 +220,7 @@ static __inline__ struct file_idx* _idx_from_id(struct fdb* db, guint32 id)
     sum += ((guint8*)idx)[i];
   if (sum != 0xff)
   {
-    e_set(FDB_OTHER,"invlaid checksum of idx entry no.: %d", id);
+    e_set(E_FATAL|FDB_CORRUPT,"invlaid checksum of idx entry no.: %d", id);
     longjmp(db->errjmp,1);
   }
 #endif
@@ -309,7 +280,7 @@ static __inline__ struct file_pld* _pld_from_idx(struct fdb* db, struct file_idx
 {
   if (idx->off >= db->size_pld || idx->off == 0)
   {
-    e_set(FDB_OTHER,"invlaid pld offset (0x%08X)", idx->off);
+    e_set(E_FATAL|FDB_CORRUPT,"invlaid pld offset (0x%08X)", idx->off);
     longjmp(db->errjmp,1);
   }
   struct file_pld* pld = db->addr_pld+idx->off;
@@ -320,7 +291,7 @@ static __inline__ struct file_pld* _pld_from_idx(struct fdb* db, struct file_idx
     sum += ((guint8*)pld)[i];
   if (sum != 0xff)
   {
-    e_set(FDB_OTHER,"invlaid checksum of pld entry at offset: 0x%08X", idx->off);
+    e_set(E_FATAL|FDB_CORRUPT,"invlaid checksum of pld entry at offset: 0x%08X", idx->off);
     longjmp(db->errjmp,1);
   }
 #endif
@@ -404,7 +375,7 @@ static guint32 _fdb_insert_node(struct fdb* db, const struct fdb_file* file)
     {
       if (G_UNLIKELY(x->bal != +1))
       {
-        e_set(FDB_OTHER,"corrupted idx file (broken AVL tree)");
+        e_set(E_FATAL|FDB_CORRUPT,"corrupted idx file (broken AVL tree)");
         longjmp(db->errjmp,1);
       }
       w = _idx_from_id(db,x->lnk[1]);
@@ -445,7 +416,7 @@ static guint32 _fdb_insert_node(struct fdb* db, const struct fdb_file* file)
     {
       if (G_UNLIKELY(x->bal != -1))
       {
-        e_set(FDB_OTHER,"corrupted idx file (broken AVL tree)");
+        e_set(E_FATAL|FDB_CORRUPT,"corrupted idx file (broken AVL tree)");
         longjmp(db->errjmp,1);
       }
       w = _idx_from_id(db,x->lnk[0]);
@@ -504,14 +475,14 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
 
   if (sys_file_type(path,0) != SYS_DIR)
   {
-    e_set( FDB_OTHER, "can't create file database directory: %s", path);
+    e_set(E_FATAL, "can't create file database directory: %s", path);
     goto err_0;
   }
 
   /* check if fdb directory is ok */
   if (access(path, R_OK|W_OK|X_OK))
   {
-    e_set( FDB_OTHER, "inaccessible file database directory: %s", strerror(errno));
+    e_set(E_FATAL, "inaccessible file database directory: %s", strerror(errno));
     goto err_0;
   }
 
@@ -523,14 +494,14 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
   db->fd_pld = open(path_pld, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
   if (db->fd_pld == -1)
   {
-    e_set( FDB_OTHER, "can't open pld file: %s", strerror(errno));
+    e_set(E_FATAL, "can't open pld file: %s", strerror(errno));
     goto err_1;
   }
 
   db->fd_idx = open(path_idx, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
   if (db->fd_idx == -1)
   {
-    e_set( FDB_OTHER, "can't open idx file: %s", strerror(errno));
+    e_set(E_FATAL, "can't open idx file: %s", strerror(errno));
     goto err_2;
   }
   
@@ -541,7 +512,7 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
   stop_timer(10);
   if (db->size_idx == -1 || db->size_pld == -1)
   {
-    e_set( FDB_OTHER, "lseek failed: %s", strerror(errno));
+    e_set(E_FATAL, "lseek failed: %s", strerror(errno));
     goto err_3;
   }
   lseek(db->fd_idx, 0, SEEK_SET);
@@ -557,7 +528,7 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
     lseek(db->fd_idx, 1024*1024*IDX_SIZE_LIMIT-1, SEEK_SET);
     if (write(db->fd_idx, &z, 1) != 1)
     {
-      e_set( FDB_OTHER, "write failed: %s", strerror(errno));
+      e_set(E_FATAL, "write failed: %s", strerror(errno));
       goto err_3;
     }
     db->size_idx = 1024*1024*IDX_SIZE_LIMIT;
@@ -577,7 +548,7 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
     struct file_idx_hdr head;
     if (db->size_idx < sizeof(head))
     {
-      e_set( FDB_OTHER, "invalid idx file (file too small)");
+      e_set(E_FATAL|FDB_CORRUPT, "invalid idx file (file too small)");
       goto err_3;
     }
 
@@ -585,13 +556,13 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
     read(db->fd_idx, &head, sizeof(head));
     if (strncmp(head.magic, "FDB.PLINDEX", 11) != 0)
     {
-      e_set( FDB_OTHER, "invalid idx file (wrong magic)");
+      e_set(E_FATAL|FDB_CORRUPT, "invalid idx file (wrong magic)");
       goto err_3;
     }
 
     if (head.lastid*sizeof(struct file_idx)+sizeof(head) > db->size_idx)
     {
-      e_set( FDB_OTHER, "invalid idx file (file too small to fit entries given by lastid)");
+      e_set(E_FATAL|FDB_CORRUPT, "invalid idx file (file too small to fit entries given by lastid)");
       goto err_3;
     }
   }
@@ -616,20 +587,20 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
     struct file_pld_hdr head;
     if (db->size_pld < sizeof(head))
     {
-      e_set( FDB_OTHER, "invalid pld file (file too small)");
+      e_set(E_FATAL|FDB_CORRUPT, "invalid pld file (file too small)");
       goto err_3;
     }
 
     read(db->fd_pld, &head, sizeof(head));
     if (strncmp(head.magic, "FDB.PAYLOAD", 11) != 0)
     {
-      e_set( FDB_OTHER, "invalid pld file (wrong magic)");
+      e_set(E_FATAL|FDB_CORRUPT, "invalid pld file (wrong magic)");
       goto err_3;
     }
 
     if (head.newoff > db->size_pld)
     {
-      e_set( FDB_OTHER, "invalid pld file (corrupted)");
+      e_set(E_FATAL|FDB_CORRUPT, "invalid pld file (corrupted)");
       goto err_3;
     }
   }
@@ -717,12 +688,12 @@ void fdb_close(struct fdb* db)
   g_assert(db != 0); \
   if (!db->is_open) \
   { \
-    e_set(FDB_NOPEN,"file database is NOT open"); \
+    e_set(E_FATAL|FDB_NOPEN,"file database is NOT open"); \
     return v; \
   } \
   if (G_UNLIKELY(setjmp(db->errjmp) != 0)) \
   { \
-    e_set(FDB_OTHER,"internal error"); \
+    e_set(E_PASS,"internal error"); \
     return v; \
   }
 
@@ -736,7 +707,7 @@ guint32 fdb_add_file(struct fdb* db, const struct fdb_file* file)
   continue_timer(2);
   if (file->path == 0)
   {
-    e_set( FDB_OTHER, "file path must be set at least");
+    e_set(E_BADARG, "file path must be set at least");
     return 0;
   }
   id = _fdb_insert_node(db,file); /* always ok */ 
@@ -773,7 +744,7 @@ guint32 fdb_get_file_id(struct fdb* db, const gchar* path)
   }
   stop_timer(3);
  not_fnd:
-  e_set( FDB_NOTEX, "file not found (%s)", path);
+  e_set(E_ERROR|FDB_NOTEX, "file not found (%s)", path);
   return 0;
 }
 
@@ -787,7 +758,7 @@ gint fdb_get_file(struct fdb* db, const guint32 id, struct fdb_file* file)
   pld = _pld_from_idx(db,_idx_from_id(db,id));
   if (pld == 0)
   {
-    e_set( FDB_OTHER, "invalid file id");
+    e_set(E_ERROR|FDB_NOTEX, "invalid file id");
     stop_timer(4);
     return 1;
   }
@@ -804,7 +775,7 @@ gint fdb_rem_file(struct fdb* db, const guint32 id)
   struct file_idx* i = _idx_from_id(db,id);
   if (i->refs == 0)
   {
-    e_set( FDB_NOTEX, "file already has zero refs");
+    e_set(E_ERROR|FDB_NOTEX, "file already has zero refs");
     stop_timer(5);
     return 1;
   }

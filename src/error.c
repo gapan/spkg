@@ -67,7 +67,8 @@ void e_add(
     g_free(tmp);
   }
   e->string = msg;
-  e->number = errnum;
+  if (errnum != E_PASS)
+    e->number = errnum;
   e->bad = 1;
 }
 
