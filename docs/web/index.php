@@ -31,6 +31,8 @@
   and roadmap of the @SPKG@ development.</p>
 
   <dl>
+   <dt>2005-06-29</dt>
+    <dd>Pkgdb completed.</dd>
    <dt>2005-06-27</dt>
     <dd>Filedb library received new features: fast distributed
     checksumming and per file arbitrary data storing. It is possible

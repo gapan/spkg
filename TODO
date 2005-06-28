@@ -1,10 +1,13 @@
-[filedb] implement "named" filedb (and name semaphores apropriately)
+[filedb] implement "named" filedb (and name semaphores apropriately,
+         so that we can really open multiple different filedbs :-))
 
 [pkgdb] pkg structure should be better documented (espec. required and optional fields)
          - how should we handle symlinks in pkgdb? (store or not?)
          - add package installation time info into db
 [pkgdb] get_packages: implement data selector
 [pkgdb] more open modes (read only - to allow easy access to database for nonprivileged)
+[pkgdb] when finished, implement missing py bindings
+
 
 [pkgtools] pass options using some common structure
 [pkgtools] add option to disable doinst.sh script preprocessing (because it may not work

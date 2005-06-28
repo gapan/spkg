@@ -14,9 +14,9 @@
   $status = array(
     array("untgz",   100, 100,  "completed!"),
     array("sql",     100, 100,  "completed!"),
-    array("filedb",   80,  90,  "TODO: locking, autogrow, cleanup"),
-    array("pkgdb",    80,  95,  "TODO: cleanup"),
-    array("commands", 20,   0,  "partly implemented install command"),
+    array("filedb",   80, 100,  "completed!"),
+    array("pkgdb",    80, 100,  "completed!"),
+    array("commands", 10,  20,  "partly implemented install command"),
   );
   function getclass($p)
   {
@@ -48,7 +48,7 @@
     array(1,"extremly fast filedb library is implemented", "2005-06-01"),
     array(1,"existing codebase is stabilized", "2005-06-04"),
     array(1,"website created", "2005-06-09"),
-    array(1,"pkgdb library is fully implemented", "2005-06-28"),
+    array(1,"pkgdb library is fully implemented", "2005-06-29"),
     array(0,"three basic commands are implemented", "2005-07-08"),
     array(0,"first fully functional RC version is released", "2005-07-15"),
     array(0,"first stable version is released, PyGTK graphical interface", "2005-08-01"),

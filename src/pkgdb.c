@@ -25,18 +25,22 @@
 /* private 
  ************************************************************************/
 
-static gboolean _db_is_open = 0;
-static gchar* _db_topdir = 0;
-static gchar* _db_dbfile = 0;
-static gchar* _db_dbroot = 0;
-static struct error* _db_err = 0;
-static struct fdb* _db_fdb = 0;
-static sem_t* _db_sem = 0;
+struct db_state {
+  gboolean is_open;
+  gchar* topdir;
+  gchar* dbfile;
+  gchar* dbroot;
+  struct error* err;
+  struct fdb* fdb;
+  sem_t* sem;
+};
 
-#define e_set(n, fmt, args...) e_add(_db_err, "pkgdb", __func__, n, fmt, ##args)
+static struct db_state _db = {0};
+
+#define e_set(n, fmt, args...) e_add(_db.err, "pkgdb", __func__, n, fmt, ##args)
 
 #define _db_open_check(v) \
-  if (!_db_is_open) \
+  if (!_db.is_open) \
   { \
     e_set(E_ERROR|DB_NOPEN, "package database is NOT open"); \
     return v; \
@@ -60,7 +64,7 @@ gint db_open(const gchar* root, struct error* e)
   reset_timers();
   continue_timer(0);
   
-  if (_db_is_open)
+  if (_db.is_open)
   {
     e_set(E_ERROR|DB_OPEN, "package database is already open");
     return 1;
@@ -69,8 +73,8 @@ gint db_open(const gchar* root, struct error* e)
   if (root == 0)
     root = "/";
 
-  _db_sem = sem_open(SEMAPHORE_NAME, O_CREAT, 0666, 1);
-  if (_db_sem == SEM_FAILED)
+  _db.sem = sem_open(SEMAPHORE_NAME, O_CREAT, 0666, 1);
+  if (_db.sem == SEM_FAILED)
   {
     e_set(E_FATAL, "can't open semaphore: %s", strerror(errno));
     goto err_0;
@@ -87,7 +91,7 @@ gint db_open(const gchar* root, struct error* e)
       e_set(E_ERROR|DB_BLOCKED, "sem_trywait failed to get semaphore: %s", strerror(errno));
       goto err_1;
     }
-    s = sem_trywait(_db_sem);
+    s = sem_trywait(_db.sem);
   } while(s == -1 && errno == EAGAIN);
   if (s == -1) /* this means, that last status was bad and not EAGAIN */
   {
@@ -96,18 +100,18 @@ gint db_open(const gchar* root, struct error* e)
   }
 
   if (root[0] == '/')
-    _db_topdir = g_strdup_printf("%s/%s", root, PKGDB_DIR);
+    _db.topdir = g_strdup_printf("%s/%s", root, PKGDB_DIR);
   else
   {
     gchar* cwd = getcwd(0,0);
-    _db_topdir = g_strdup_printf("%s/%s/%s", cwd, root, PKGDB_DIR); /*XXX: not portable */
+    _db.topdir = g_strdup_printf("%s/%s/%s", cwd, root, PKGDB_DIR); /*XXX: not portable */
     free(cwd);
   }
 
   /* check legacy and spkg db dirs */
   for (d = checkdirs; *d != 0; d++)
   {
-    gchar* tmpdir = g_strdup_printf("%s/%s", _db_topdir, *d);
+    gchar* tmpdir = g_strdup_printf("%s/%s", _db.topdir, *d);
     /* if it is not a directory, clean it and create it */
     if (sys_file_type(tmpdir,1) != SYS_DIR)
     {
@@ -126,24 +130,24 @@ gint db_open(const gchar* root, struct error* e)
   }
 
   /* check spkg db file */
-  _db_dbroot = g_strdup_printf("%s/%s", _db_topdir, "spkgdb");
-  _db_dbfile = g_strdup_printf("%s/%s", _db_dbroot, "spkg.db");
-  if (sys_file_type(_db_dbfile,0) != SYS_REG && sys_file_type(_db_dbfile,0) != SYS_NONE)
+  _db.dbroot = g_strdup_printf("%s/%s", _db.topdir, "spkgdb");
+  _db.dbfile = g_strdup_printf("%s/%s", _db.dbroot, "spkg.db");
+  if (sys_file_type(_db.dbfile,0) != SYS_REG && sys_file_type(_db.dbfile,0) != SYS_NONE)
   {
-    e_set(E_FATAL, "file %s is not accessible", _db_dbfile);
+    e_set(E_FATAL, "file %s is not accessible", _db.dbfile);
     goto err_3;
   }
 
   /* open file database */
-  _db_fdb = fdb_open(_db_dbroot, e);
-  if (_db_fdb == 0)
+  _db.fdb = fdb_open(_db.dbroot, e);
+  if (_db.fdb == 0)
   {
     e_set(E_FATAL, "can't open file database");
     goto err_3;
   }
 
   /* open sql database */
-  if (sql_open(_db_dbfile))
+  if (sql_open(_db.dbfile))
   {
     e_set(E_FATAL, "sql_open failed");
     goto err_4;
@@ -191,47 +195,47 @@ gint db_open(const gchar* root, struct error* e)
   }
 
   sql_pop_context(1);
-  _db_is_open = 1;
+  _db.is_open = 1;
   stop_timer(0);
   return 0;
  err_5:
   sql_close();
  err_4:
-  fdb_close(_db_fdb);
-  _db_fdb = 0;
+  fdb_close(_db.fdb);
+  _db.fdb = 0;
  err_3:
-  g_free(_db_dbfile);
-  _db_dbfile = 0;
-  g_free(_db_dbroot);
-  _db_dbroot = 0;
+  g_free(_db.dbfile);
+  _db.dbfile = 0;
+  g_free(_db.dbroot);
+  _db.dbroot = 0;
  err_2:
-  g_free(_db_topdir);
-  _db_topdir = 0;
+  g_free(_db.topdir);
+  _db.topdir = 0;
  err_1:
-  sem_post(_db_sem);
+  sem_post(_db.sem);
  err_0:
   sem_unlink(SEMAPHORE_NAME);
-  sem_close(_db_sem);
+  sem_close(_db.sem);
   return 1;
 }
 
 void db_close()
 {
   continue_timer(1);
-  fdb_close(_db_fdb);
-  _db_fdb = 0;
+  fdb_close(_db.fdb);
+  _db.fdb = 0;
   sql_close();
 
   /*XXX: check this */
-  sem_post(_db_sem);
+  sem_post(_db.sem);
   sem_unlink(SEMAPHORE_NAME);
-  sem_close(_db_sem);
+  sem_close(_db.sem);
 
-  g_free(_db_dbfile);
-  g_free(_db_topdir);
-  g_free(_db_dbroot);
+  g_free(_db.dbfile);
+  g_free(_db.topdir);
+  g_free(_db.dbroot);
   g_blow_chunks();
-  _db_is_open = 0;
+  _db.is_open = 0;
   stop_timer(1);
 
   print_timer(0, "[pkgdb] db_open");
@@ -346,7 +350,7 @@ gint db_add_pkg(struct db_pkg* pkg)
     struct fdb_file fdb;
     fdb.path = f->path;
     fdb.link = f->link;    
-    f->id = fdb_add_file(_db_fdb, &fdb);
+    f->id = fdb_add_file(_db.fdb, &fdb);
     f->refs = fdb.refs;
     fi_array[i++] = f->id;
   }
@@ -439,7 +443,7 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   struct db_file* file;
   for (i=0; i<fi_size; i++)
   {
-    fdb_get_file(_db_fdb, fi_array[i], &f);
+    fdb_get_file(_db.fdb, fi_array[i], &f);
     file = g_new0(struct db_file, 1);
     file->path = g_strdup(f.path);
     file->link = f.link?g_strdup(f.link):0;
@@ -493,7 +497,7 @@ gint db_rem_pkg(gchar* name)
   guint32 *fi_array = (guint32*)sql_get_blob(q, 1);
   guint i;
   for (i=0; i<fi_size; i++)
-    fdb_rem_file(_db_fdb, fi_array[i]);
+    fdb_rem_file(_db.fdb, fi_array[i]);
   
   sql_fini(q);
 
@@ -523,8 +527,8 @@ gint db_legacy_add_pkg(struct db_pkg* pkg)
     goto err_0;
   }
 
-  ppath = g_strdup_printf("%s/packages.spkg/%s", _db_topdir, pkg->name);
-  spath = g_strdup_printf("%s/scripts.spkg/%s", _db_topdir, pkg->name);
+  ppath = g_strdup_printf("%s/packages.spkg/%s", _db.topdir, pkg->name);
+  spath = g_strdup_printf("%s/scripts.spkg/%s", _db.topdir, pkg->name);
 
   pf = fopen(ppath, "w");
   if (pf == 0)
@@ -588,7 +592,7 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
   continue_timer(4);
 
   /* open legacy package db entries */  
-  tmpstr = g_strdup_printf("%s/packages/%s", _db_topdir, name);
+  tmpstr = g_strdup_printf("%s/packages/%s", _db.topdir, name);
   fp = open(tmpstr, O_RDONLY);
   g_free(tmpstr);
   if (fp == -1) /* main package entry can't be open */
@@ -601,7 +605,7 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
     goto err_0;
   }
 
-  tmpstr = g_strdup_printf("%s/scripts/%s", _db_topdir, name);
+  tmpstr = g_strdup_printf("%s/scripts/%s", _db.topdir, name);
   fs = open(tmpstr, O_RDONLY);
   g_free(tmpstr);
   if (fs != -1) /* script entry can't be open */
@@ -725,8 +729,8 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
 
 gint db_legacy_rem_pkg(gchar* name)
 {
-  gchar* p = g_strdup_printf("%s/packages/%s", _db_topdir, name);
-  gchar* s = g_strdup_printf("%s/scripts/%s", _db_topdir, name);
+  gchar* p = g_strdup_printf("%s/packages/%s", _db.topdir, name);
+  gchar* s = g_strdup_printf("%s/scripts/%s", _db.topdir, name);
   gint ret = 1;
   if (sys_file_type(p, 0) == SYS_REG)
   {
@@ -793,7 +797,7 @@ GSList* db_legacy_get_packages()
 
   continue_timer(8);
 
-  gchar* pdir = g_strdup_printf("%s/packages", _db_topdir);
+  gchar* pdir = g_strdup_printf("%s/packages", _db.topdir);
   DIR* d = opendir(pdir);
   g_free(pdir);
   if (d == NULL)
@@ -850,7 +854,7 @@ gint db_sync_to_legacydb()
   _db_open_check(1)
 
   pkgs = db_get_packages();
-  if (pkgs == 0 && e_ok(_db_err))
+  if (pkgs == 0 && e_ok(_db.err))
     return 0; /* no packages */
   else if (pkgs == 0)
   {
@@ -886,7 +890,7 @@ gint db_sync_from_legacydb()
 {
   DIR* d;
   struct dirent* de;
-  gchar* tmpstr = g_strdup_printf("%s/%s", _db_topdir, "packages");
+  gchar* tmpstr = g_strdup_printf("%s/%s", _db.topdir, "packages");
   gint ret = 1;
 
   _db_open_check(1)
