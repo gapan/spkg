@@ -1,20 +1,19 @@
-[!filedb] implement filedb locking (easy)
-[!pkgdb] check for exclusive locks by other processes (do some wait or 
-         something, sqlite should have some support for this)
+[filedb] implement "named" filedb (and name semaphores apropriately)
 
+[pkgdb] pkg structure should be better documented (espec. required and optional fields)
+         - how should we handle symlinks in pkgdb? (store or not?)
+         - add package installation time info into db
 [pkgdb] get_packages: implement data selector
-[pkgdb] pkg structure should be better defined (espec. required and optional fields)
-[pkgdb] how should we handle symlinks in pkgdb?
-[pkgdb] add package installation time info into db
 [pkgdb] more open modes (read only - to allow easy access to database for nonprivileged)
 
-[pkgtools] add option to do script preprocessing for faster link creation
 [pkgtools] pass options using some common structure
+[pkgtools] add option to disable doinst.sh script preprocessing (because it may not work
+           for glibc package, because links are created conditionally)
 [pkgtools] implement filesystem transactions
 [pkgtools] implement install, upgrade, remove
 
 [sys] reimplement sys_rm_rf and sys_mkdir_p in C (should be just som Copy&Paste(tm) from
-      mxm project)
+      my mxm project)
 
 [untgz] use of blockbuf instead of writebuf can speedup things slightly on the user side
 

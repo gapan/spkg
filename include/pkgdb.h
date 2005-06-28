@@ -26,6 +26,7 @@
 #define DB_NOTEX   E(3) /**< package not exist in database */
 #define DB_EXIST   E(4) /**< package already in database */
 #define DB_SQL     E(5) /**< sqlite error */
+#define DB_BLOCKED E(6) /**< db is open by another proccess */
 
 typedef enum {
   DB_GET_ALL=0, /**< get everything */

@@ -16,7 +16,7 @@ CC := gcc
 AR := ar
 CFLAGS := -pipe -Wall
 CPPFLAGS := -Iinclude -Ilibs/sqlite -Ilibs/glib -D_GNU_SOURCE -DSPKG_VERSION=$(VERSION)
-LDFLAGS := -lz libs/sqlite/libsqlite3.a libs/glib/libglib-2.0.a
+LDFLAGS := -lz -lpthread libs/sqlite/libsqlite3.a libs/glib/libglib-2.0.a
 ifeq ($(DEBUG),yes)
 CFLAGS +=  -ggdb3 -O0
 CPPFLAGS += -D__DEBUG=1

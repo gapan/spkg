@@ -35,6 +35,7 @@ struct fdb_file {
 #define FDB_NOPEN   E(1) /**< database is not open */
 #define FDB_FULL    E(2) /**< db full */
 #define FDB_CORRUPT E(3) /**< db corrupted */
+#define FDB_BLOCKED E(4) /**< db is open by another proccess */
 
 /** Open file database.
  *

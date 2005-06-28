@@ -13,6 +13,7 @@
 #include <setjmp.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <semaphore.h>
 
 #include "sys.h"
 #include "filedb.h"
@@ -20,7 +21,7 @@
 
 /*XXX: compile time tweakable constants */
 /* reasonable defaults (this should be enough for all, ha ha...) */
-#define IDX_SIZE_LIMIT 20
+#define IDX_SIZE_LIMIT 200
 #define PLD_SIZE_LIMIT (2*IDX_SIZE_LIMIT) /* just an empirically determined value */
 #define MAXHASH (1024*128)
 #define FDB_CHECKSUMS 1
@@ -28,6 +29,8 @@
 
 /* private 
  ************************************************************************/
+
+#define SEMAPHORE_NAME "/sem.spkg.filedb"
 
 struct fdb {
   gboolean is_open; /* flase if not open (may not be true if error occured during open) */
@@ -47,6 +50,7 @@ struct fdb {
   void* addr_pld;
   gsize size_pld; /* mmaped sizes */
   gsize size_idx;
+  sem_t* sem;
   
   jmp_buf errjmp; /* where to jump on error */
 };
@@ -490,19 +494,45 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
   gchar *path_idx = g_strdup_printf("%s/idx", path);
   gchar *path_pld = g_strdup_printf("%s/pld", path);
 
+  db->sem = sem_open(SEMAPHORE_NAME, O_CREAT, 0666, 1);
+  if (db->sem == SEM_FAILED)
+  {
+    e_set(E_FATAL, "can't open semaphore: %s", strerror(errno));
+    goto err_0;
+  }
+
+  /* while we are not allowed to enter critical section, wait a while */
+  gint s, c=0;
+  do {
+    /* wait up to 2 seconds for the semaphore */
+    if (c++) /* no, not a c++ ;-) */
+      usleep(50000); /*XXX: not a posix, but better than nothing */
+    if (c > 40)
+    {
+      e_set(E_ERROR|FDB_BLOCKED, "sem_trywait failed to get semaphore: %s", strerror(errno));
+      goto err_1;
+    }
+    s = sem_trywait(db->sem);
+  } while(s == -1 && errno == EAGAIN);
+  if (s == -1) /* this means, that last status was bad and not EAGAIN */
+  {
+    e_set(E_FATAL, "sem_trywait failed: %s", strerror(errno));
+    goto err_1;
+  }
+
   /* open index and payload files */
   db->fd_pld = open(path_pld, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
   if (db->fd_pld == -1)
   {
     e_set(E_FATAL, "can't open pld file: %s", strerror(errno));
-    goto err_1;
+    goto err_2;
   }
 
   db->fd_idx = open(path_idx, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
   if (db->fd_idx == -1)
   {
     e_set(E_FATAL, "can't open idx file: %s", strerror(errno));
-    goto err_2;
+    goto err_3;
   }
   
   /* get file sizes */
@@ -513,7 +543,7 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
   if (db->size_idx == -1 || db->size_pld == -1)
   {
     e_set(E_FATAL, "lseek failed: %s", strerror(errno));
-    goto err_3;
+    goto err_4;
   }
   lseek(db->fd_idx, 0, SEEK_SET);
   lseek(db->fd_pld, 0, SEEK_SET);
@@ -529,7 +559,7 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
     if (write(db->fd_idx, &z, 1) != 1)
     {
       e_set(E_FATAL, "write failed: %s", strerror(errno));
-      goto err_3;
+      goto err_4;
     }
     db->size_idx = 1024*1024*IDX_SIZE_LIMIT;
 
@@ -549,7 +579,7 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
     if (db->size_idx < sizeof(head))
     {
       e_set(E_FATAL|FDB_CORRUPT, "invalid idx file (file too small)");
-      goto err_3;
+      goto err_4;
     }
 
     /* read header */
@@ -557,13 +587,13 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
     if (strncmp(head.magic, "FDB.PLINDEX", 11) != 0)
     {
       e_set(E_FATAL|FDB_CORRUPT, "invalid idx file (wrong magic)");
-      goto err_3;
+      goto err_4;
     }
 
     if (head.lastid*sizeof(struct file_idx)+sizeof(head) > db->size_idx)
     {
       e_set(E_FATAL|FDB_CORRUPT, "invalid idx file (file too small to fit entries given by lastid)");
-      goto err_3;
+      goto err_4;
     }
   }
 
@@ -588,30 +618,30 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
     if (db->size_pld < sizeof(head))
     {
       e_set(E_FATAL|FDB_CORRUPT, "invalid pld file (file too small)");
-      goto err_3;
+      goto err_4;
     }
 
     read(db->fd_pld, &head, sizeof(head));
     if (strncmp(head.magic, "FDB.PAYLOAD", 11) != 0)
     {
       e_set(E_FATAL|FDB_CORRUPT, "invalid pld file (wrong magic)");
-      goto err_3;
+      goto err_4;
     }
 
     if (head.newoff > db->size_pld)
     {
       e_set(E_FATAL|FDB_CORRUPT, "invalid pld file (corrupted)");
-      goto err_3;
+      goto err_4;
     }
   }
   
   /* do mmaps of payload and index */
   db->addr_idx = mmap(0, db->size_idx, PROT_READ|PROT_WRITE, MAP_SHARED, db->fd_idx, 0);
   if (db->addr_idx == (void*)-1)
-    goto err_3;
+    goto err_4;
   db->addr_pld = mmap(0, db->size_pld, PROT_READ|PROT_WRITE, MAP_SHARED, db->fd_pld, 0);
   if (db->addr_pld == (void*)-1)
-    goto err_4;
+    goto err_5;
   db->idx = db->addr_idx + sizeof(struct file_idx_hdr);
   db->ihdr = db->addr_idx;
   db->phdr = db->addr_pld;
@@ -623,18 +653,24 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
   g_free(path_idx);
   g_free(path_pld);
 
+
   stop_timer(0);
   return db;
+  /*XXX: check cleanups */
   munmap(db->addr_pld, db->size_pld);
- err_4:
+ err_5:
   munmap(db->addr_idx, db->size_idx);
- err_3:
+ err_4:
   close(db->fd_pld);
- err_2:
+ err_3:
   close(db->fd_idx);
+ err_2:
+  sem_post(db->sem);
  err_1:
   g_free(path_idx);
   g_free(path_pld);
+  sem_unlink(SEMAPHORE_NAME);
+  sem_close(db->sem);
  err_0:
   g_free(db);
   stop_timer(0);
@@ -645,12 +681,6 @@ void fdb_close(struct fdb* db)
 {
   continue_timer(1);
   g_assert(db != 0);
-
-  if (!db->is_open)
-  {
-    g_free(db);
-    return;
-  }
 
   db->ihdr->lastid = db->lastid;
   db->phdr->newoff = db->newoff;
@@ -671,6 +701,12 @@ void fdb_close(struct fdb* db)
   close(db->fd_idx);
 
   g_free(db->dbdir);
+
+  /*XXX: check this */
+  sem_post(db->sem);
+  sem_unlink(SEMAPHORE_NAME);
+  sem_close(db->sem);
+
   memset(&db, 0, sizeof(db));
   g_free(db);
 

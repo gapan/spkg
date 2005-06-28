@@ -13,6 +13,7 @@
 #include <string.h>
 #include <sys/mman.h>
 #include <errno.h>
+#include <semaphore.h>
 
 #include "sql.h"
 #include "sys.h"
@@ -30,6 +31,7 @@ static gchar* _db_dbfile = 0;
 static gchar* _db_dbroot = 0;
 static struct error* _db_err = 0;
 static struct fdb* _db_fdb = 0;
+static sem_t* _db_sem = 0;
 
 #define e_set(n, fmt, args...) e_add(_db_err, "pkgdb", __func__, n, fmt, ##args)
 
@@ -39,6 +41,8 @@ static struct fdb* _db_fdb = 0;
     e_set(E_ERROR|DB_NOPEN, "package database is NOT open"); \
     return v; \
   }
+
+#define SEMAPHORE_NAME "/sem.spkg.pkgdb"
 
 /* public 
  ************************************************************************/
@@ -65,6 +69,32 @@ gint db_open(const gchar* root, struct error* e)
   if (root == 0)
     root = "/";
 
+  _db_sem = sem_open(SEMAPHORE_NAME, O_CREAT, 0666, 1);
+  if (_db_sem == SEM_FAILED)
+  {
+    e_set(E_FATAL, "can't open semaphore: %s", strerror(errno));
+    goto err_0;
+  }
+
+  /* while we are not allowed to enter critical section, wait a while */
+  gint s, c=0;
+  do {
+    /* wait up to 2 seconds for the semaphore */
+    if (c++) /* no, not a c++ ;-) */
+      usleep(50000); /*XXX: not a posix, but better than nothing */
+    if (c > 40)
+    {
+      e_set(E_ERROR|DB_BLOCKED, "sem_trywait failed to get semaphore: %s", strerror(errno));
+      goto err_1;
+    }
+    s = sem_trywait(_db_sem);
+  } while(s == -1 && errno == EAGAIN);
+  if (s == -1) /* this means, that last status was bad and not EAGAIN */
+  {
+    e_set(E_FATAL, "sem_trywait failed: %s", strerror(errno));
+    goto err_1;
+  }
+
   if (root[0] == '/')
     _db_topdir = g_strdup_printf("%s/%s", root, PKGDB_DIR);
   else
@@ -89,7 +119,7 @@ gint db_open(const gchar* root, struct error* e)
       {
         e_set(E_FATAL, "%s should be an accessible directory", tmpdir);
         g_free(tmpdir);
-        goto err0;
+        goto err_2;
       }
     }
     g_free(tmpdir);
@@ -101,7 +131,7 @@ gint db_open(const gchar* root, struct error* e)
   if (sys_file_type(_db_dbfile,0) != SYS_REG && sys_file_type(_db_dbfile,0) != SYS_NONE)
   {
     e_set(E_FATAL, "file %s is not accessible", _db_dbfile);
-    goto err1;
+    goto err_3;
   }
 
   /* open file database */
@@ -109,14 +139,14 @@ gint db_open(const gchar* root, struct error* e)
   if (_db_fdb == 0)
   {
     e_set(E_FATAL, "can't open file database");
-    goto err1;
+    goto err_3;
   }
 
   /* open sql database */
   if (sql_open(_db_dbfile))
   {
     e_set(E_FATAL, "sql_open failed");
-    goto err2;
+    goto err_4;
   }
 
   /* setup sql error handling */
@@ -124,13 +154,13 @@ gint db_open(const gchar* root, struct error* e)
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
     e_set(E_FATAL, "%s", sql_error());
-    goto err3;
+    goto err_5;
   }
   
   if (!sql_integrity_check())
   { /* sql exception occured */
     e_set(E_FATAL|DB_CORRUPT, "package database (database is corrupted)");
-    goto err3;
+    goto err_5;
   }
 
   /* sqlite setup */
@@ -164,19 +194,24 @@ gint db_open(const gchar* root, struct error* e)
   _db_is_open = 1;
   stop_timer(0);
   return 0;
- err3:
+ err_5:
   sql_close();
- err2:
+ err_4:
   fdb_close(_db_fdb);
   _db_fdb = 0;
- err1:
+ err_3:
   g_free(_db_dbfile);
   _db_dbfile = 0;
   g_free(_db_dbroot);
   _db_dbroot = 0;
- err0:
+ err_2:
   g_free(_db_topdir);
   _db_topdir = 0;
+ err_1:
+  sem_post(_db_sem);
+ err_0:
+  sem_unlink(SEMAPHORE_NAME);
+  sem_close(_db_sem);
   return 1;
 }
 
@@ -186,6 +221,12 @@ void db_close()
   fdb_close(_db_fdb);
   _db_fdb = 0;
   sql_close();
+
+  /*XXX: check this */
+  sem_post(_db_sem);
+  sem_unlink(SEMAPHORE_NAME);
+  sem_close(_db_sem);
+
   g_free(_db_dbfile);
   g_free(_db_topdir);
   g_free(_db_dbroot);

@@ -18,9 +18,9 @@ int main()
   struct fdb* db;
   struct error* err = e_new();
   
-  nice(-10);
-  unlink(".filedb/idx");
-  unlink(".filedb/pld");
+//  nice(-10);
+//  unlink(".filedb/idx");
+//  unlink(".filedb/pld");
   
   db = fdb_open(".filedb", err);
   if (!e_ok(err))

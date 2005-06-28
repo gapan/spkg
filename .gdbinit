@@ -3,5 +3,5 @@
 #set logging on
 set print pretty on
 file ./test-filedb-speed
-b filedb.c:193
+#b filedb.c:193
 r
