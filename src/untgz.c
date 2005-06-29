@@ -110,6 +110,8 @@ union tar_block {
 #define e_set(n, fmt, args...) e_add(s->i->err, "untgz", __func__, n, fmt, ##args)
 #define e_jump() longjmp(s->i->errjmp, 1)
 
+#define e_set2(e, n, fmt, args...) e_add(e, "untgz", __func__, n, fmt, ##args)
+
 #define e_throw(n, fmt, args...) \
   G_STMT_START { \
   e_set(n, fmt, ##args); \
@@ -243,7 +245,7 @@ struct untgz_state* untgz_open(const gchar* tgzfile, untgz_status_cb scb, struct
 
   if (stat(tgzfile, &st) == -1)
   {
-    e_set(E_ERROR, "can't stat file: %s", tgzfile);
+    _e_set(e, E_ERROR, "can't stat file: %s", tgzfile);
     return 0;
   }
   
@@ -255,18 +257,18 @@ struct untgz_state* untgz_open(const gchar* tgzfile, untgz_status_cb scb, struct
     gint fd = open(tgzfile, O_RDONLY);
     if (fd < 0)
     {
-      e_set(E_ERROR, "can't open file: %s (try not using callback)", tgzfile);
+      _e_set(e, E_ERROR, "can't open file: %s (try not using callback)", tgzfile);
       return 0;
     }
     if (lseek(fd, -4, SEEK_END) == (off_t)-1)
     { 
-      e_set(E_ERROR, "can't lseek file: %s (try not using callback)", tgzfile);
+      _e_set(e, E_ERROR, "can't lseek file: %s (try not using callback)", tgzfile);
       close(fd);
       return 0;
     }
     if (read(fd, &size, 4) != 4)
     {
-      e_set(E_ERROR, "can't read file: %s (try not using callback)", tgzfile);
+      _e_set(e, E_ERROR, "can't read file: %s (try not using callback)", tgzfile);
       close(fd);
       return 0;
     }
@@ -276,7 +278,7 @@ struct untgz_state* untgz_open(const gchar* tgzfile, untgz_status_cb scb, struct
   gzf = gzopen(tgzfile, "rb");
   if (gzf == 0)
   {
-    e_set(E_ERROR, "can't gzopen file: %s", tgzfile);
+    _e_set(e, E_ERROR, "can't gzopen file: %s", tgzfile);
     return 0;
   }
 

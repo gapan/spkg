@@ -61,6 +61,7 @@ gint db_open(const gchar* root, struct error* e)
   };
 
   g_assert(e != 0);
+  _db.err = e;
   
   reset_timers();
   continue_timer(0);
@@ -187,6 +188,7 @@ gint db_open(const gchar* root, struct error* e)
       " build TEXT NOT NULL,"
       " csize INTEGER,"
       " usize INTEGER,"
+      " time INTEGER,"
       " desc TEXT,"
       " doinst TEXT,"
       " location TEXT,"

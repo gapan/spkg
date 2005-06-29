@@ -2,6 +2,7 @@
 #set logging overwrite on
 #set logging on
 set print pretty on
-file ./test-filedb-speed
+file ./test-pkgdb
 #b filedb.c:193
+b db_open
 r
