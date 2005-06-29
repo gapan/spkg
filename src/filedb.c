@@ -491,8 +491,8 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
   }
 
   /* prepare index object and some paths */
-  gchar *path_idx = g_strdup_printf("%s/idx", path);
-  gchar *path_pld = g_strdup_printf("%s/pld", path);
+  gchar *path_idx = g_strdup_printf("%s/filedb.idx", path);
+  gchar *path_pld = g_strdup_printf("%s/filedb.pld", path);
 
   db->sem = sem_open(SEMAPHORE_NAME, O_CREAT, 0666, 1);
   if (db->sem == SEM_FAILED)

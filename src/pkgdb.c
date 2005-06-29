@@ -29,6 +29,8 @@
 struct db_state {
   gboolean is_open;
   gchar* topdir;
+  gchar* pkgdir;
+  gchar* scrdir;
   gchar* dbfile;
   gchar* dbroot;
   struct error* err;
@@ -57,7 +59,7 @@ gint db_open(const gchar* root, struct error* e)
   gchar** d;
   gchar* checkdirs[] = {
     "packages", "scripts", "removed_packages", "removed_scripts", "setup", 
-    "spkgdb", "packages.spkg", "scripts.spkg", 0
+    "spkgdb", 0
   };
 
   g_assert(e != 0);
@@ -109,6 +111,8 @@ gint db_open(const gchar* root, struct error* e)
     _db.topdir = g_strdup_printf("%s/%s/%s", cwd, root, PKGDB_DIR); /*XXX: not portable */
     free(cwd);
   }
+  _db.pkgdir = g_strdup_printf("%s/packages", _db.topdir);
+  _db.scrdir = g_strdup_printf("%s/scripts", _db.topdir);
 
   /* check legacy and spkg db dirs */
   for (d = checkdirs; *d != 0; d++)
@@ -132,8 +136,8 @@ gint db_open(const gchar* root, struct error* e)
   }
 
   /* check spkg db file */
-  _db.dbroot = g_strdup_printf("%s/%s", _db.topdir, "spkgdb");
-  _db.dbfile = g_strdup_printf("%s/%s", _db.dbroot, "spkg.db");
+  _db.dbroot = g_strdup_printf("%s/spkgdb", _db.topdir);
+  _db.dbfile = g_strdup_printf("%s/pkgdb.db", _db.dbroot);
   if (sys_file_type(_db.dbfile,0) != SYS_REG && sys_file_type(_db.dbfile,0) != SYS_NONE)
   {
     e_set(E_FATAL, "file %s is not accessible", _db.dbfile);
@@ -210,6 +214,8 @@ gint db_open(const gchar* root, struct error* e)
   g_free(_db.dbroot);
  err_2:
   g_free(_db.topdir);
+  g_free(_db.pkgdir);
+  g_free(_db.scrdir);
  err_1:
   sem_post(_db.sem);
  err_0:
@@ -233,6 +239,8 @@ void db_close()
 
   g_free(_db.dbfile);
   g_free(_db.topdir);
+  g_free(_db.pkgdir);
+  g_free(_db.scrdir);
   g_free(_db.dbroot);
   memset(&_db, 0, sizeof(_db));
   g_blow_chunks();
@@ -415,7 +423,7 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   }
 
   q = sql_prep("SELECT id, name, shortname, version, arch, build, csize,"
-                   " usize, desc, location, files, doinst, time FROM packages WHERE name == '%q';", name);
+    " usize, desc, location, files, doinst, time FROM packages WHERE name == '%q';", name);
   if (!sql_step(q))
   {
     e_set(E_ERROR|DB_NOTEX, "package is NOT in database (%s)", name);
@@ -533,8 +541,8 @@ gint db_legacy_add_pkg(struct db_pkg* pkg)
     goto err_0;
   }
 
-  ppath = g_strdup_printf("%s/packages.spkg/%s", _db.topdir, pkg->name);
-  spath = g_strdup_printf("%s/scripts.spkg/%s", _db.topdir, pkg->name);
+  ppath = g_strdup_printf("%s/%s", _db.pkgdir, pkg->name);
+  spath = g_strdup_printf("%s/%s", _db.scrdir, pkg->name);
 
   if (sys_file_type(ppath,0) != SYS_NONE)
   {
@@ -615,7 +623,7 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
   continue_timer(4);
 
   /* open legacy package db entries */  
-  tmpstr = g_strdup_printf("%s/packages/%s", _db.topdir, name);
+  tmpstr = g_strdup_printf("%s/%s", _db.pkgdir, name);
   fp = open(tmpstr, O_RDONLY);
   time_t mtime = sys_file_mtime(tmpstr,0);
   g_free(tmpstr);
@@ -638,7 +646,7 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
     goto err_0;
   }
 
-  tmpstr = g_strdup_printf("%s/scripts/%s", _db.topdir, name);
+  tmpstr = g_strdup_printf("%s/%s", _db.scrdir, name);
   fs = open(tmpstr, O_RDONLY);
   g_free(tmpstr);
   if (fs != -1) /* script entry can't be open */
@@ -773,8 +781,8 @@ gint db_legacy_rem_pkg(gchar* name)
 {
   _db_open_check(1)
 
-  gchar* p = g_strdup_printf("%s/packages/%s", _db.topdir, name);
-  gchar* s = g_strdup_printf("%s/scripts/%s", _db.topdir, name);
+  gchar* p = g_strdup_printf("%s/%s", _db.pkgdir, name);
+  gchar* s = g_strdup_printf("%s/%s", _db.scrdir, name);
   gint ret = 1;
   if (sys_file_type(p, 0) != SYS_REG)
   {
@@ -854,9 +862,7 @@ GSList* db_legacy_get_packages()
 
   continue_timer(8);
 
-  gchar* pdir = g_strdup_printf("%s/packages", _db.topdir);
-  DIR* d = opendir(pdir);
-  g_free(pdir);
+  DIR* d = opendir(_db.pkgdir);
   if (d == NULL)
   {
     e_set(E_FATAL, "can't open legacy db directory");
@@ -910,6 +916,29 @@ gint db_sync_to_legacydb()
 
   _db_open_check(1)
 
+  DIR* d = opendir(_db.pkgdir);
+  if (d == NULL)
+  {
+    e_set(E_FATAL, "legacy database directory not found");
+    goto err_0;
+  }
+  struct dirent* de;
+  while ((de = readdir(d)) != NULL)
+  {
+    if (!strcmp(de->d_name,".") || !strcmp(de->d_name,".."))
+      continue;
+    gchar* tmp = g_strdup_printf("%s/%s", _db.pkgdir, de->d_name);
+    if (unlink(tmp) == -1)
+    {
+      e_set(E_FATAL, "can't clean legacy package database, unlink failed: %s", strerror(errno));
+      closedir(d);
+      g_free(tmp);
+      goto err_0;
+    }
+    g_free(tmp);
+  }
+  closedir(d);
+
   pkgs = db_get_packages();
   if (pkgs == 0 && e_ok(_db.err))
     return 0; /* no packages */
@@ -947,13 +976,11 @@ gint db_sync_from_legacydb()
 {
   DIR* d;
   struct dirent* de;
-  gchar* tmpstr = g_strdup_printf("%s/%s", _db.topdir, "packages");
   gint ret = 1;
 
   _db_open_check(1)
 
-  d = opendir(tmpstr);
-  g_free(tmpstr);
+  d = opendir(_db.pkgdir);
   if (d == NULL)
   {
     e_set(E_FATAL, "legacy database directory not found");
