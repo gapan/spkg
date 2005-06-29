@@ -21,7 +21,7 @@
 
 /*XXX: compile time tweakable constants */
 /* reasonable defaults (this should be enough for all, ha ha...) */
-#define IDX_SIZE_LIMIT 200
+#define IDX_SIZE_LIMIT 32
 #define PLD_SIZE_LIMIT (2*IDX_SIZE_LIMIT) /* just an empirically determined value */
 #define MAXHASH (1024*128)
 #define FDB_CHECKSUMS 1
@@ -790,14 +790,18 @@ gint fdb_get_file(struct fdb* db, const guint32 id, struct fdb_file* file)
   _fdb_call_entry_checks(1)
 
   struct file_pld* pld;
+  struct file_idx* idx;
   continue_timer(4);
-  pld = _pld_from_idx(db,_idx_from_id(db,id));
+  idx = _idx_from_id(db,id);
+  pld = _pld_from_idx(db,idx);
   if (pld == 0)
   {
     e_set(E_ERROR|FDB_NOTEX, "invalid file id");
     stop_timer(4);
     return 1;
   }
+  file->refs = idx->refs;
+  file->path = pld->path;
   _parse_pld_data(file, pld->path+pld->doff, pld->dlen);
   stop_timer(4);
   return 0;

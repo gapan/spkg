@@ -110,7 +110,7 @@ union tar_block {
 #define e_set(n, fmt, args...) e_add(s->i->err, "untgz", __func__, n, fmt, ##args)
 #define e_jump() longjmp(s->i->errjmp, 1)
 
-#define e_set2(e, n, fmt, args...) e_add(e, "untgz", __func__, n, fmt, ##args)
+#define _e_set(e, n, fmt, args...) e_add(e, "untgz", __func__, n, fmt, ##args)
 
 #define e_throw(n, fmt, args...) \
   G_STMT_START { \

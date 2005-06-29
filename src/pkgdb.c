@@ -579,6 +579,12 @@ gint db_legacy_add_pkg(struct db_pkg* pkg)
       fprintf(pf, "%s\n", f->path);
   }
 
+  ret = 0;
+ err_3: 
+  fclose(sf);
+ err_2:
+  fclose(pf);
+
   struct utimbuf dt = { pkg->time, pkg->time };
   if (utime(ppath, &dt) == -1)
   {
@@ -586,11 +592,6 @@ gint db_legacy_add_pkg(struct db_pkg* pkg)
     goto err_3;
   }
 
-  ret = 0;
- err_3: 
-  fclose(sf);
- err_2:
-  fclose(pf);
  err_1:
   g_free(ppath);
   g_free(spath);
