@@ -1,3 +1,4 @@
+[pkgdb] sync should delete all legacy packages first
 [pkgdb] get_packages: implement data selector
 [pkgdb] when finished, implement missing py bindings
 
@@ -11,7 +12,7 @@
 
 [filedb,pkgdb] locking should be separate for separate roots
 
-[sys] reimplement sys_rm_rf and sys_mkdir_p in C (should be just som Copy&Paste(tm) from
+[sys] reimplement sys_rm_rf and sys_mkdir_p in C (should be just some Copy&Paste(tm) from
       my mxm project)
 
 [untgz] use of blockbuf instead of writebuf can speedup things slightly on the user side

@@ -205,20 +205,17 @@ gint db_open(const gchar* root, struct error* e)
   sql_close();
  err_4:
   fdb_close(_db.fdb);
-  _db.fdb = 0;
  err_3:
   g_free(_db.dbfile);
-  _db.dbfile = 0;
   g_free(_db.dbroot);
-  _db.dbroot = 0;
  err_2:
   g_free(_db.topdir);
-  _db.topdir = 0;
  err_1:
   sem_post(_db.sem);
  err_0:
   sem_unlink(SEMAPHORE_NAME);
   sem_close(_db.sem);
+  memset(&_db, 0, sizeof(_db));
   return 1;
 }
 
@@ -237,6 +234,7 @@ void db_close()
   g_free(_db.dbfile);
   g_free(_db.topdir);
   g_free(_db.dbroot);
+  memset(&_db, 0, sizeof(_db));
   g_blow_chunks();
   _db.is_open = 0;
   stop_timer(1);
@@ -292,12 +290,13 @@ void db_free_pkg(struct db_pkg* pkg)
     g_slist_free(p->files);
   }
   g_free(p->name);
-  g_free(p->location);
-  g_free(p->desc);
   g_free(p->shortname);
   g_free(p->version);
   g_free(p->arch);
   g_free(p->build);
+  g_free(p->location);
+  g_free(p->desc);
+  g_free(p->doinst);
   g_free(p);
   stop_timer(6);
 }

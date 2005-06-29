@@ -2,6 +2,8 @@
 # this script can be used to build static sqlite3 library for
 # use in spkg
 VER=3.2.2
+OFLAGS="-ggdb1 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer"
+OFLAGS="-ggdb3 -O0"
 
 OMIT="
 SQLITE_OMIT_GLOBALRECOVER
@@ -32,8 +34,8 @@ mkdir sqlite-build
 
 ( cd sqlite-build
   for o in $OMIT ; do OMIT_FLAGS="$OMIT_FLAGS -D$o" ; done
-  export CFLAGS="-O2 -march=i486 -mcpu=i686 -fomit-frame-pointer $OMIT_FLAGS"
-  export CXXFLAGS="-O2 -march=i486 -mcpu=i686 -fomit-frame-pointer $OMIT_FLAGS"
+  export CFLAGS="$OFLAGS $OMIT_FLAGS"
+  export CXXFLAGS="$OFLAGS $OMIT_FLAGS"
   ../sqlite-$VER/configure --prefix=/usr --disable-debug --disable-tcl \
     --enable-tempstore=always --enable-shared=no || exit 1
   make libsqlite3.la || exit 1

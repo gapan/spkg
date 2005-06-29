@@ -21,7 +21,7 @@
 
 /*XXX: compile time tweakable constants */
 /* reasonable defaults (this should be enough for all, ha ha...) */
-#define IDX_SIZE_LIMIT 32
+#define IDX_SIZE_LIMIT 4
 #define PLD_SIZE_LIMIT (2*IDX_SIZE_LIMIT) /* just an empirically determined value */
 #define MAXHASH (1024*128)
 #define FDB_CHECKSUMS 1
@@ -653,7 +653,6 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
   g_free(path_idx);
   g_free(path_pld);
 
-
   stop_timer(0);
   return db;
   /*XXX: check cleanups */
@@ -707,7 +706,7 @@ void fdb_close(struct fdb* db)
   sem_unlink(SEMAPHORE_NAME);
   sem_close(db->sem);
 
-  memset(&db, 0, sizeof(db));
+  memset(db, 0, sizeof(*db));
   g_free(db);
 
   stop_timer(1);

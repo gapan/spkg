@@ -1,6 +1,8 @@
 #!/bin/sh
 # this script can be used to build static glib library
 VER=2.6.5
+OFLAGS="-ggdb1 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer"
+OFLAGS="-ggdb3 -O0 -DDISABLE_MEM_POOLS"
 
 test -d glib-$VER || \
 tar xzf glib-$VER.tar.gz || exit 1
@@ -8,8 +10,8 @@ rm -rf glib-build
 mkdir glib-build
 
 ( cd glib-build
-  export CFLAGS="-O2 -march=i486 -mcpu=i686 -fomit-frame-pointer"
-  export CXXFLAGS="-O2 -march=i486 -mcpu=i686 -fomit-frame-pointer"
+  export CFLAGS="$OFLAGS"
+  export CXXFLAGS="$OFLAGS"
   ../glib-$VER/configure --prefix=/usr -enable-shared=no || exit 1
   make -C glib/libcharset libcharset.la || exit 1
   make -C glib libglib-2.0.la || exit 1
@@ -17,7 +19,8 @@ mkdir glib-build
 
 rm -rf glib
 mkdir -p glib/glib
-cp -r glib-$VER/glib/*.h glib-build/glibconfig.h glib/glib/
+cp -r glib-$VER/glib/*.h glib/glib/
+cp glib-build/glibconfig.h glib/
 mv glib/glib/glib.h glib/
 rm glib/glib/glib-object.h
 cp glib-build/glib/.libs/libglib-2.0.a glib/
