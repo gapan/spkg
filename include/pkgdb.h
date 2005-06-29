@@ -15,6 +15,7 @@
 #define __PKGDB_H
 
 #include <glib.h>
+#include <time.h>
 #include "error.h"
 
 /** Directory where the package database is stored. */
@@ -34,34 +35,41 @@ typedef enum {
   DB_GET_NAMES  /**< get only names of packages */
 } db_get_type;
 
-/** File information structure. */
+/** File information structure. 
+ *
+ * @li N - no touch: user should not modify such variable
+ * @li R - required: user must set such variable
+ * @li O - optional: user may set such variable
+ * @li A - automat: automatically set variable
+ */
 struct db_file {
-  guint32 id;   /**< filedb file id */
-  guint16 refs; /**< true if file already exists in the archive */
-  gchar* path;  /**< full path to the file */
-  gchar* link;  /**< path to the link target (if file is symlink or link) */
+  guint32 id;   /**< unique file id asigned by filedb [N] */
+  guint16 refs; /**< reference count of the file (by how many packages file is referenced) [N] */
+  gchar* path;  /**< relative path to the file (relative to the root) [R] */
+  gchar* link;  /**< path to the link target (if file is symlink or link) [O] */
 };
 
 /** Package information structure. */
 struct db_pkg {
   /* name */
-  gchar* name;       /**< full name of the package */
-  gchar* shortname;  /**< short name of the package */
-  gchar* version;    /**< version of the package */
-  gchar* arch;       /**< architecture of the package */
-  gchar* build;      /**< build of the package */
+  gchar* name;       /**< full name of the package [R] */
+  gchar* shortname;  /**< short name of the package [NA] */
+  gchar* version;    /**< version of the package [NA] */
+  gchar* arch;       /**< architecture of the package [NA] */
+  gchar* build;      /**< build of the package [NA] */
 
   /* details */
-  gsize  csize;      /**< compressed size of the package */
-  gsize  usize;      /**< uncompressed size of the package */
-  gchar* location;   /**< original package location */
-  gchar* desc;       /**< package description */
-  gchar* doinst;     /**< doinst.sh script contents (without links) */
+  time_t time;       /**< package installation/upgrade time [NA] */
+  gsize  csize;      /**< compressed size of the package in kB [O] */
+  gsize  usize;      /**< uncompressed size of the package in kB [O] */
+  gchar* location;   /**< original package location (path) [O] */
+  gchar* desc;       /**< cleaned (i.e. without rubbish :) package description [O] */
+  gchar* doinst;     /**< complete doinst.sh script contents [O] */
   
-  GSList* files;     /**< list of the files in the package */
+  GSList* files;     /**< list of the files in the package [O] */
 
   /* internals */
-  gint id;           /**< unique package id */
+  gint id;           /**< unique package id assigned by pkgdb [N] */
 };
 
 /** Open package database.

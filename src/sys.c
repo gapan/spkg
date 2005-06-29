@@ -35,7 +35,20 @@ sys_ftype sys_file_type(const gchar* path, gboolean deref)
   return SYS_ERR;
 }
 
-/*XXX: implement them in C */
+time_t sys_file_mtime(const gchar* path, gboolean deref)
+{
+  struct stat s;
+  gint rs;
+  if (deref)
+    rs = stat(path, &s);
+  else
+    rs = lstat(path, &s);
+  if (rs == 0)
+    return s.st_mtime;
+  return (time_t)-1;
+}
+
+/*XXX: implement this in C */
 gint sys_rm_rf(const gchar* path)
 {
   gint rval;
@@ -47,6 +60,7 @@ gint sys_rm_rf(const gchar* path)
   return 1;
 }
 
+/*XXX: implement this in C */
 gint sys_mkdir_p(const gchar* path)
 {
   gint rval;

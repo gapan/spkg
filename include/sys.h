@@ -16,6 +16,7 @@
 
 #include <glib.h>
 #include <signal.h>
+#include <time.h>
 
 /** File type. */
 typedef enum { 
@@ -37,6 +38,14 @@ typedef enum {
  * @return \ref sys_ftype
  */
 extern sys_ftype sys_file_type(const gchar* path, gboolean deref);
+
+/** Get mtime of the file.
+ *
+ * @param path File path.
+ * @param deref Dereference symlinks.
+ * @return -1 on error, mtime on success
+ */
+extern time_t sys_file_mtime(const gchar* path, gboolean deref);
 
 /** Implementation of the rm -rf.
  *

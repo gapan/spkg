@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <utime.h>
 #include <errno.h>
 #include <semaphore.h>
 
@@ -265,6 +266,7 @@ struct db_pkg* db_alloc_pkg(gchar* name)
   p->version = parse_pkgname(name, 2);
   p->arch = parse_pkgname(name, 3);
   p->build = parse_pkgname(name, 4);
+  p->time = time(0);
   return p;
 }
 
@@ -275,7 +277,8 @@ void db_free_pkg(struct db_pkg* pkg)
   GSList* l;
   if (p == 0)
     return;
-  if (p->files) {
+  if (p->files)
+  {
     for (l=p->files; l!=0; l=l->next)
     {
       struct db_file* f = l->data;
@@ -356,8 +359,8 @@ gint db_add_pkg(struct db_pkg* pkg)
   }
 
   /* add pkg to the pacakge table */
-  q = sql_prep("INSERT INTO packages(name, shortname, version, arch, build, csize, usize, desc, location, files, doinst)"
-               " VALUES(?,?,?,?,?,?,?,?,?,?,?);");
+  q = sql_prep("INSERT INTO packages(name, shortname, version, arch, build, csize, usize, desc, location, files, doinst, time)"
+               " VALUES(?,?,?,?,?,?,?,?,?,?,?,?);");
   sql_set_text(q, 1, pkg->name);
   sql_set_text(q, 2, pkg->shortname);
   sql_set_text(q, 3, pkg->version);
@@ -369,6 +372,7 @@ gint db_add_pkg(struct db_pkg* pkg)
   sql_set_text(q, 9, pkg->location);
   sql_set_blob(q, 10, fi_array, fi_size*sizeof(*fi_array));
   sql_set_text(q, 11, pkg->doinst);
+  sql_set_int64(q, 12, pkg->time);
   sql_step(q);
   sql_fini(q);
 
@@ -410,7 +414,7 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   }
 
   q = sql_prep("SELECT id, name, shortname, version, arch, build, csize,"
-                   " usize, desc, location, files, doinst FROM packages WHERE name == '%q';", name);
+                   " usize, desc, location, files, doinst, time FROM packages WHERE name == '%q';", name);
   if (!sql_step(q))
   {
     e_set(E_ERROR|DB_NOTEX, "package is NOT in database (%s)", name);
@@ -427,6 +431,7 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   p->build = g_strdup(sql_get_text(q, 5));
   p->csize = sql_get_int(q, 6);
   p->usize = sql_get_int(q, 7);
+  p->time = sql_get_int64(q, 12);
   p->desc = g_strdup(sql_get_text(q, 8));
   p->location = g_strdup(sql_get_text(q, 9));
   p->doinst = g_strdup(sql_get_text(q, 11));
@@ -530,6 +535,12 @@ gint db_legacy_add_pkg(struct db_pkg* pkg)
   ppath = g_strdup_printf("%s/packages.spkg/%s", _db.topdir, pkg->name);
   spath = g_strdup_printf("%s/scripts.spkg/%s", _db.topdir, pkg->name);
 
+  if (sys_file_type(ppath,0) != SYS_NONE)
+  {
+    e_set(E_FATAL, "package is already in database (%s)", strerror(errno));
+    goto err_1;
+  }
+
   pf = fopen(ppath, "w");
   if (pf == 0)
   {
@@ -566,7 +577,15 @@ gint db_legacy_add_pkg(struct db_pkg* pkg)
       fprintf(pf, "%s\n", f->path);
   }
 
+  struct utimbuf dt = { pkg->time, pkg->time };
+  if (utime(ppath, &dt) == -1)
+  {
+    e_set(E_ERROR, "can't utime package entry: %s", strerror(errno));
+    goto err_3;
+  }
+
   ret = 0;
+ err_3: 
   fclose(sf);
  err_2:
   fclose(pf);
@@ -589,18 +608,30 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
   if (name == 0)
     return 0;
 
+  _db_open_check(0)
+
   continue_timer(4);
 
   /* open legacy package db entries */  
   tmpstr = g_strdup_printf("%s/packages/%s", _db.topdir, name);
   fp = open(tmpstr, O_RDONLY);
+  time_t mtime = sys_file_mtime(tmpstr,0);
   g_free(tmpstr);
   if (fp == -1) /* main package entry can't be open */
+  {
+    e_set(E_ERROR, "can't open main package entry file: %s", strerror(errno));
     goto err_0;
+  }
+  if (mtime == (time_t)-1) /* package time can't be retrieved */
+  {
+    e_set(E_ERROR, "can't get main package entry file mtime: %s", strerror(errno));
+    goto err_0;
+  }
   sp = lseek(fp, 0, SEEK_END)+1;
   ap = mmap(0, sp, PROT_READ, MAP_SHARED, fp, 0);
   if (ap == (void*)-1)
   {
+    e_set(E_ERROR, "can't mmap main package entry file: %s", strerror(errno));
     close(fp);
     goto err_0;
   }
@@ -625,6 +656,7 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
   p->version = parse_pkgname(p->name, 2);
   p->arch = parse_pkgname(p->name, 3);
   p->build = parse_pkgname(p->name, 4);
+  p->time = mtime;
 
   /* parse main package file */
   gint snl = strlen(p->shortname);
@@ -647,13 +679,21 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
     else if (!m[1] && LINEMATCH("COMPRESSED PACKAGE SIZE:"))
     {
       gchar* size = b+LINESIZE("COMPRESSED PACKAGE SIZE:");
-      sscanf(size, " %u ", &p->csize); /*XXX: no checking here */
-       m[1] = 1;
+      if (sscanf(size, " %u ", &p->csize) != 1)
+      {
+        e_set(E_ERROR, "can't read compressed package size");
+        goto err_1;
+      }
+      m[1] = 1;
     }
     else if (!m[2] && LINEMATCH("UNCOMPRESSED PACKAGE SIZE:"))
     {
       gchar* size = b+LINESIZE("UNCOMPRESSED PACKAGE SIZE:");
-      sscanf(size, " %u ", &p->usize); /*XXX: no checking here */
+      if (sscanf(size, " %u ", &p->usize) != 1)
+      {
+        e_set(E_ERROR, "can't read compressed package size");
+        goto err_1;
+      }
       m[2] = 1;
     }
     else if (!m[3] && LINEMATCH("PACKAGE LOCATION:"))
@@ -729,16 +769,31 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
 
 gint db_legacy_rem_pkg(gchar* name)
 {
+  _db_open_check(1)
+
   gchar* p = g_strdup_printf("%s/packages/%s", _db.topdir, name);
   gchar* s = g_strdup_printf("%s/scripts/%s", _db.topdir, name);
   gint ret = 1;
-  if (sys_file_type(p, 0) == SYS_REG)
+  if (sys_file_type(p, 0) != SYS_REG)
   {
-    unlink(p);
-    if (sys_file_type(s, 0) == SYS_REG)
-      unlink(p);
-    ret = 0;
+    e_set(E_ERROR|DB_NOTEX, "package is not in database");
+    goto err_1;
   }
+  if (unlink(p) == -1)
+  {
+    e_set(E_ERROR|DB_NOTEX, "unlink failed: %s", strerror(errno));
+    goto err_1;
+  }
+  if (sys_file_type(s, 0) == SYS_REG)
+  {
+    if (unlink(s) == -1)
+    {
+      e_set(E_ERROR|DB_NOTEX, "unlink failed: %s", strerror(errno));
+      goto err_1;
+    }
+  }
+  ret = 0;
+ err_1:
   g_free(p);
   g_free(s);
   return ret;
@@ -903,7 +958,7 @@ gint db_sync_from_legacydb()
     goto err_0;
   }
   
-  sql_exec("DELETE FROM packages;"); /*XXX: "unchecked" */
+  sql_exec("DELETE FROM packages;"); /*XXX: unchecked (will exit on error) */
 
   while ((de = readdir(d)) != NULL)
   {

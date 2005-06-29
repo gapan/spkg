@@ -9,7 +9,7 @@ PREFIX := /usr/local
 DEBUG := no
 ASSERTS := yes
 BENCH := yes
-VERSION := 20050627
+VERSION := 20050629
 
 #CC := gcc-3.4.4
 CC := gcc
