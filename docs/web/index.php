@@ -9,6 +9,8 @@
 
   <p>@SPKG@ is implemented in C and optimized for <strong>speed</strong>.</p>
 
+  <p><strong>Project is suspended!</strong></p>
+
  <h1>Features</h1>
 
   <ul>

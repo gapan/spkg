@@ -58,6 +58,8 @@ PyMODINIT_FUNC initspkg(void)
   PyModule_AddIntConstant(m, "UNTGZ_CHR", 6);
   PyModule_AddIntConstant(m, "UNTGZ_FIFO", 7);
 
+//  PyModule_AddIntConstant(m, "DB_GET_FILES", 0);
+
   Py_INCREF(PySpkgErrorObject);
   PyModule_AddObject(m, "error", PySpkgErrorObject);
 

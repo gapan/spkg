@@ -26,8 +26,9 @@
 /* public 
  ************************************************************************/
 
+
 /* install steps:
- * - checks (pkg file exists, pkg name is valid, pkg is not in db)
+ * - checks (if pkg file exists, pkg name is valid, pkg is not in db)
  * - open untgz
  * - initialize file transaction
  * - for each file in pkg do:
@@ -37,7 +38,7 @@
  * - finalize file transaction
  */
 
-gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gboolean verbose, struct error* e)
+gint pkg_install(const gchar* pkgfile, struct pkg_options* opts, struct error* e)
 {
   gchar *name, *shortname;
   struct untgz_state* tgz=0;
@@ -73,8 +74,6 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
     goto err1;
   }
   e_clean(e);
-
-  /*XXX: check for shortname match (maybe) */
 
   /* open tgz */
   tgz = untgz_open(pkgfile, 0, e);
@@ -272,13 +271,13 @@ gint pkg_install(const gchar* pkgfile, const gchar* root, gboolean dryrun, gbool
   return 1;
 }
 
-gint pkg_upgrade(const gchar* pkgfile, const gchar* root, gboolean dryrun, gboolean verbose, struct error* e)
+gint pkg_upgrade(const gchar* pkgfile, struct pkg_options* opts, struct error* e)
 {
   e_set(E_FATAL,"command is not implemented");
   return 1;
 }
 
-gint pkg_remove(const gchar* pkgfile, const gchar* root, gboolean dryrun, gboolean verbose, struct error* e)
+gint pkg_remove(const gchar* pkgname, struct pkg_options* opts, struct error* e)
 {
   e_set(E_FATAL,"command is not implemented");
   return 1;

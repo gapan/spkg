@@ -49,9 +49,9 @@
     array(1,"existing codebase is stabilized", "2005-06-04"),
     array(1,"website created", "2005-06-09"),
     array(1,"pkgdb library is fully implemented", "2005-06-29"),
-    array(0,"three basic commands are implemented", "2005-07-08"),
-    array(0,"first fully functional RC version is released", "2005-07-15"),
-    array(0,"first stable version is released, PyGTK graphical interface", "2005-08-01"),
+    array(0,"three basic commands are implemented", "?"),
+    array(0,"first fully functional RC version is released", "?"),
+    array(0,"first stable version is released, PyGTK graphical interface", "?"),
   );
   foreach($milestones as $m)
   {

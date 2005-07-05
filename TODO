@@ -1,11 +1,9 @@
-[pkgdb] sync should delete all legacy packages first
 [pkgdb] get_packages: implement data selector
 [pkgdb] when finished, implement missing py bindings
 
-[*] implement safe cleanup mechanism for cases when user breaks execution
+[*] implement safe cleanup mechanisms for cases when user breaks execution
 
 [pkgtools] had a good idea last night, elaborate on it
-[pkgtools] pass options using some common structure
 [pkgtools] add option to disable doinst.sh script preprocessing (because it may not work
            for glibc package, because links are created conditionally)
 [pkgtools] implement filesystem transactions

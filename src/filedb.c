@@ -21,7 +21,7 @@
 
 /*XXX: compile time tweakable constants */
 /* reasonable defaults (this should be enough for all, ha ha...) */
-#define IDX_SIZE_LIMIT 4
+#define IDX_SIZE_LIMIT 32
 #define PLD_SIZE_LIMIT (2*IDX_SIZE_LIMIT) /* just an empirically determined value */
 #define MAXHASH (1024*128)
 #define FDB_CHECKSUMS 1
@@ -678,6 +678,16 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
 
 void fdb_close(struct fdb* db)
 {
+  /*XXX: DEBUG dump whole database */
+  gint i;
+  for (i=1;i<db->lastid;i++)
+  {
+    struct file_idx* idx = _idx_from_id(db,i);
+    struct file_pld* pld = _pld_from_idx(db,idx);
+    if (idx->refs > 1)
+      printf("%d:%s\n", idx->refs, pld->path);
+  }
+  /*XXX: DEBUG */
   continue_timer(1);
   g_assert(db != 0);
 
