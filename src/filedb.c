@@ -23,7 +23,7 @@
 #define IDX_SIZE_LIMIT 32
 #define PLD_SIZE_LIMIT (2*IDX_SIZE_LIMIT) /* just an empirically determined value */
 #define MAXHASH (1024*128)
-#define FDB_CHECKSUMS 1
+#define FDB_CHECKSUMS 0
 #define SHOW_STATS 1
 
 /* private 
@@ -92,7 +92,9 @@ struct file_idx { /* 20 B */
   guint32 off;    /* offset to the payload file */
   guint16 refs;   /* ref count of the current file */
   gint8   bal;    /* balance */
+#if FDB_CHECKSUMS == 1
   guint8  csum;   /* checksum (bytesum of file_idx = 0xff) */
+#endif
 };
 
 /* payload file */
@@ -104,7 +106,9 @@ struct file_pld_hdr {
 struct file_pld {
   guint16 doff; /* data offset */
   guint16 dlen; /* data length */
+#if FDB_CHECKSUMS == 1
   guint8  csum; /* checksum (bytesum of file_pld = 0xff) */
+#endif
   gchar path[]; /* path + '\0' + data */
 };
 
