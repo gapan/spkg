@@ -9,6 +9,7 @@ PREFIX := /usr/local
 DEBUG := no
 ASSERTS := no
 BENCH := no
+MUDFLAP := yes
 VERSION := 20050629
 
 CC := /opt/gcc-4.0.1/bin/gcc-4.0.1
@@ -18,11 +19,15 @@ AR := ar
 CFLAGS := -pipe -Wall
 CPPFLAGS := -Iinclude -Ilibs/sqlite -Ilibs/glib -D_GNU_SOURCE -DSPKG_VERSION=$(VERSION)
 LDFLAGS := -lz -lpthread libs/sqlite/libsqlite3.a libs/glib/libglib-2.0.a
+ifeq ($(MUDFLAP),yes)
+CFLAGS += -fmudflap
+LDFLAGS += -fmudflap -lmudflap
+endif
 ifeq ($(DEBUG),yes)
 CFLAGS +=  -ggdb3 -O0
 CPPFLAGS += -D__DEBUG=1
 else
-CFLAGS += -ggdb1 -O2 -march=i486 -mtune=athlon -fomit-frame-pointer
+CFLAGS += -ggdb1 -O2 -march=i486 -mtune=i686 # -fomit-frame-pointer
 #CFLAGS += -ggdb1 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer
 endif
 ifeq ($(BENCH),yes)
