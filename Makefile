@@ -9,7 +9,7 @@ PREFIX := /usr/local
 DEBUG := no
 ASSERTS := no
 BENCH := no
-MUDFLAP := yes
+MUDFLAP := no
 VERSION := 20050629
 
 CC := /opt/gcc-4.0.1/bin/gcc-4.0.1

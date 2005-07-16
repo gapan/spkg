@@ -14,7 +14,6 @@
 #include <sys/mman.h>
 #include <utime.h>
 #include <errno.h>
-#include <semaphore.h>
 
 #include "sql.h"
 #include "sys.h"
@@ -35,7 +34,6 @@ struct db_state {
   gchar* dbroot;
   struct error* err;
   struct fdb* fdb;
-  sem_t* sem;
 };
 
 static struct db_state _db = {0};
@@ -48,8 +46,6 @@ static struct db_state _db = {0};
     e_set(E_ERROR|DB_NOPEN, "package database is NOT open"); \
     return v; \
   }
-
-#define SEMAPHORE_NAME "/sem.spkg.pkgdb"
 
 /* public 
  ************************************************************************/
@@ -76,32 +72,6 @@ gint db_open(const gchar* root, struct error* e)
   
   if (root == 0)
     root = "/";
-
-  _db.sem = sem_open(SEMAPHORE_NAME, O_CREAT, 0666, 1);
-  if (_db.sem == SEM_FAILED)
-  {
-    e_set(E_FATAL, "can't open semaphore: %s", strerror(errno));
-    goto err_0;
-  }
-
-  /* while we are not allowed to enter critical section, wait a while */
-  gint s, c=0;
-  do {
-    /* wait up to 2 seconds for the semaphore */
-    if (c++) /* no, not a c++ ;-) */
-      usleep(50000); /*XXX: not a posix, but better than nothing */
-    if (c > 40)
-    {
-      e_set(E_ERROR|DB_BLOCKED, "sem_trywait failed to get semaphore: %s", strerror(errno));
-      goto err_1;
-    }
-    s = sem_trywait(_db.sem);
-  } while(s == -1 && errno == EAGAIN);
-  if (s == -1) /* this means, that last status was bad and not EAGAIN */
-  {
-    e_set(E_FATAL, "sem_trywait failed: %s", strerror(errno));
-    goto err_1;
-  }
 
   if (root[0] == '/')
     _db.topdir = g_strdup_printf("%s/%s", root, PKGDB_DIR);
@@ -217,10 +187,7 @@ gint db_open(const gchar* root, struct error* e)
   g_free(_db.pkgdir);
   g_free(_db.scrdir);
  err_1:
-  sem_post(_db.sem);
  err_0:
-  sem_unlink(SEMAPHORE_NAME);
-  sem_close(_db.sem);
   memset(&_db, 0, sizeof(_db));
   return 1;
 }
@@ -231,11 +198,6 @@ void db_close()
   fdb_close(_db.fdb);
   _db.fdb = 0;
   sql_close();
-
-  /*XXX: check this */
-  sem_post(_db.sem);
-  sem_unlink(SEMAPHORE_NAME);
-  sem_close(_db.sem);
 
   g_free(_db.dbfile);
   g_free(_db.topdir);

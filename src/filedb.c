@@ -13,7 +13,6 @@
 #include <setjmp.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <semaphore.h>
 
 #include "sys.h"
 #include "filedb.h"
@@ -29,8 +28,6 @@
 
 /* private 
  ************************************************************************/
-
-#define SEMAPHORE_NAME "/sem.spkg.filedb"
 
 struct fdb {
   gboolean is_open; /* flase if not open (may not be true if error occured during open) */
@@ -50,7 +47,6 @@ struct fdb {
   void* addr_pld;
   gsize size_pld; /* mmaped sizes */
   gsize size_idx;
-  sem_t* sem;
   
   jmp_buf errjmp; /* where to jump on error */
 };
@@ -494,32 +490,6 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
   gchar *path_idx = g_strdup_printf("%s/filedb.idx", path);
   gchar *path_pld = g_strdup_printf("%s/filedb.pld", path);
 
-  db->sem = sem_open(SEMAPHORE_NAME, O_CREAT, 0666, 1);
-  if (db->sem == SEM_FAILED)
-  {
-    e_set(E_FATAL, "can't open semaphore: %s", strerror(errno));
-    goto err_0;
-  }
-
-  /* while we are not allowed to enter critical section, wait a while */
-  gint s, c=0;
-  do {
-    /* wait up to 2 seconds for the semaphore */
-    if (c++) /* no, not a c++ ;-) */
-      usleep(50000); /*XXX: not a posix, but better than nothing */
-    if (c > 40)
-    {
-      e_set(E_ERROR|FDB_BLOCKED, "sem_trywait failed to get semaphore: %s", strerror(errno));
-      goto err_1;
-    }
-    s = sem_trywait(db->sem);
-  } while(s == -1 && errno == EAGAIN);
-  if (s == -1) /* this means, that last status was bad and not EAGAIN */
-  {
-    e_set(E_FATAL, "sem_trywait failed: %s", strerror(errno));
-    goto err_1;
-  }
-
   /* open index and payload files */
   db->fd_pld = open(path_pld, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
   if (db->fd_pld == -1)
@@ -664,12 +634,9 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
  err_3:
   close(db->fd_idx);
  err_2:
-  sem_post(db->sem);
  err_1:
   g_free(path_idx);
   g_free(path_pld);
-  sem_unlink(SEMAPHORE_NAME);
-  sem_close(db->sem);
  err_0:
   g_free(db);
   stop_timer(0);
@@ -678,16 +645,6 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
 
 void fdb_close(struct fdb* db)
 {
-  /*XXX: DEBUG dump whole database */
-  gint i;
-  for (i=1;i<db->lastid;i++)
-  {
-    struct file_idx* idx = _idx_from_id(db,i);
-    struct file_pld* pld = _pld_from_idx(db,idx);
-    if (idx->refs > 1)
-      printf("%d:%s\n", idx->refs, pld->path);
-  }
-  /*XXX: DEBUG */
   continue_timer(1);
   g_assert(db != 0);
 
@@ -710,11 +667,6 @@ void fdb_close(struct fdb* db)
   close(db->fd_idx);
 
   g_free(db->dbdir);
-
-  /*XXX: check this */
-  sem_post(db->sem);
-  sem_unlink(SEMAPHORE_NAME);
-  sem_close(db->sem);
 
   memset(db, 0, sizeof(*db));
   g_free(db);
