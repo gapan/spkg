@@ -8,9 +8,9 @@ DESTDIR :=
 PREFIX := /usr/local
 DEBUG := no
 ASSERTS := no
-BENCH := no
+BENCH := yes
 MUDFLAP := no
-VERSION := 20050629
+VERSION := 20050716
 
 CC := /opt/gcc-4.0.1/bin/gcc-4.0.1
 #CC := gcc-3.4.4

@@ -3,7 +3,7 @@
 # use in spkg
 VER=3.2.2
 OFLAGS="-ggdb1 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer"
-OFLAGS="-ggdb3 -O0"
+#OFLAGS="-ggdb3 -O0"
 
 OMIT="
 SQLITE_OMIT_GLOBALRECOVER
