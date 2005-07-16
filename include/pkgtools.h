@@ -28,6 +28,7 @@ struct pkg_options {
   gchar* root;       /**< Root directory. */
   gboolean dryrun;   /**< Don't touch filesystem or database. */
   gboolean verbose;  /**< Be verbose. */
+  gboolean noptsym;  /**< Turn off symlinks optimization. */
 };
 
 /** Install package.

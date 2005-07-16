@@ -36,11 +36,15 @@ static struct transaction _ta_taction = {
 /* public 
  ************************************************************************/
 
-gint ta_initialize()
+gint ta_initialize(const gchar* root, struct error* e)
 {
   sigset_t oldsig;
 
   sys_sigblock(&oldsig);
+
+  gchar* root = opt->root;
+  if (root == 0)
+    root = "";
 
   if (_ta_taction.active)
     ta_rollback();
@@ -97,5 +101,9 @@ gint ta_rollback()
 
 gint ta_add_action(ta_type type, gchar* path1, gchar* path2)
 {
+
+//    gchar* path = g_strdup_printf("%s/%s", root, tgz->f_name);
+//    gchar* spath = g_strdup_printf("%s/%s.install.%04x", opts->root, tgz->f_name, stamp);
+
   return 1;
 }

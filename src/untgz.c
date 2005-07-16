@@ -42,12 +42,12 @@ struct untgz_state_internal {
   gzFile* gzf; /* gzio tar stream */
   
   /* internal block buffer data */
-  guchar bbuf[BLOCKBUFSIZE]; /* block buffer */
-  guchar* bend; /* points to the end of the buffer */
-  guchar* bpos; /* points to the current block */
+  gchar bbuf[BLOCKBUFSIZE]; /* block buffer */
+  gchar* bend; /* points to the end of the buffer */
+  gchar* bpos; /* points to the current block */
   gint blockid; /* block id (512*blockid == position of the block in the input file) */
 
-  guchar wbuf[WRITEBUFSIZE]; /* write buffer */
+  gchar wbuf[WRITEBUFSIZE]; /* write buffer */
 
   /* status callback internal data */
   untgz_status_cb scb;
@@ -104,7 +104,7 @@ struct tar_header {            /* byte offset */
 
 union tar_block {
   struct tar_header h;
-  guchar b[BLOCKSIZE];
+  gchar b[BLOCKSIZE];
 };
 
 #define e_set(n, fmt, args...) e_add(s->i->err, "untgz", __func__, n, fmt, ##args)
@@ -460,7 +460,7 @@ gint untgz_get_header(struct untgz_state* s)
 
 gint untgz_write_data(struct untgz_state* s, gchar** buf, gsize* len)
 {
-  guchar* buffer=0;  
+  gchar* buffer=0;  
   union tar_block* b;
   gsize position=0;
   gsize remaining;

@@ -6,13 +6,14 @@
 #\----------------------------------------------------------------------/#
 DESTDIR :=
 PREFIX := /usr/local
-DEBUG := yes
-ASSERTS := yes
+DEBUG := no
+ASSERTS := no
 BENCH := no
 VERSION := 20050629
 
+CC := /opt/gcc-4.0.1/bin/gcc-4.0.1
 #CC := gcc-3.4.4
-CC := gcc
+#CC := gcc
 AR := ar
 CFLAGS := -pipe -Wall
 CPPFLAGS := -Iinclude -Ilibs/sqlite -Ilibs/glib -D_GNU_SOURCE -DSPKG_VERSION=$(VERSION)
@@ -21,8 +22,8 @@ ifeq ($(DEBUG),yes)
 CFLAGS +=  -ggdb3 -O0
 CPPFLAGS += -D__DEBUG=1
 else
-#CFLAGS += -ggdb1 -O2 -march=i486 -mtune=i686 -fomit-frame-pointer
-CFLAGS += -ggdb1 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer
+CFLAGS += -ggdb1 -O2 -march=i486 -mtune=athlon -fomit-frame-pointer
+#CFLAGS += -ggdb1 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer
 endif
 ifeq ($(BENCH),yes)
 CPPFLAGS += -D__BENCH=1
@@ -32,7 +33,7 @@ CPPFLAGS += -DG_DISABLE_ASSERT
 endif
 
 objs-spkg := main.o pkgtools.o untgz.o sys.o sql.o filedb.o pkgdb.o \
-  pkgname.o taction.o error.o
+  pkgname.o error.o # taction.o 
 
 # magic barrier
 export MAKEFLAGS += --no-print-directory -r
@@ -44,8 +45,9 @@ dep-files := $(addprefix .build/,$(addsuffix .d,$(basename $(notdir $(objs-all))
 # default
 vpath %.c src
 
-.PHONY: all
-all: spkg python-build
+.PHONY: all py
+all: spkg 
+py: python-build
 
 include Makefile.tests
 

@@ -1,3 +1,7 @@
+[pkgtools] document and implement algorithm for installpkg
+
+[*] not implemented semaphores, damnit other locking mech. needed
+
 [pkgdb] get_packages: implement data selector
 [pkgdb] when finished, implement missing py bindings
 

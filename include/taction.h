@@ -22,7 +22,7 @@ typedef enum {
  * 
  * @return 0 on success, 1 on error
  */
-extern gint ta_initialize();
+extern gint ta_initialize(const gchar* root, struct error* e);
 
 /** Finalize current transaction.
  * 

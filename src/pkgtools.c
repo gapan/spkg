@@ -26,7 +26,6 @@
 /* public 
  ************************************************************************/
 
-
 /* install steps:
  * - checks (if pkg file exists, pkg name is valid, pkg is not in db)
  * - open untgz
@@ -44,6 +43,10 @@ gint pkg_install(const gchar* pkgfile, struct pkg_options* opts, struct error* e
   struct untgz_state* tgz=0;
   struct db_pkg* pkg=0;
   gchar* doinst = 0;
+
+  g_assert(pkgfile != 0);
+  g_assert(opts != 0);
+  g_assert(e != 0);
 
   /* check if file exist */
   if (sys_file_type(pkgfile,1) != SYS_REG)
@@ -83,13 +86,13 @@ gint pkg_install(const gchar* pkgfile, struct pkg_options* opts, struct error* e
     goto err1;
   }
 
-  if (verbose)
+  if (opts->verbose)
     printf("install: package file opened: %s\n", pkgfile);
 
   /* init transaction */
-  if (!dryrun)
+  if (!opts->dryrun)
   {
-    if (ta_initialize())
+    if (ta_initialize(opts->root, e))
     {
       e_set(E_ERROR,"can't initialize transaction");
       goto err2;
@@ -125,7 +128,7 @@ gint pkg_install(const gchar* pkgfile, struct pkg_options* opts, struct error* e
       /* free description */
       for (i=0;i<11;i++)
       {
-        if (verbose)
+        if (opts->verbose)
           printf("install: %s\n", desc[i]);
         g_free(desc[i]);
       }  
@@ -133,28 +136,32 @@ gint pkg_install(const gchar* pkgfile, struct pkg_options* opts, struct error* e
     }
     else if (!strcmp(tgz->f_name, "install/doinst.sh"))
     {
+      /* read doinst.sh into buffer XXX: check if it is not too big */
       gchar* buf;
       gsize len;
       untgz_write_data(tgz,&buf,&len);
       
+      /* optimize out symlinks creation from doinst.sh */
       gchar *b, *e, *ln, *n=buf;
       while(iter_lines(&b, &e, &n, &ln))
       { /* for each line */
         gchar* dir;
         gchar* link;
         gchar* target;
+        /* create link line */
         if (parse_createlink(ln, &dir, &link, &target))
         {
           gchar* path = g_strdup_printf("%s/%s", dir, link);
           g_free(dir);
           g_free(link);
-          if (verbose)
+          if (opts->verbose)
             printf("install[symlinking]: %s -> %s\n", path, target);
           pkg->files = g_slist_prepend(pkg->files, db_alloc_file(path, target));
         }
+        /* if this is not 'delete old file' line... */
         else if (!parse_cleanuplink(ln))
         {
-          /* append doinst.sh buffer */
+          /* ...append it to doinst buffer */
           gchar* nd;
           if (doinst)
             nd = g_strdup_printf("%s%s\n", doinst, ln);
@@ -165,46 +172,43 @@ gint pkg_install(const gchar* pkgfile, struct pkg_options* opts, struct error* e
         }
         g_free(ln);
       }
+      /* we always store full doinst.sh in database */
       pkg->doinst = buf;
       continue;
     }
 
-    gchar* path = g_strdup_printf("%s/%s", root, tgz->f_name);
-//    gchar* spath = g_strdup_printf("%s/%s.install.%04x", root, tgz->f_name, stamp);
+    /* add file to db */
     pkg->files = g_slist_append(pkg->files, db_alloc_file(g_strdup(tgz->f_name), 0));
+    if (opts->verbose)
+      printf("install[extracting]: %s\n", tgz->f_name);
 
-    if (verbose)
-      printf("install[extracting]: %s\n", path);
-
-    if (!dryrun)
+    /* add file to a transaction log and extract it */
+    if (!opts->dryrun)
     {
       if (tgz->f_type == UNTGZ_DIR)
       {
-        if (access(path, F_OK) != 0)
-          ta_add_action(TA_MOVE,path,0);
-        untgz_write_file(tgz,path);
+        if (access(tgz->f_name, F_OK) != 0)
+          ta_add_action(TA_MOVE,tgz->f_name,0);
+        untgz_write_file(tgz,tgz->f_name);
       }
       else
       {
-        ta_add_action(TA_MOVE,path,0);
-        untgz_write_file(tgz,path);
+        ta_add_action(TA_MOVE,tgz->f_name,0);
+        untgz_write_file(tgz,tgz->f_name);
       }
     }
-    g_free(path);
-//    g_free(spath);
+
   }
   
   /* error occured during extraction */
   if (!e_ok(e))
   {
-    /*xxx: prepend */
-//    untgz_error(tgz);
     e_set(E_ERROR|PKG_CORRUPT,"package is corrupted (%s)", pkgfile);
     goto err3;
   }
 
   /* finalize transaction */
-  if (!dryrun)
+  if (!opts->dryrun)
     ta_finalize();
 
   pkg->usize = tgz->usize/1024;
@@ -214,7 +218,9 @@ gint pkg_install(const gchar* pkgfile, struct pkg_options* opts, struct error* e
   untgz_close(tgz);
   tgz = 0;
 
-  gchar* old_cwd = sys_setcwd(root);
+  if (!opts->dryrun)
+  {
+  gchar* old_cwd = sys_setcwd(opts->root);
   if (old_cwd)
   {
 #if 0
@@ -232,11 +238,12 @@ gint pkg_install(const gchar* pkgfile, struct pkg_options* opts, struct error* e
       sys_setcwd(old_cwd);
     }
   }
+  }
 
   /* add package to the database */
-  if (!dryrun)
+  if (!opts->dryrun)
   {
-    if (verbose)
+    if (opts->verbose)
       printf("install: updating database with package: %s\n", name);
     if (db_legacy_add_pkg(pkg))
     {
@@ -250,7 +257,7 @@ gint pkg_install(const gchar* pkgfile, struct pkg_options* opts, struct error* e
     }
   }
 
-  if (verbose)
+  if (opts->verbose)
     printf("install: done installing package: %s\n", name);
 
   db_free_pkg(pkg);
@@ -259,7 +266,7 @@ gint pkg_install(const gchar* pkgfile, struct pkg_options* opts, struct error* e
   return 0;
 
  err3:
-  if (!dryrun)
+  if (!opts->dryrun)
     ta_rollback();
   db_free_pkg(pkg);
  err2:
@@ -273,12 +280,18 @@ gint pkg_install(const gchar* pkgfile, struct pkg_options* opts, struct error* e
 
 gint pkg_upgrade(const gchar* pkgfile, struct pkg_options* opts, struct error* e)
 {
+  g_assert(pkgfile != 0);
+  g_assert(opts != 0);
+  g_assert(e != 0);
   e_set(E_FATAL,"command is not implemented");
   return 1;
 }
 
 gint pkg_remove(const gchar* pkgname, struct pkg_options* opts, struct error* e)
 {
+  g_assert(pkgname != 0);
+  g_assert(opts != 0);
+  g_assert(e != 0);
   e_set(E_FATAL,"command is not implemented");
   return 1;
 }
