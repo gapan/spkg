@@ -4,4 +4,17 @@ This is spkg internal (developers) documentation.
 
 If you are a Python fan you may try @ref pyspkg.
 
+Detailed implementation information for install, upgrade and 
+remove algorithms can be found on @ref algos page.
+
+*/
+
+/** @page algos Algorithms
+
+@section ins Install
+
+@section upg Upgrade
+
+@section rem Remove
+
 */

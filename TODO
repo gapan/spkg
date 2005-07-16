@@ -22,3 +22,7 @@
 
 [doc] finish readmes
 [doc] fix manpage
+
+[tests] automatic testsuite
+
+[*] get rid of those G_UNLIKELY G_LIKELY macros (check speed effect)
