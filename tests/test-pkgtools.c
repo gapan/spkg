@@ -11,7 +11,7 @@
 
 static const struct pkg_options opts = {
   .root = "root",
-  .dryrun = 1,
+  .dryrun = 0,
   .verbose = 1,
   .noptsym = 0
 };

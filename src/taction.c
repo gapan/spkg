@@ -22,6 +22,7 @@
 
 struct transaction {
   gboolean active;
+  gboolean dryrun;
   const gchar* root;
   struct error* err;
   GSList* list;
@@ -31,12 +32,13 @@ static struct transaction _ta = {
   .active = 0,
   .root = 0,
   .err = 0,
-  .list = 0
+  .list = 0,
+  .dryrun = 0
 };
 
 /* action list handling */
-typedef enum { MOVE, KEEP } t_on_finalize;
-typedef enum { REMOVE } t_on_rollback;
+typedef enum { MOVE, KEEP, LINK } t_on_finalize;
+typedef enum { REMOVE, NOTHING } t_on_rollback;
 
 struct action {
   gchar* path1;
@@ -61,7 +63,7 @@ static gint _ta_insert(
   a->on_finalize = on_finalize;
   a->on_rollback = on_rollback;
   _ta.list = g_slist_prepend(_ta.list, a);
-  return 1;
+  return 0;
 }
 
 static void _ta_free_action(struct action* a)
@@ -74,7 +76,7 @@ static void _ta_free_action(struct action* a)
 /* public 
  ************************************************************************/
 
-gint ta_initialize(const gchar* root, struct error* e)
+gint ta_initialize(const gchar* root, gboolean dryrun, struct error* e)
 {
   g_assert(e != 0);
 
@@ -88,6 +90,7 @@ gint ta_initialize(const gchar* root, struct error* e)
   if (root == 0)
     _ta.root = "";
   _ta.active = 1;
+  _ta.dryrun = dryrun;
   _ta.list = 0;
   return 0;
 }
@@ -100,6 +103,11 @@ gint ta_keep_remove(gchar* path, gboolean is_dir)
 gint ta_move_remove(gchar* path, gchar* fin_path)
 {
   return _ta_insert(path,fin_path,0,MOVE,REMOVE);
+}
+
+gint ta_link_nothing(gchar* path, gchar* src_path)
+{
+  return _ta_insert(path,src_path,0,LINK,NOTHING);
 }
 
 gint ta_finalize()
@@ -115,15 +123,27 @@ gint ta_finalize()
     goto err;
   }
 
+  _ta.list = g_slist_reverse(_ta.list);
   for (l=_ta.list; l!=0; l=l->next)
   {
     struct action* a = l->data;
     if (a->on_finalize == KEEP)
-      continue;
-    if (a->on_finalize == MOVE)
+    {
+      /* null */
+    }
+    else if (a->on_finalize == MOVE)
     {
       /*XXX: check for errors */
-      rename(a->path1, a->path2);
+      if (!_ta.dryrun)
+        rename(a->path1, a->path2);
+      printf("mv %s %s\n", a->path1, a->path2);
+    }
+    else if (a->on_finalize == LINK)
+    {
+      /*XXX: check for errors */
+      if (!_ta.dryrun)
+        link(a->path2, a->path1);
+      printf("ln %s %s\n", a->path2, a->path1);
     }
     _ta_free_action(a);
   }
@@ -156,9 +176,20 @@ gint ta_rollback()
     if (a->on_rollback == REMOVE)
     {
       if (a->is_dir)
-        rmdir(a->path1);
+      {
+        if (!_ta.dryrun)
+          rmdir(a->path1);
+        printf("rmdir %s\n", a->path1);
+      }
       else
-        unlink(a->path1);
+      {
+        if (!_ta.dryrun)
+          unlink(a->path1);
+        printf("rm -f %s\n", a->path1);
+      }
+    }
+    else if (a->on_rollback == NOTHING)
+    {
     }
     _ta_free_action(a);
   }

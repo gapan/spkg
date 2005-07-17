@@ -90,13 +90,10 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
     printf("install: package file opened: %s\n", pkgfile);
 
   /* init transaction */
-  if (!opts->dryrun)
+  if (ta_initialize(opts->root, opts->dryrun, e))
   {
-    if (ta_initialize(opts->root, e))
-    {
-      e_set(E_ERROR,"can't initialize transaction");
-      goto err2;
-    }
+    e_set(E_ERROR,"can't initialize transaction");
+    goto err2;
   }
 
   /* alloc package object */
@@ -115,7 +112,8 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
     }
 
     /* check for metadata files */
-    if (!strcmp(tgz->f_name, "install/slack-desc"))
+    if (!strcmp(tgz->f_name, "install/slack-desc") || 
+        !strcmp(tgz->f_name, "./install/slack-desc"))
     {
       gchar *buf, *desc[11] = {0};
       gsize len;
@@ -134,7 +132,8 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
       }  
       continue;
     }
-    else if (!strcmp(tgz->f_name, "install/doinst.sh"))
+    else if (!strcmp(tgz->f_name, "install/doinst.sh") ||
+             !strcmp(tgz->f_name, "./install/doinst.sh"))
     {
       /* read doinst.sh into buffer XXX: check if it is not too big */
       gchar* buf;
@@ -179,96 +178,111 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
 
     /* add file to db */
     pkg->files = g_slist_append(pkg->files, db_alloc_file(g_strdup(tgz->f_name), 0));
-    if (opts->verbose)
-      printf("install[extracting]: %s\n", tgz->f_name);
 
     /* add file to a transaction log and extract it */
-    if (!opts->dryrun)
+    gchar* fullpath = g_strdup_printf("%s/%s", opts->root, tgz->f_name); /* may not be freed */
+    gchar* temppath = g_strdup_printf("%s--###install###", fullpath); /* may not be freed */
+    gchar* parent = g_dirname(fullpath); /*XXX: todo: first strip trailing slashes */
+    sys_ftype type = sys_file_type(fullpath, 0);
+    sys_ftype parent_type = sys_file_type(parent, 0);
+    g_free(parent);
+
+    switch(tgz->f_type)
     {
-      gchar* fullpath = g_strdup_printf("%s/%s", opts->root, tgz->f_name); /* may not be freed */
-      gchar* temppath = g_strdup_printf("%s--###install###", fullpath); /* may not be freed */
-      gchar* parent = g_dirname(fullpath);
-      sys_ftype type = sys_file_type(fullpath, 0);
-      sys_ftype parent_type = sys_file_type(parent, 0);
-      g_free(parent);
-
-      printf("install[extracting]: %s -> %s\n", fullpath, temppath);
-
-      switch(tgz->f_type)
-      {
-        case UNTGZ_DIR: /* we have directory */
-          if (type == SYS_DIR)
-          {
-            /* installed directory already exist */
-            /*XXX: here we may check if it has same permissions */
-            /* ok, do nothing */
-          }
-          else if (type == SYS_NONE)
-          {
-            if (parent_type != SYS_DIR)
-            {
-              /*XXX: bug */
-            }
+      case UNTGZ_DIR: /* we have directory */
+        if (type == SYS_DIR)
+        {
+          if (opts->verbose)
+            printf("install: #mkdir %s\n", tgz->f_name);
+          /* installed directory already exist */
+          /*XXX: here we may check if it has same permissions */
+          /* ok, do nothing */
+        }
+        else if (type == SYS_NONE)
+        {
+          if (opts->verbose)
+            printf("install: mkdir %s\n", tgz->f_name);
+          if (!opts->dryrun)
             if (untgz_write_file(tgz, fullpath))
               goto extract_failed;
-            if (ta_keep_remove(fullpath, 1))
-              goto transact_insert_failed;
-          }
-          else if (type == SYS_ERR)
-          {
-            /*XXX: bug */
-          }
-          else
-          {
-            /*XXX: bug (ordinary file) */
-          }
-        break;
-        case UNTGZ_SYM: /* wtf?, symlinks are not permitted to be in package */
-          /* XXX: bug */
-        break;
-        case UNTGZ_NONE:
+          if (ta_keep_remove(fullpath, 1))
+            goto transact_insert_failed;
+        }
+        else if (type == SYS_ERR)
+        {
+          if (opts->verbose)
+            printf("install[BUG]: stat failed %s\n", tgz->f_name);
           /*XXX: bug */
-        default: /* ordinary file */
-          if (type == SYS_DIR)
-          {
-            /* target path is a directory, bad! */
-          }
-          else if (type == SYS_NONE)
-          {
-            if (parent_type != SYS_DIR)
-            {
-              /*XXX: bug */
-            }
+        }
+        else
+        {
+          if (opts->verbose)
+            printf("install[BUG]: can't mkdir over ordinary file %s\n", tgz->f_name);
+          /*XXX: bug (ordinary file) */
+        }
+      break;
+      case UNTGZ_SYM: /* wtf?, symlinks are not permitted to be in package */
+        if (opts->verbose)
+          printf("install[BUG]: symlink in archive %s\n", tgz->f_name);
+        /* XXX: bug */
+      break;
+      case UNTGZ_LNK: /* hardlinks are special beasts, most easy solution is to 
+        postpone hardlink creation into transaction finalization phase */
+      {
+        gchar* linkpath = g_strdup_printf("%s/%s", opts->root, tgz->f_link);
+        if (opts->verbose)
+          printf("install: hardlink found %s -> %s\n", tgz->f_name, tgz->f_link);
+        if (ta_link_nothing(fullpath, linkpath))
+          goto transact_insert_failed;
+      }
+      break;
+      case UNTGZ_NONE:
+        /*XXX: bug */
+      break;
+      default: /* ordinary file */
+        if (type == SYS_DIR)
+        {
+          if (opts->verbose)
+            printf("install[BUG]: can't extract file over dir %s\n", tgz->f_name);
+          /* target path is a directory, bad! */
+        }
+        else if (type == SYS_NONE)
+        {
+          if (opts->verbose)
+            printf("install: extracting: %s\n", tgz->f_name);
+          if (!opts->dryrun)
             if (untgz_write_file(tgz, fullpath))
               goto extract_failed;
-            if (ta_keep_remove(fullpath, 1))
-              goto transact_insert_failed;
-          }
-          else if (type != SYS_ERR)
-          {
-            /*XXX: bug */
-          }
-          else /* file already exist there */
-          {
-            /*XXX: here we may check file types, etc. */
+          if (ta_keep_remove(fullpath, 0))
+            goto transact_insert_failed;
+        }
+        else if (type == SYS_ERR)
+        {
+          if (opts->verbose)
+            printf("install[BUG]: stat failed %s\n", tgz->f_name);
+          /*XXX: bug */
+        }
+        else /* file already exist there */
+        {
+          /*XXX: here we may check file types, etc. */
+          if (opts->verbose)
+            printf("install: already exist: %s\n", tgz->f_name);
+          if (!opts->dryrun)
             if (untgz_write_file(tgz, temppath))
               goto extract_failed;
-            if (ta_move_remove(temppath, fullpath))
-              goto transact_insert_failed;
-          }
-      }
-
-      if (0) /* common error handling */
-      {
-       transact_insert_failed:
-        e_set(E_ERROR|PKG_BADIO,"transaction insert failed for file %s (%s)", tgz->f_name, pkgfile);
-        goto err3;
-       extract_failed:
-        e_set(E_ERROR|PKG_BADIO,"file extraction failed %s (%s)", tgz->f_name, pkgfile);
-        goto err3;
-      }
+          if (ta_move_remove(temppath, fullpath))
+            goto transact_insert_failed;
+        }
     }
-
+    if (0) /* common error handling */
+    {
+     transact_insert_failed:
+      e_set(E_ERROR|PKG_BADIO,"transaction insert failed for file %s (%s)", tgz->f_name, pkgfile);
+      goto err3;
+     extract_failed:
+      e_set(E_ERROR|PKG_BADIO,"file extraction failed %s (%s)", tgz->f_name, pkgfile);
+      goto err3;
+    }
   }
   
   /* error occured during extraction */
@@ -279,8 +293,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
   }
 
   /* finalize transaction */
-  if (!opts->dryrun)
-    ta_finalize();
+  ta_finalize();
 
   pkg->usize = tgz->usize/1024;
   pkg->csize = tgz->csize/1024;
@@ -304,8 +317,8 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
     if (sys_file_type("install/doinst.sh",0) == SYS_REG)
     {
       printf("install: running doinst.sh\n");
-      if (system(". install/doinst.sh"))
-        printf("install: doinst.sh failed\n");
+//      if (system(". install/doinst.sh"))
+//        printf("install: doinst.sh failed\n");
       sys_setcwd(old_cwd);
     }
   }
@@ -337,8 +350,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
   return 0;
 
  err3:
-  if (!opts->dryrun)
-    ta_rollback();
+  ta_rollback();
   db_free_pkg(pkg);
  err2:
   untgz_close(tgz);

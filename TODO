@@ -1,19 +1,11 @@
-[*] check assertions
-
-[pkgtools] document and implement algorithm for installpkg
-
-[*] not implemented semaphores, damnit other locking mech. needed
+[pkgtools] add option to disable doinst.sh script preprocessing (because it may not work
+           for glibc package, because links are created conditionally)
+[pkgtools] implement doinst.sh processing
+[pkgtools] implement filesystem transactions
+[pkgtools] implement install, upgrade, remove
 
 [pkgdb] get_packages: implement data selector
 [pkgdb] when finished, implement missing py bindings
-
-[*] implement safe cleanup mechanisms for cases when user breaks execution
-
-[pkgtools] had a good idea last night, elaborate on it
-[pkgtools] add option to disable doinst.sh script preprocessing (because it may not work
-           for glibc package, because links are created conditionally)
-[pkgtools] implement filesystem transactions
-[pkgtools] implement install, upgrade, remove
 
 [filedb,pkgdb] locking should be separate for separate roots
 
@@ -27,4 +19,7 @@
 
 [tests] automatic testsuite
 
+[*] check assertions
+[*] not implemented semaphores, damnit other locking mech. needed
+[*] implement safe cleanup mechanisms for cases when user breaks execution
 [*] get rid of those G_UNLIKELY G_LIKELY macros (check speed effect)

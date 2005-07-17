@@ -22,7 +22,7 @@
  * @param e error object
  * @return 0 on success, 1 on error
  */
-extern gint ta_initialize(const gchar* root, struct error* e);
+extern gint ta_initialize(const gchar* root, gboolean dryrun, struct error* e);
 
 /** Finalize current transaction.
  * 
@@ -51,6 +51,14 @@ extern gint ta_keep_remove(gchar* path, gboolean is_dir);
  * @return 0 on success, 1 on error
  */
 extern gint ta_move_remove(gchar* path, gchar* fin_path);
+
+/** Add action to the current transaction.
+ * 
+ * @param path path to the transactioned object
+ * @param fin_path destination path
+ * @return 0 on success, 1 on error
+ */
+extern gint ta_link_nothing(gchar* path, gchar* src_path);
 
 #endif
 

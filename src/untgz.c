@@ -593,6 +593,7 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
         e_throw(E_ERROR|UNTGZ_BADIO, "can't create symlink: %s", strerror(errno));
       break;
     case UNTGZ_LNK:
+      printf("** ln %s %s", s->f_link, path);
       if (link(s->f_link, path) == -1)
         e_throw(E_ERROR|UNTGZ_BADIO, "can't create hardlink: %s", strerror(errno));
       break;
