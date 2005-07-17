@@ -1,25 +1,23 @@
 [pkgtools] add option to disable doinst.sh script preprocessing (because it may not work
            for glibc package, because links are created conditionally)
-[pkgtools] implement doinst.sh processing
-[pkgtools] implement filesystem transactions
-[pkgtools] implement install, upgrade, remove
+[pkgtools] implement upgrade, remove
 
 [pkgdb] get_packages: implement data selector
 [pkgdb] when finished, implement missing py bindings
 
-[filedb,pkgdb] locking should be separate for separate roots
+[filedb,pkgdb] finally implement some portable locking, goddamnit!
 
 [sys] reimplement sys_rm_rf and sys_mkdir_p in C (should be just some Copy&Paste(tm) from
       my mxm project)
 
-[untgz] use of blockbuf instead of writebuf can speedup things slightly on the user side
+[untgz] using blockbuf as writebuf can speedup things slightly on the user side 
+        (approx. by some 5%, not worth the time now)
 
 [doc] finish readmes
-[doc] fix manpage
+[doc] write manpage 
 
 [tests] automatic testsuite
 
-[*] check assertions
-[*] not implemented semaphores, damnit other locking mech. needed
+[*] check assertions (are they really used for catching programmer's bugs?)
 [*] implement safe cleanup mechanisms for cases when user breaks execution
-[*] get rid of those G_UNLIKELY G_LIKELY macros (check speed effect)
+[*] get rid of those G_UNLIKELY G_LIKELY macros (and check speed effect!)
