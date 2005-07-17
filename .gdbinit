@@ -2,7 +2,7 @@
 #set logging overwrite on
 #set logging on
 set print pretty on
-file ./test-pkgdb
+file ./test-pkgtools
 #b filedb.c:193
-b db_open
+#b db_open
 r

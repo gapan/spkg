@@ -4,7 +4,7 @@ path.append('../build/lib.linux-i686-2.4')
 from spkg import *
 
 def status(tgz, total, current):
-  print "[%s] extracting %s (%u of %u)..." % (tgz.tgzfile,tgz.f_name,current,total)
+  print "\033[0G[%s] (%u of %u)..." % (tgz.tgzfile,current,total)
 
 # For each file do:
 for file in argv[1:]:

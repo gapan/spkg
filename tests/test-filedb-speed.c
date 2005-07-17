@@ -48,5 +48,6 @@ int main()
  err_0:
   e_print(err);
   e_free(err);
+  fdb_close(db);
   return 1;
 }

@@ -21,7 +21,8 @@
 #define PKG_NOTEX E(1) /**< package not exist */
 #define PKG_BADNAME E(2) /**< package has invalid name */
 #define PKG_CORRUPT E(3) /**< package is corrupted */
-#define PKG_DB E(4) /**< package database error */
+#define PKG_BADIO E(4) /**< failed filesystem operation */
+#define PKG_DB E(5) /**< package database error */
 
 /** Common package command options structure. */
 struct pkg_options {
@@ -38,7 +39,7 @@ struct pkg_options {
  * @param e Error object.
  * @return 0 on success, 1 on error
  */
-extern gint pkg_install(const gchar* pkgfile, struct pkg_options* opts, struct error* e);
+extern gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct error* e);
 
 /** Upgrade package <b>[not implemented]</b>.
  * 
@@ -47,7 +48,7 @@ extern gint pkg_install(const gchar* pkgfile, struct pkg_options* opts, struct e
  * @param e Error object.
  * @return 0 on success, 1 on error
  */
-extern gint pkg_upgrade(const gchar* pkgfile, struct pkg_options* opts, struct error* e);
+extern gint pkg_upgrade(const gchar* pkgfile, const struct pkg_options* opts, struct error* e);
 
 /** Remove package <b>[not implemented]</b>.
  * 
@@ -56,7 +57,7 @@ extern gint pkg_upgrade(const gchar* pkgfile, struct pkg_options* opts, struct e
  * @param e Error object.
  * @return 0 on success, 1 on error
  */
-extern gint pkg_remove(const gchar* pkgname, struct pkg_options* opts, struct error* e);
+extern gint pkg_remove(const gchar* pkgname, const struct pkg_options* opts, struct error* e);
 
 #endif
 

@@ -1,3 +1,5 @@
+[*] check assertions
+
 [pkgtools] document and implement algorithm for installpkg
 
 [*] not implemented semaphores, damnit other locking mech. needed

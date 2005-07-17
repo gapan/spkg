@@ -37,7 +37,7 @@
  * - finalize file transaction
  */
 
-gint pkg_install(const gchar* pkgfile, struct pkg_options* opts, struct error* e)
+gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct error* e)
 {
   gchar *name, *shortname;
   struct untgz_state* tgz=0;
@@ -185,16 +185,87 @@ gint pkg_install(const gchar* pkgfile, struct pkg_options* opts, struct error* e
     /* add file to a transaction log and extract it */
     if (!opts->dryrun)
     {
-      if (tgz->f_type == UNTGZ_DIR)
+      gchar* fullpath = g_strdup_printf("%s/%s", opts->root, tgz->f_name); /* may not be freed */
+      gchar* temppath = g_strdup_printf("%s--###install###", fullpath); /* may not be freed */
+      gchar* parent = g_dirname(fullpath);
+      sys_ftype type = sys_file_type(fullpath, 0);
+      sys_ftype parent_type = sys_file_type(parent, 0);
+      g_free(parent);
+
+      printf("install[extracting]: %s -> %s\n", fullpath, temppath);
+
+      switch(tgz->f_type)
       {
-        if (access(tgz->f_name, F_OK) != 0)
-          ta_add_action(TA_MOVE,tgz->f_name,0);
-        untgz_write_file(tgz,tgz->f_name);
+        case UNTGZ_DIR: /* we have directory */
+          if (type == SYS_DIR)
+          {
+            /* installed directory already exist */
+            /*XXX: here we may check if it has same permissions */
+            /* ok, do nothing */
+          }
+          else if (type == SYS_NONE)
+          {
+            if (parent_type != SYS_DIR)
+            {
+              /*XXX: bug */
+            }
+            if (untgz_write_file(tgz, fullpath))
+              goto extract_failed;
+            if (ta_keep_remove(fullpath, 1))
+              goto transact_insert_failed;
+          }
+          else if (type == SYS_ERR)
+          {
+            /*XXX: bug */
+          }
+          else
+          {
+            /*XXX: bug (ordinary file) */
+          }
+        break;
+        case UNTGZ_SYM: /* wtf?, symlinks are not permitted to be in package */
+          /* XXX: bug */
+        break;
+        case UNTGZ_NONE:
+          /*XXX: bug */
+        default: /* ordinary file */
+          if (type == SYS_DIR)
+          {
+            /* target path is a directory, bad! */
+          }
+          else if (type == SYS_NONE)
+          {
+            if (parent_type != SYS_DIR)
+            {
+              /*XXX: bug */
+            }
+            if (untgz_write_file(tgz, fullpath))
+              goto extract_failed;
+            if (ta_keep_remove(fullpath, 1))
+              goto transact_insert_failed;
+          }
+          else if (type != SYS_ERR)
+          {
+            /*XXX: bug */
+          }
+          else /* file already exist there */
+          {
+            /*XXX: here we may check file types, etc. */
+            if (untgz_write_file(tgz, temppath))
+              goto extract_failed;
+            if (ta_move_remove(temppath, fullpath))
+              goto transact_insert_failed;
+          }
       }
-      else
+
+      if (0) /* common error handling */
       {
-        ta_add_action(TA_MOVE,tgz->f_name,0);
-        untgz_write_file(tgz,tgz->f_name);
+       transact_insert_failed:
+        e_set(E_ERROR|PKG_BADIO,"transaction insert failed for file %s (%s)", tgz->f_name, pkgfile);
+        goto err3;
+       extract_failed:
+        e_set(E_ERROR|PKG_BADIO,"file extraction failed %s (%s)", tgz->f_name, pkgfile);
+        goto err3;
       }
     }
 
@@ -278,7 +349,7 @@ gint pkg_install(const gchar* pkgfile, struct pkg_options* opts, struct error* e
   return 1;
 }
 
-gint pkg_upgrade(const gchar* pkgfile, struct pkg_options* opts, struct error* e)
+gint pkg_upgrade(const gchar* pkgfile, const struct pkg_options* opts, struct error* e)
 {
   g_assert(pkgfile != 0);
   g_assert(opts != 0);
@@ -287,7 +358,7 @@ gint pkg_upgrade(const gchar* pkgfile, struct pkg_options* opts, struct error* e
   return 1;
 }
 
-gint pkg_remove(const gchar* pkgname, struct pkg_options* opts, struct error* e)
+gint pkg_remove(const gchar* pkgname, const struct pkg_options* opts, struct error* e)
 {
   g_assert(pkgname != 0);
   g_assert(opts != 0);

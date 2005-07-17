@@ -11,15 +11,15 @@
 #define __TRANSACTION_H
 
 #include <glib.h>
+#include "error.h"
 
-/** */
-typedef enum { 
-  TA_ADD=1,   /**< add file */
-  TA_MOVE,    /**< move file */
-} ta_type;
+#define TA_ACTIVE  E(0) /**< another transaction is still active */
+#define TA_NACTIVE E(1) /**< transaction is not active */
 
 /** Initialize current transaction.
  * 
+ * @param root root directory
+ * @param e error object
  * @return 0 on success, 1 on error
  */
 extern gint ta_initialize(const gchar* root, struct error* e);
@@ -38,9 +38,19 @@ extern gint ta_rollback();
 
 /** Add action to the current transaction.
  * 
+ * @param path path to the transactioned object
+ * @param is_dir if path points to a directory
  * @return 0 on success, 1 on error
  */
-extern gint ta_add_action(ta_type type, gchar* path1, gchar* path2);
+extern gint ta_keep_remove(gchar* path, gboolean is_dir);
+
+/** Add action to the current transaction.
+ * 
+ * @param path path to the transactioned object
+ * @param fin_path destination path
+ * @return 0 on success, 1 on error
+ */
+extern gint ta_move_remove(gchar* path, gchar* fin_path);
 
 #endif
 

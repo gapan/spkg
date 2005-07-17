@@ -5,16 +5,40 @@ This is spkg internal (developers) documentation.
 If you are a Python fan you may try @ref pyspkg.
 
 Detailed implementation information for install, upgrade and 
-remove algorithms can be found on @ref algos page.
+remove algorithms can be found on @ref internals page.
 
 */
 
-/** @page algos Algorithms
+/** @page internals Internals
 
-@section ins Install
+@section db Package database
 
-@section upg Upgrade
+Database on-disk representation is the same as in original pkgtools.
 
-@section rem Remove
+@section cmds Commands implementation
+
+Common requirements for following commands are:
+@li only one pass of extracting tgz package is allowed,
+@li every command must implement rollback of filesystem changes 
+    up to the point when tgz archive is fully extracted,
+@li filesystem inconsistency must be as short as possible,
+@li allow for pre/post inst/upgr/remove scripts (pre script
+    failure may break command execution).
+
+@subsection ins Install
+
+For each file in archive do:
+@li test file path validity
+@li test if it is package metainformation file
+@li 
+@li
+@li
+@li
+@li
+@li
+
+@subsection upg Upgrade
+
+@subsection rem Remove
 
 */

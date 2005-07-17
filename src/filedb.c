@@ -24,7 +24,12 @@
 #define PLD_SIZE_LIMIT (2*IDX_SIZE_LIMIT) /* just an empirically determined value */
 #define MAXHASH (1024*128)
 #define FDB_CHECKSUMS 0
+
+#ifdef __DEBUG
 #define SHOW_STATS 1
+#else
+#define SHOW_STATS 0
+#endif
 
 /* private 
  ************************************************************************/
@@ -545,7 +550,11 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
 
     /* write header */
     lseek(db->fd_idx, 0, SEEK_SET);
-    write(db->fd_idx, (void*)&head, sizeof(head));
+    if (write(db->fd_idx, (void*)&head, sizeof(head)) != sizeof(head))
+    {
+      e_set(E_FATAL, "write header failed: %s", strerror(errno));
+      goto err_4;
+    }
   }
   else
   {
@@ -578,13 +587,21 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
     memset(&head, 0, sizeof(head));
 
     lseek(db->fd_pld, 1024*1024*PLD_SIZE_LIMIT-1, SEEK_SET);
-    write(db->fd_pld, &z, 1);
+    if (write(db->fd_pld, &z, 1) != 1)
+    {
+      e_set(E_FATAL, "write failed: %s", strerror(errno));
+      goto err_4;
+    }
     db->size_pld = 1024*1024*PLD_SIZE_LIMIT;
 
     strcpy(head.magic, "FDB.PAYLOAD");
     head.newoff = sizeof(head);
     lseek(db->fd_pld, 0, SEEK_SET);
-    write(db->fd_pld, (void*)&head, sizeof(head));
+    if (write(db->fd_pld, (void*)&head, sizeof(head)) != sizeof(head))
+    {
+      e_set(E_FATAL, "write header failed: %s", strerror(errno));
+      goto err_4;
+    }
   }
   else
   {
