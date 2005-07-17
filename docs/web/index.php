@@ -9,7 +9,7 @@
 
   <p>@SPKG@ is implemented in C and optimized for <strong>speed</strong>.</p>
 
-  <p><strong>Project is suspended!</strong></p>
+<!--  <p><strong>Project is suspended!</strong></p> -->
 
  <h1>Features</h1>
 
@@ -33,6 +33,11 @@
   and roadmap of the @SPKG@ development.</p>
 
   <dl>
+   <dt>2005-07-17</dt>
+    <dd>Install command is nearly completed. @SPKG@ installs 60 packages
+    (total size 18MB) under 3 seconds. Installpkg from pkgtools needs 90
+    seconds to install the same set of packages. Whooooa! Maybe I should
+    reabbreviate @SPKG@ for speeeeedy package manager. :] Keep tuned.</dd>
    <dt>2005-06-29</dt>
     <dd>Pkgdb completed.</dd>
    <dt>2005-06-27</dt>

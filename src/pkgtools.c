@@ -304,24 +304,24 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
 
   if (!opts->dryrun)
   {
-  gchar* old_cwd = sys_setcwd(opts->root);
-  if (old_cwd)
-  {
-#if 0
-    /* run ldconfig */
-    printf("install: running ldconfig\n");
-    if (system("/sbin/ldconfig -r ."))
-      printf("install: ldconfig failed\n");
-#endif
-    /* run doinst sh */
-    if (sys_file_type("install/doinst.sh",0) == SYS_REG)
+    gchar* old_cwd = sys_setcwd(opts->root);
+    if (old_cwd)
     {
-      printf("install: running doinst.sh\n");
-//      if (system(". install/doinst.sh"))
-//        printf("install: doinst.sh failed\n");
+#if 0
+      /* run ldconfig */
+      printf("install: running ldconfig\n");
+      if (system("/sbin/ldconfig -r ."))
+        printf("install: ldconfig failed\n");
+#endif
+      /* run doinst sh */
+      if (sys_file_type("install/doinst.sh",0) == SYS_REG)
+      {
+        printf("install: running doinst.sh\n");
+  //      if (system(". install/doinst.sh"))
+  //        printf("install: doinst.sh failed\n");
+      }
       sys_setcwd(old_cwd);
     }
-  }
   }
 
   /* add package to the database */

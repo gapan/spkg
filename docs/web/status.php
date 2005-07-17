@@ -16,7 +16,7 @@
     array("sql",     100, 100,  "completed!"),
     array("filedb",   80, 100,  "completed!"),
     array("pkgdb",    80, 100,  "completed!"),
-    array("commands", 10,  20,  "partly implemented install command"),
+    array("commands", 10,  30,  "partly implemented install command"),
   );
   function getclass($p)
   {

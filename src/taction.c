@@ -143,7 +143,7 @@ gint ta_finalize()
       /*XXX: check for errors */
       if (!_ta.dryrun)
         link(a->path2, a->path1);
-      printf("ln %s %s\n", a->path2, a->path1);
+//      printf("ln %s %s\n", a->path2, a->path1);
     }
     _ta_free_action(a);
   }
