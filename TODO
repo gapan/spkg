@@ -1,5 +1,5 @@
-[pkgtools] fix memory allocation in install, better path validity 
-    checks (.., etc.)
+[pkgtools] better path validity checks (.., etc.)
+[pkgtools] implement multilevel installation modes
 
 [pkgtools] add option to disable doinst.sh script preprocessing 
     (because it may not work for glibc package, because links are 

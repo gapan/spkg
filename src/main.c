@@ -28,30 +28,36 @@ static struct poptOption optsCommands[] = {
   "remove", 'd', POPT_ARG_NONE, 0, OPT_REMOVE,
   "Remove packages", NULL
 },
+{
+  "sync-cache", 's', POPT_ARG_NONE, 0, OPT_REMOVE,
+  "Synchronize cache", NULL
+},
 POPT_TABLEEND
 };
 
 static gboolean verbose = 0;
 static gboolean dryrun = 0;
-static gboolean force = 0;
-static gchar*   root = "/";
+static gchar* root = "/";
+static gchar* mode = "normal";
 
 static struct poptOption optsOptions[] = {
 {
   "root", 'r', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &root, 0,
-  "Set altrernate root directory for package operations", "ROOT"
+  "Set altrernate root directory for package operations.", "ROOT"
+},
+{
+  "mode", 'm', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &mode, 0,
+  "Set command mode of operation. This can be: paranoid (p), "
+  "cautious (c), normal (n), brutal (b).", "MODE"
 },
 {
   "dryrun", 'n', 0, &dryrun, 0,
-  "Don't modify filesystem, just print what would be done", NULL
+  "Don't modify filesystem. Good to use with -v option to show what "
+  "will be done.", NULL
 },
 {
   "verbose", 'v', 0, &verbose, 0,
-  "Be verbose about what is going on", NULL
-},
-{
-  "force", 'f', 0, &force, 0,
-  "Force upgrade", NULL
+  "Be verbose about what is going on.", NULL
 },
 POPT_TABLEEND
 };
@@ -120,14 +126,27 @@ int main(const int ac, const char* av[])
 
   if (help)
   {
-    printf("spkg-" G_STRINGIFY(SPKG_VERSION) "\n"
-           "Written by Ondøej Jirman, 2005\n\n"
-           "This is free software. Not like beer or like in \"freedom\",\n"
-           "but like in \"I don't fucking care what you will do with it.\"\n\n");
+    printf(
+      "spkg-" G_STRINGIFY(SPKG_VERSION) "\n"
+      "Written by Ondøej Jirman, 2005\n"
+      "\n"
+      "This is free software. Not like beer or like in \"freedom\",\n"
+      "but like in \"I don't fucking care what you will do with it.\"\n"
+      "\n"
+    );
     poptPrintHelp(optCon, stdout, 0);
-    printf("\n"
-           "Official website: http://spkg.megous.com\n"
-           "Bug reports can be sent to <megous@megous.com>.\n");
+    printf(
+      "\n"
+      "Examples:\n"
+      "  spkg -imb <packages>   [--install --mode=brutal]\n"
+      "  spkg -ump <packages>   [--upgrade --mode=paranoid]\n"
+      "  spkg -vr <packages>    [--verbose --remove]\n"
+      "  spkg -vnumb <packages> [--upgrade --verbose --dry-run --mode=cautious]\n"
+      "  spkg -s                [--sync-cache]\n"
+      "\n"
+      "Official website: http://spkg.megous.com\n"
+      "Bug reports can be sent to <megous@megous.com>.\n"
+    );
     goto out;
   }
   if (usage)
@@ -148,10 +167,13 @@ int main(const int ac, const char* av[])
     switch(rc)
     {
       case OPT_INSTALL:
+        printf("i: %s\n", mode);
       break;
       case OPT_UPGRADE:
+        printf("u: %s\n", mode);
       break;
       case OPT_REMOVE:
+        printf("r: %s\n", mode);
       break;
     }
   }
