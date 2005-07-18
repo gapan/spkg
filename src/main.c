@@ -8,82 +8,155 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include <popt.h>
+
 #include "pkgtools.h"
 
-typedef struct {
-  /* command line opts */
-  gboolean install;
-  gboolean upgrade;
-  gboolean remove;
-  gboolean verbose;
-  gboolean check;
-  gboolean force;
-  gchar*   root;
-  gchar**  files;
-
-} opts_t;
-extern opts_t opts;
-
-opts_t opts = {
-  .install = 0,
-  .upgrade = 0,
-  .remove = 0,
-  .root = 0,
-  .verbose = 0,
-  .check = 0,
-  .force = 0,
-  .files = 0,
+#define OPT_INSTALL 1
+#define OPT_UPGRADE 2
+#define OPT_REMOVE 3
+static struct poptOption optsCommands[] = {
+{
+  "install", 'i', POPT_ARG_NONE, 0, OPT_INSTALL, 
+  "Install packages", NULL
+},
+{
+  "upgrade", 'u', POPT_ARG_NONE, 0, OPT_UPGRADE,
+  "Upgrade packages", NULL
+},
+{
+  "remove", 'd', POPT_ARG_NONE, 0, OPT_REMOVE,
+  "Remove packages", NULL
+},
+POPT_TABLEEND
 };
 
-static GOptionEntry entries[] = 
+static gboolean verbose = 0;
+static gboolean dryrun = 0;
+static gboolean force = 0;
+static gchar*   root = "/";
+
+static struct poptOption optsOptions[] = {
 {
-  { "install", 'i', 0, G_OPTION_ARG_NONE,   &opts.install, "Install packages", NULL },
-  { "upgrade", 'u', 0, G_OPTION_ARG_NONE,   &opts.upgrade, "Upgrade packages", NULL },
-  { "remove",  'd', 0, G_OPTION_ARG_NONE,   &opts.remove,  "Remove packages", NULL },
-  { "root",    'r', 0, G_OPTION_ARG_STRING, &opts.root,    "Set different root directory ", "ROOT" },
-  { "verbose", 'v', 0, G_OPTION_ARG_NONE,   &opts.verbose, "Be verbose", NULL },
-  { "check",   'c', 0, G_OPTION_ARG_NONE,   &opts.check,   "Don't modify anything, just check", NULL },
-  { "force",   'f', 0, G_OPTION_ARG_NONE,   &opts.force,   "Force installation or upgrade if package already exist", NULL },
-  { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &opts.files, NULL, NULL },
-  { NULL }
+  "root", 'r', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &root, 0,
+  "Set altrernate root directory for package operations", "ROOT"
+},
+{
+  "dryrun", 'n', 0, &dryrun, 0,
+  "Don't modify filesystem, just print what would be done", NULL
+},
+{
+  "verbose", 'v', 0, &verbose, 0,
+  "Be verbose about what is going on", NULL
+},
+{
+  "force", 'f', 0, &force, 0,
+  "Force upgrade", NULL
+},
+POPT_TABLEEND
 };
 
-int main(int ac, char* av[])
-{
-  GError *error = NULL;
-  GOptionContext* context;
-  gchar** f;
+static gint help = 0;
+static gint usage = 0;
+static gint version = 0;
 
+static struct poptOption optsHelp[] = {
+{
+  "usage", '\0', POPT_ARG_NONE, &usage, 0,
+  "Display brief usage message", NULL
+},
+{
+  "help", 'h', POPT_ARG_NONE, &help, 0,
+  "Show this help message", NULL
+},
+{
+  "version", 'V', POPT_ARG_NONE, &version, 0,
+  "Display spkg version", NULL
+},
+POPT_TABLEEND
+};
+
+static struct poptOption opts[] = {
+{
+  NULL, '\0', POPT_ARG_INCLUDE_TABLE, &optsCommands, 0, "Commands:", NULL
+},
+{
+  NULL, '\0', POPT_ARG_INCLUDE_TABLE, &optsOptions, 0, "Options:", NULL
+},
+{
+  NULL, '\0', POPT_ARG_INCLUDE_TABLE, &optsHelp, 0, "Help options:", NULL
+},
+  POPT_TABLEEND
+};
+
+int main(const int ac, const char* av[])
+{
+  poptContext optCon;
+  gint rc;
+  gint status = 0;
+
+  /* check if we have enough privileges */
   if (getuid() != 0)
   {
-    fprintf(stderr, "spkg: You need root privileges to run this program.\n");
-    exit(1);
-  }
-  
-  context = g_option_context_new("- The Unofficial Slackware Linux Package Manager v." G_STRINGIFY(SPKG_VERSION));
-  g_option_context_add_main_entries(context, entries, 0);
-  g_option_context_parse(context, &ac, &av, &error);
-
-
-  gint cmds = opts.install?1:0 + opts.upgrade?1:0 + opts.remove?1:0;
-  if (cmds > 1)
-  {
-    fprintf(stderr, "spkg: conflicting commands given, use one of -i -d -u");
+    fprintf(stderr, "You need root privileges to run this program. Sorry.\n");
     exit(1);
   }
 
-//  db_sync_from_legacydb();
-//  db_sync_to_legacydb();
-  
-  f = opts.files;
-  if (f == 0)
-    return 0;
-  while (*f != 0)
+  /* initialize popt context */
+  optCon = poptGetContext("spkg", ac, av, opts, 0);
+
+  /* first round */
+  while ((rc = poptGetNextOpt(optCon)) != -1)
   {
-//    pkg_install(*f,1,1);
-    printf("%s\n", *f);
-    f++;
+    if (rc < -1)
+    {
+      fprintf(stderr, "spkg: bad argument %s: %s\n",
+        poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
+        poptStrerror(rc));
+      status = 1;
+      goto out;
+    }
   }
 
-  return 0;
+  if (help)
+  {
+    printf("spkg-" G_STRINGIFY(SPKG_VERSION) "\n"
+           "Written by Ondøej Jirman, 2005\n\n"
+           "This is free software. Not like beer or like in \"freedom\",\n"
+           "but like in \"I don't fucking care what you will do with it.\"\n\n");
+    poptPrintHelp(optCon, stdout, 0);
+    printf("\n"
+           "Official website: http://spkg.megous.com\n"
+           "Bug reports can be sent to <megous@megous.com>.\n");
+    goto out;
+  }
+  if (usage)
+  {
+    poptPrintUsage(optCon, stdout, 0);
+    goto out;
+  }
+  if (version)
+  {
+    printf("spkg-" G_STRINGIFY(SPKG_VERSION) "\n");
+    goto out;
+  }
+
+  /* second round */
+  poptResetContext(optCon);
+  while ((rc = poptGetNextOpt(optCon)) > 0)
+  {
+    switch(rc)
+    {
+      case OPT_INSTALL:
+      break;
+      case OPT_UPGRADE:
+      break;
+      case OPT_REMOVE:
+      break;
+    }
+  }
+
+ out:
+  optCon = poptFreeContext(optCon);
+  return status;
 }
