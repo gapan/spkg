@@ -18,12 +18,11 @@
 
 /** Initialize current transaction.
  * 
- * @param root root directory
  * @param dryrun don't touch filesystem
  * @param e error object
  * @return 0 on success, 1 on error
  */
-extern gint ta_initialize(const gchar* root, gboolean dryrun, struct error* e);
+extern gint ta_initialize(gboolean dryrun, struct error* e);
 
 /** Finalize current transaction.
  * 

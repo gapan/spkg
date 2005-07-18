@@ -23,14 +23,12 @@
 struct transaction {
   gboolean active;
   gboolean dryrun;
-  const gchar* root;
   struct error* err;
   GSList* list;
 };
 
 static struct transaction _ta = {
   .active = 0,
-  .root = 0,
   .err = 0,
   .list = 0,
   .dryrun = 0
@@ -76,7 +74,7 @@ static void _ta_free_action(struct action* a)
 /* public 
  ************************************************************************/
 
-gint ta_initialize(const gchar* root, gboolean dryrun, struct error* e)
+gint ta_initialize(gboolean dryrun, struct error* e)
 {
   g_assert(e != 0);
 
@@ -86,9 +84,6 @@ gint ta_initialize(const gchar* root, gboolean dryrun, struct error* e)
     return 1;
   }
   _ta.err = e;
-  _ta.root = root;
-  if (root == 0)
-    _ta.root = "";
   _ta.active = 1;
   _ta.dryrun = dryrun;
   _ta.list = 0;

@@ -71,7 +71,7 @@ gint db_open(const gchar* root, struct error* e)
     goto err_0;
   }
   
-  if (root == 0)
+  if (root == 0 || *root == 0)
     root = "/";
 
   if (g_path_is_absolute(root))
@@ -79,7 +79,7 @@ gint db_open(const gchar* root, struct error* e)
   else
   {
     gchar* cwd = g_get_current_dir();
-    _db.topdir = g_strdup_printf("%s/%s/%s", cwd, root, PKGDB_DIR); /*XXX: not portable */
+    _db.topdir = g_strdup_printf("%s/%s/%s", cwd, root, PKGDB_DIR);
     g_free(cwd);
   }
   _db.pkgdir = g_strdup_printf("%s/packages", _db.topdir);
@@ -595,9 +595,14 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
   gsize sp, ss=0;
   struct db_pkg* p=0;
   gchar *tmpstr;
+  
+  g_assert(name != 0);
 
-  if (name == 0)
-    return 0;
+  if (parse_pkgname(name, 6) != (gchar*)-1)
+  {
+    e_set(E_ERROR, "invalid package name: %s", name);
+    goto err_0;
+  }
 
   _db_open_check(0)
 
@@ -643,7 +648,7 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
 
   p = g_new0(struct db_pkg, 1);
   p->name = g_strdup(name);
-  p->shortname = parse_pkgname(p->name, 1); /*XXX: no checking here */
+  p->shortname = parse_pkgname(p->name, 1);
   p->version = parse_pkgname(p->name, 2);
   p->arch = parse_pkgname(p->name, 3);
   p->build = parse_pkgname(p->name, 4);
@@ -968,7 +973,16 @@ gint db_sync_from_legacydb()
     goto err_0;
   }
   
-  sql_exec("DELETE FROM packages;"); /*XXX: unchecked (will exit on error) */
+  /* sql error handler */
+  sql_push_context(SQL_ERRJUMP, 1);
+  if (setjmp(sql_errjmp) == 1)
+  { /* sql exception occured */
+    e_set(E_FATAL|DB_SQL, "%s", sql_error());
+    sql_pop_context(0);
+    goto err_0;
+  }
+  sql_exec("DELETE FROM packages;");
+  sql_pop_context(1);
 
   while ((de = readdir(d)) != NULL)
   {

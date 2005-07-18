@@ -90,7 +90,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
     printf("install: package file opened: %s\n", pkgfile);
 
   /* init transaction */
-  if (ta_initialize(opts->root, opts->dryrun, e))
+  if (ta_initialize(opts->dryrun, e))
   {
     e_set(E_ERROR,"can't initialize transaction");
     goto err2;

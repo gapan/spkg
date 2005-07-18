@@ -49,7 +49,7 @@ gchar* parse_pkgname(const gchar* path, guint elem)
             break;
         }
       }
-      if (tmp2 == name) /*  */
+      if (tmp2 == name)
         goto ret;
       if (elem == 5)
         return name;

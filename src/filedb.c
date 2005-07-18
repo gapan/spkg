@@ -18,7 +18,7 @@
 #include "filedb.h"
 #include "bench.h"
 
-/*XXX: compile time tweakable constants */
+/* compile time tweakable constants */
 /* reasonable defaults (this should be enough for all, ha ha...) */
 #define IDX_SIZE_LIMIT 32
 #define PLD_SIZE_LIMIT (2*IDX_SIZE_LIMIT) /* just an empirically determined value */
@@ -549,7 +549,6 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
   { /* empty idx file (create new) */
     struct file_idx_hdr head;
     memset(&head, 0, sizeof(head));
-    /*XXX: check writes */
     lseek(db->fd_idx, 1024*1024*IDX_SIZE_LIMIT-1, SEEK_SET);
     if (write(db->fd_idx, &z, 1) != 1)
     {
