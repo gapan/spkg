@@ -26,17 +26,6 @@
 /* public 
  ************************************************************************/
 
-/* install steps:
- * - checks (if pkg file exists, pkg name is valid, pkg is not in db)
- * - open untgz
- * - initialize file transaction
- * - for each file in pkg do:
- *   - check path for validity (not an absolute path, etc.)
- *   - check for special file (install/doinst.sh, etc.)
- *   - push file or dir to transaction log
- * - finalize file transaction
- */
-
 gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct error* e)
 {
   gchar *name, *shortname;

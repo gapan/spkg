@@ -1,4 +1,3 @@
-[*] check alt root directory usage in library code
 [pkgtools] refine verbose output
 
 [pkgtools] better path validity checks (.., etc.)
@@ -9,6 +8,7 @@
     created conditionally)
 [pkgtools] implement upgrade, remove
 
+[pkgdb] sync should erase previous database
 [pkgdb] get_packages: implement data selector
 [pkgdb] when finished, implement missing py bindings
 
@@ -25,4 +25,4 @@
 
 [*] check assertions (are they really used for catching programmer's bugs?)
 [*] implement safe cleanup mechanisms for cases when user breaks execution
-[*] get rid of those G_UNLIKELY G_LIKELY macros (and check speed effect!)
+[*] get rid of G_UNLIKELY G_LIKELY macros (and check speed effect!)
