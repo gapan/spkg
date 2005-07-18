@@ -1,3 +1,5 @@
+[main] command line parsing
+
 [pkgtools] better path validity checks (.., etc.)
 [pkgtools] implement multilevel installation modes
 

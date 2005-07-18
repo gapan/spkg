@@ -10,7 +10,7 @@ DEBUG := no
 ASSERTS := no
 BENCH := no
 MUDFLAP := no
-VERSION := 20050717
+VERSION := 20050718
 
 #CC := /opt/gcc-4.0.1/bin/gcc-4.0.1
 #CC := gcc-3.4.4

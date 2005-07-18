@@ -181,8 +181,10 @@ void sql_close()
     sql_pop_context(0);
   /* cleanup toplevel context */
   _sql_context_fini_all_queries();
-
-  gint rs = sqlite3_close(_sql_db);
+#ifndef G_DISABLE_ASSERT
+  gint rs = 
+#endif
+  sqlite3_close(_sql_db);
   g_assert(rs == SQLITE_OK);
   _sql_db = 0;
 }
@@ -199,7 +201,10 @@ void sql_transaction_begin()
   g_assert(_sql_db != 0);
   g_assert(!_sql_transaction);
 
-  gint rs = sqlite3_exec(_sql_db,"BEGIN EXCLUSIVE TRANSACTION;",0,0,0);
+#ifndef G_DISABLE_ASSERT
+  gint rs = 
+#endif
+  sqlite3_exec(_sql_db,"BEGIN EXCLUSIVE TRANSACTION;",0,0,0);
   g_assert(rs == SQLITE_OK);
 
   _sql_transaction = 1;
@@ -213,11 +218,19 @@ void sql_transaction_end(gboolean commit)
   g_assert(_sql_db != 0);
   g_assert(_sql_transaction);
 
+#ifndef G_DISABLE_ASSERT
   gint rs;
+#endif
   if (commit)
-    rs = sqlite3_exec(_sql_db,"COMMIT TRANSACTION;",0,0,0);
+#ifndef G_DISABLE_ASSERT
+    rs = 
+#endif
+    sqlite3_exec(_sql_db,"COMMIT TRANSACTION;",0,0,0);
   else
-    rs = sqlite3_exec(_sql_db,"ROLLBACK TRANSACTION;",0,0,0);
+#ifndef G_DISABLE_ASSERT
+    rs = 
+#endif
+    sqlite3_exec(_sql_db,"ROLLBACK TRANSACTION;",0,0,0);
   g_assert(rs == SQLITE_OK);
 
   _sql_transaction = 0;
