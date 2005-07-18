@@ -12,7 +12,7 @@ mkdir glib-build
 ( cd glib-build
   export CFLAGS="$OFLAGS"
   export CXXFLAGS="$OFLAGS"
-  ../glib-$VER/configure --prefix=/usr -enable-shared=no || exit 1
+  ../glib-$VER/configure --prefix=/usr --enable-shared=no --disable-nls || exit 1
   make -C glib/libcharset libcharset.la || exit 1
   make -C glib libglib-2.0.la || exit 1
 ) || exit 1

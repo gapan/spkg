@@ -179,26 +179,33 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
     /* add file to db */
     pkg->files = g_slist_append(pkg->files, db_alloc_file(g_strdup(tgz->f_name), 0));
 
-    /* add file to a transaction log and extract it */
-    gchar* fullpath = g_strdup_printf("%s/%s", opts->root, tgz->f_name); /* may not be freed */
-    gchar* temppath = g_strdup_printf("%s--###install###", fullpath); /* may not be freed */
-    gchar* parent = g_dirname(fullpath); /*XXX: todo: first strip trailing slashes */
-    sys_ftype type = sys_file_type(fullpath, 0);
-    sys_ftype parent_type = sys_file_type(parent, 0);
-    g_free(parent);
+    /* following strings can be freed by the ta code, if so you must zero these
+       variables after passing them to a ta_* */
+    gchar* fullpath = g_strdup_printf("%s/%s", opts->root, tgz->f_name);
+    gchar* temppath = g_strdup_printf("%s--###install###", fullpath);
+    sys_ftype existing = sys_file_type(fullpath, 0);
 
+    /* error handling in file installation code
+     * ----------------------------------------
+     * paranoid -
+     * cautious - 
+     * normal   -
+     * brutal   -
+     */
+
+    /* preinstall file (installation will be finished by ta_finalize) */
     switch(tgz->f_type)
     {
       case UNTGZ_DIR: /* we have directory */
-        if (type == SYS_DIR)
+        if (existing == SYS_DIR)
         {
           if (opts->verbose)
             printf("install: #mkdir %s\n", tgz->f_name);
           /* installed directory already exist */
-          /*XXX: here we may check if it has same permissions */
-          /* ok, do nothing */
+//          struct stat st;
+//          lstat(fullpath,st);          
         }
-        else if (type == SYS_NONE)
+        else if (existing == SYS_NONE)
         {
           if (opts->verbose)
             printf("install: mkdir %s\n", tgz->f_name);
@@ -207,8 +214,9 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
               goto extract_failed;
           if (ta_keep_remove(fullpath, 1))
             goto transact_insert_failed;
+          fullpath = 0;
         }
-        else if (type == SYS_ERR)
+        else if (existing == SYS_ERR)
         {
           if (opts->verbose)
             printf("install[BUG]: stat failed %s\n", tgz->f_name);
@@ -234,19 +242,20 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
           printf("install: hardlink found %s -> %s\n", tgz->f_name, tgz->f_link);
         if (ta_link_nothing(fullpath, linkpath))
           goto transact_insert_failed;
+        fullpath = 0;
       }
       break;
       case UNTGZ_NONE:
         /*XXX: bug */
       break;
       default: /* ordinary file */
-        if (type == SYS_DIR)
+        if (existing == SYS_DIR)
         {
           if (opts->verbose)
             printf("install[BUG]: can't extract file over dir %s\n", tgz->f_name);
           /* target path is a directory, bad! */
         }
-        else if (type == SYS_NONE)
+        else if (existing == SYS_NONE)
         {
           if (opts->verbose)
             printf("install: extracting: %s\n", tgz->f_name);
@@ -255,8 +264,9 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
               goto extract_failed;
           if (ta_keep_remove(fullpath, 0))
             goto transact_insert_failed;
+          fullpath = temppath = 0;
         }
-        else if (type == SYS_ERR)
+        else if (existing == SYS_ERR)
         {
           if (opts->verbose)
             printf("install[BUG]: stat failed %s\n", tgz->f_name);
@@ -272,6 +282,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
               goto extract_failed;
           if (ta_move_remove(temppath, fullpath))
             goto transact_insert_failed;
+          fullpath = temppath = 0;
         }
     }
     if (0) /* common error handling */
@@ -283,6 +294,8 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
       e_set(E_ERROR|PKG_BADIO,"file extraction failed %s (%s)", tgz->f_name, pkgfile);
       goto err3;
     }
+    g_free(temppath);
+    g_free(fullpath);
   }
   
   /* error occured during extraction */
