@@ -6,11 +6,13 @@
 \*----------------------------------------------------------------------*/
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <popt.h>
 
 #include "pkgtools.h"
+#include "pkgdb.h"
 
 /* commands
  ************************************************************************/
@@ -44,9 +46,14 @@ POPT_TABLEEND
 /* options
  ************************************************************************/
 
-static gint verbose = 0;
-static gint dryrun = 0;
-static gchar* root = "/";
+static struct pkg_options pkg_opts = {
+  .root = "/",
+  .dryrun = 0,
+  .verbose = 0,
+  .noptsym = 0,
+  .mode = PKG_NORMAL
+};
+
 static gchar* mode = "normal";
 
 static struct poptOption optsOptions[] = {
@@ -56,17 +63,21 @@ static struct poptOption optsOptions[] = {
   "cautious (c), normal (n), brutal (b).", "MODE"
 },
 {
-  "root", 'r', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &root, 0,
+  "root", 'r', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &pkg_opts.root, 0,
   "Set altrernate root directory for package operations.", "ROOT"
 },
 {
-  "verbose", 'v', 0, &verbose, 0,
+  "verbose", 'v', 0, &pkg_opts.verbose, 0,
   "Be verbose about what is going on.", NULL
 },
 {
-  "dryrun", 'n', 0, &dryrun, 0,
+  "dry-run", 'n', 0, &pkg_opts.dryrun, 0,
   "Don't modify filesystem. Good to use with -v option to show what "
   "will be done.", NULL
+},
+{
+  "disable-symlink-opt", '\0', 0, &pkg_opts.noptsym, 0,
+  "Disable symlink optimizations. This may negatively affect speed.", NULL
 },
 POPT_TABLEEND
 };
@@ -149,7 +160,8 @@ int main(const int ac, const char* av[])
   {
     printf(
       "spkg-" G_STRINGIFY(SPKG_VERSION) "\n"
-      "Written by Ondøej Jirman, 2005\n"
+      "\n"
+      "Written by Ondrej Jirman, 2005\n"
       "\n"
       "This is free software. Not like beer or like in \"freedom\",\n"
       "but like in \"I don't care what are you going to do with it.\"\n"
@@ -159,11 +171,11 @@ int main(const int ac, const char* av[])
     printf(
       "\n"
       "Examples:\n"
-      "  spkg -imb <packages>   [--install --mode=brutal]\n"
-      "  spkg -ump <packages>   [--upgrade --mode=paranoid]\n"
-      "  spkg -vr <packages>    [--verbose --remove]\n"
-      "  spkg -vnumb <packages> [--upgrade --verbose --dry-run --mode=cautious]\n"
-      "  spkg -s                [--sync-cache]\n"
+      "  spkg -imb <packages>      [--install --mode=brutal]\n"
+      "  spkg -ump <packages>      [--upgrade --mode=paranoid]\n"
+      "  spkg -vr <packages>       [--verbose --remove]\n"
+      "  spkg -vnumb <packages>    [--upgrade --verbose --dry-run --mode=cautious]\n"
+      "  spkg -s                   [--sync-cache]\n"
       "\n"
       "Official website: http://spkg.megous.com\n"
       "Bug reports can be sent to <megous@megous.com>.\n"
@@ -181,6 +193,21 @@ int main(const int ac, const char* av[])
     goto out;
   }
 
+  if (!strcmp(mode, "normal") || !strcmp(mode, "n"))
+    pkg_opts.mode = PKG_NORMAL;
+  else if (!strcmp(mode, "cautious") || !strcmp(mode, "c"))
+    pkg_opts.mode = PKG_CAUTIOUS;
+  else if (!strcmp(mode, "paranoid") || !strcmp(mode, "p"))
+    pkg_opts.mode = PKG_PARANOID;
+  else if (!strcmp(mode, "brutal") || !strcmp(mode, "b"))
+    pkg_opts.mode = PKG_BRUTAL;
+  else
+  {
+    fprintf(stderr, "error[main]: invalid argument: unknown mode (%s)\n", mode);
+    status = 1;
+    goto out;
+  }
+
   switch (command)
   {
     case CMD_INSTALL:
@@ -190,9 +217,20 @@ int main(const int ac, const char* av[])
         status = 1;
         goto out;
       }
+      db_open(pkg_opts.root, err);
+      if (!e_ok(err))
+        goto err;
       while ((arg = poptGetArg(optCon)) != 0)
       {
+        pkg_install(arg, &pkg_opts, err);
+        if (!e_ok(err))
+        {
+          e_print(err);
+          e_clean(err);
+          status = 2;
+        }
       }
+      db_close();
     break;
     case CMD_UPGRADE:
       if (poptPeekArg(optCon) == 0)
@@ -201,9 +239,20 @@ int main(const int ac, const char* av[])
         status = 1;
         goto out;
       }
+      db_open(pkg_opts.root, err);
+      if (!e_ok(err))
+        goto err;
       while ((arg = poptGetArg(optCon)) != 0)
       {
+        pkg_upgrade(arg, &pkg_opts, err);
+        if (!e_ok(err))
+        {
+          e_print(err);
+          e_clean(err);
+          status = 2;
+        }
       }
+      db_close();
     break;
     case CMD_REMOVE:
       if (poptPeekArg(optCon) == 0)
@@ -212,9 +261,20 @@ int main(const int ac, const char* av[])
         status = 1;
         goto out;
       }
+      db_open(pkg_opts.root, err);
+      if (!e_ok(err))
+        goto err;
       while ((arg = poptGetArg(optCon)) != 0)
       {
+        pkg_remove(arg, &pkg_opts, err);
+        if (!e_ok(err))
+        {
+          e_print(err);
+          e_clean(err);
+          status = 2;
+        }
       }
+      db_close();
     break;
     case CMD_SYNC:
       if (poptPeekArg(optCon) != 0)
@@ -223,6 +283,17 @@ int main(const int ac, const char* av[])
         status = 1;
         goto out;
       }
+      db_open(pkg_opts.root, err);
+      if (!e_ok(err))
+        goto err;
+      db_sync_from_legacydb();
+      if (!e_ok(err))
+      {
+        e_print(err);
+        e_clean(err);
+        status = 2;
+      }
+      db_close();
     break;
     case 0:
       fprintf(stderr, "error[main]: invalid argument: no command given\n");
@@ -242,4 +313,8 @@ int main(const int ac, const char* av[])
    * 2 = package manager error
    */
   return status;
+ err:
+  status = 2;
+  e_print(err);
+  goto out;
 }

@@ -17,12 +17,19 @@
 #include <glib.h>
 #include "error.h"
 
-#define PKG_EXIST E(0) /**< package exist */
-#define PKG_NOTEX E(1) /**< package not exist */
+#define PKG_EXIST   E(0) /**< package exist */
+#define PKG_NOTEX   E(1) /**< package not exist */
 #define PKG_BADNAME E(2) /**< package has invalid name */
 #define PKG_CORRUPT E(3) /**< package is corrupted */
-#define PKG_BADIO E(4) /**< failed filesystem operation */
-#define PKG_DB E(5) /**< package database error */
+#define PKG_BADIO   E(4) /**< failed filesystem operation */
+#define PKG_DB      E(5) /**< package database error */
+
+typedef enum {
+  PKG_PARANOID=0, /**<  */
+  PKG_CAUTIOUS,   /**<  */
+  PKG_NORMAL,     /**< revert only on serious errors */
+  PKG_BRUTAL,     /**<  */
+} pkg_mode;
 
 /** Common package command options structure. */
 struct pkg_options {
@@ -30,6 +37,7 @@ struct pkg_options {
   gboolean dryrun;   /**< Don't touch filesystem or database. */
   gboolean verbose;  /**< Be verbose. */
   gboolean noptsym;  /**< Turn off symlinks optimization. */
+  pkg_mode mode;     /**< Mode of operation of command. */
 };
 
 /** Install package.
