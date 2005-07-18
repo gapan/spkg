@@ -95,10 +95,11 @@ python-clean:
 
 .PHONY: install uninstall
 # installation
-install: all docs
-	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/bin
-	install -o root -g bin -m 0755 spkg $(DESTDIR)$(PREFIX)/bin/
-	strip $(DESTDIR)$(PREFIX)/bin/spkg
+install: all docs python-install
+	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/sbin
+	install -o root -g bin -m 0755 spkg $(DESTDIR)$(PREFIX)/sbin/
+	install -o root -g bin -m 0755 gspkg/gspkg.py $(DESTDIR)$(PREFIX)/sbin/
+	strip $(DESTDIR)$(PREFIX)/sbin/spkg
 	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/man/man8/
 	install -o root -g root -m 0644 docs/spkg.8 $(DESTDIR)$(PREFIX)/man/man8/
 	gzip -f -9 $(DESTDIR)$(PREFIX)/man/man8/spkg.8
