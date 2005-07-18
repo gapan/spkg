@@ -1,17 +1,18 @@
-[pkgtools] add option to disable doinst.sh script preprocessing (because it may not work
-           for glibc package, because links are created conditionally)
+[pkgtools] fix memory allocation in install
+
+[pkgtools] add option to disable doinst.sh script preprocessing 
+    (because it may not work for glibc package, because links are 
+    created conditionally)
 [pkgtools] implement upgrade, remove
 
 [pkgdb] get_packages: implement data selector
 [pkgdb] when finished, implement missing py bindings
 
-[filedb,pkgdb] finally implement some portable locking, goddamnit!
+[sys] reimplement sys_rm_rf and sys_mkdir_p in C (should be just some
+    Copy&Paste(tm) from my mxm project)
 
-[sys] reimplement sys_rm_rf and sys_mkdir_p in C (should be just some Copy&Paste(tm) from
-      my mxm project)
-
-[untgz] using blockbuf as writebuf can speedup things slightly on the user side 
-        (approx. by some 5%, not worth the time now)
+[untgz] using blockbuf as writebuf can speedup things slightly on the 
+    user side (approx. by some 5%)
 
 [doc] finish readmes
 [doc] write manpage 
