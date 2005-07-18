@@ -19,6 +19,7 @@
 /** Initialize current transaction.
  * 
  * @param root root directory
+ * @param dryrun don't touch filesystem
  * @param e error object
  * @return 0 on success, 1 on error
  */
@@ -55,7 +56,7 @@ extern gint ta_move_remove(gchar* path, gchar* fin_path);
 /** Add action to the current transaction.
  * 
  * @param path path to the transactioned object
- * @param fin_path destination path
+ * @param src_path link source path
  * @return 0 on success, 1 on error
  */
 extern gint ta_link_nothing(gchar* path, gchar* src_path);

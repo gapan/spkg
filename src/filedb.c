@@ -52,6 +52,7 @@ struct fdb {
   void* addr_pld;
   gsize size_pld; /* mmaped sizes */
   gsize size_idx;
+  gint fd_lock;
   
   jmp_buf errjmp; /* where to jump on error */
 };
@@ -499,6 +500,21 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
   gchar *path_idx = g_strdup_printf("%s/filedb.idx", path);
   gchar *path_pld = g_strdup_printf("%s/filedb.pld", path);
 
+  /* get lock */
+  gchar *path_lock = g_strdup_printf("%s/filedb.lock", path);
+  db->fd_lock = sys_lock_new(path_lock, e);
+  g_free(path_lock);
+  if (db->fd_lock == -1)
+  {
+    e_set(E_FATAL, "locking failure");
+    goto err_0;
+  }
+  if (sys_lock_trywait(db->fd_lock, 20, e))
+  {
+    e_set(E_FATAL, "locking failure");
+    goto err_1;
+  }
+
   /* open index and payload files */
   db->fd_pld = open(path_pld, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
   if (db->fd_pld == -1)
@@ -658,6 +674,7 @@ struct fdb* fdb_open(const gchar* path, struct error* e)
  err_1:
   g_free(path_idx);
   g_free(path_pld);
+  sys_lock_del(db->fd_lock);
  err_0:
   g_free(db);
   stop_timer(0);
@@ -688,6 +705,8 @@ void fdb_close(struct fdb* db)
   close(db->fd_idx);
 
   g_free(db->dbdir);
+
+  sys_lock_del(db->fd_lock);
 
   memset(db, 0, sizeof(*db));
   g_free(db);

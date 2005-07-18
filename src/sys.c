@@ -7,10 +7,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 #include <errno.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "sys.h"
+
+#define e_set(e, n, fmt, args...) e_add(e, "filedb", __func__, n, fmt, ##args)
 
 sys_ftype sys_file_type(const gchar* path, gboolean deref)
 {
@@ -111,4 +115,57 @@ void sys_sigunblock(sigset_t* sigs)
     printf("panic: can't unblock signals\n");
     exit(1);
   }
+}
+
+gint sys_lock_new(const gchar* path, struct error* e)
+{
+  gint fd = open(path, O_CREAT, 0644);
+  if (fd < 0)
+  {
+    e_set(e, E_FATAL, "can't open lock file: %s", strerror(errno));
+    return -1;
+  }
+  return fd;
+}
+
+gint sys_lock_trywait(gint fd, gint timeout, struct error* e)
+{
+  gint c=0;
+  while (1)
+  {
+    gint s = flock(fd, LOCK_NB|LOCK_EX);
+    if (s == -1) /* we did not get lock */
+    {
+      if (errno != EWOULDBLOCK) /* and will not get it */
+      {
+        e_set(e, E_FATAL, "flock failed: %s", strerror(errno));
+        return 1;
+      }
+      /* ok maybe we could get it a bit later */
+      if (++c > timeout)
+      {
+        e_set(e, E_ERROR, "timed out waiting for a lock");
+        return 1;
+      } 
+      usleep(100000); /* 100ms */
+    }
+    /* got it! */
+    return 0;
+  }
+}
+
+gint sys_lock_put(gint fd, struct error* e)
+{
+  gint s = flock(fd, LOCK_NB|LOCK_UN);
+  if (s == -1) /* error */
+  {
+    e_set(e, E_FATAL, "flock failed: %s", strerror(errno));
+    return 1;
+  }
+  return 0;
+}
+
+void sys_lock_del(gint fd)
+{
+  close(fd);
 }

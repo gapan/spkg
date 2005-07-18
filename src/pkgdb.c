@@ -34,6 +34,7 @@ struct db_state {
   gchar* dbroot;
   struct error* err;
   struct fdb* fdb;
+  gint fd_lock;
 };
 
 static struct db_state _db = {0};
@@ -67,7 +68,7 @@ gint db_open(const gchar* root, struct error* e)
   if (_db.is_open)
   {
     e_set(E_ERROR|DB_OPEN, "package database is already open");
-    return 1;
+    goto err_0;
   }
   
   if (root == 0)
@@ -83,6 +84,8 @@ gint db_open(const gchar* root, struct error* e)
   }
   _db.pkgdir = g_strdup_printf("%s/packages", _db.topdir);
   _db.scrdir = g_strdup_printf("%s/scripts", _db.topdir);
+  _db.dbroot = g_strdup_printf("%s/spkgdb", _db.topdir);
+  _db.dbfile = g_strdup_printf("%s/pkgdb.db", _db.dbroot);
 
   /* check legacy and spkg db dirs */
   for (d = checkdirs; *d != 0; d++)
@@ -99,19 +102,33 @@ gint db_open(const gchar* root, struct error* e)
       {
         e_set(E_FATAL, "%s should be an accessible directory", tmpdir);
         g_free(tmpdir);
-        goto err_2;
+        goto err_1;
       }
     }
     g_free(tmpdir);
   }
 
   /* check spkg db file */
-  _db.dbroot = g_strdup_printf("%s/spkgdb", _db.topdir);
-  _db.dbfile = g_strdup_printf("%s/pkgdb.db", _db.dbroot);
-  if (sys_file_type(_db.dbfile,0) != SYS_REG && sys_file_type(_db.dbfile,0) != SYS_NONE)
+  if (sys_file_type(_db.dbfile,0) != SYS_REG && 
+      sys_file_type(_db.dbfile,0) != SYS_NONE)
   {
     e_set(E_FATAL, "file %s is not accessible", _db.dbfile);
-    goto err_3;
+    goto err_1;
+  }
+
+  /* get lock */
+  gchar *path_lock = g_strdup_printf("%s/pkgdb.lock", _db.dbroot);
+  _db.fd_lock = sys_lock_new(path_lock, e);
+  g_free(path_lock);
+  if (_db.fd_lock == -1)
+  {
+    e_set(E_FATAL, "locking failure");
+    goto err_1;
+  }
+  if (sys_lock_trywait(_db.fd_lock, 20, e))
+  {
+    e_set(E_FATAL, "locking failure");
+    goto err_2;
   }
 
   /* open file database */
@@ -119,14 +136,14 @@ gint db_open(const gchar* root, struct error* e)
   if (_db.fdb == 0)
   {
     e_set(E_FATAL, "can't open file database");
-    goto err_3;
+    goto err_2;
   }
 
   /* open sql database */
   if (sql_open(_db.dbfile))
   {
     e_set(E_FATAL, "sql_open failed");
-    goto err_4;
+    goto err_3;
   }
 
   /* setup sql error handling */
@@ -134,13 +151,13 @@ gint db_open(const gchar* root, struct error* e)
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
     e_set(E_FATAL, "%s", sql_error());
-    goto err_5;
+    goto err_4;
   }
   
   if (!sql_integrity_check())
   { /* sql exception occured */
     e_set(E_FATAL|DB_CORRUPT, "package database (database is corrupted)");
-    goto err_5;
+    goto err_4;
   }
 
   /* sqlite setup */
@@ -175,20 +192,20 @@ gint db_open(const gchar* root, struct error* e)
   _db.is_open = 1;
   stop_timer(0);
   return 0;
- err_5:
-  sql_close();
  err_4:
-  fdb_close(_db.fdb);
+  sql_close();
  err_3:
+  fdb_close(_db.fdb);
+ err_2:
+  sys_lock_del(_db.fd_lock);
+ err_1:
   g_free(_db.dbfile);
   g_free(_db.dbroot);
- err_2:
   g_free(_db.topdir);
   g_free(_db.pkgdir);
   g_free(_db.scrdir);
- err_1:
- err_0:
   memset(&_db, 0, sizeof(_db));
+ err_0:
   return 1;
 }
 
@@ -198,6 +215,8 @@ void db_close()
   fdb_close(_db.fdb);
   _db.fdb = 0;
   sql_close();
+
+  sys_lock_del(_db.fd_lock);
 
   g_free(_db.dbfile);
   g_free(_db.topdir);
