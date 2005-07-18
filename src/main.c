@@ -12,55 +12,67 @@
 
 #include "pkgtools.h"
 
-#define OPT_INSTALL 1
-#define OPT_UPGRADE 2
-#define OPT_REMOVE 3
+/* commands
+ ************************************************************************/
+
+static guint command = 0;
+#define CMD_INSTALL (1<<0)
+#define CMD_UPGRADE (1<<1)
+#define CMD_REMOVE  (1<<2)
+#define CMD_SYNC    (1<<3)
+
 static struct poptOption optsCommands[] = {
 {
-  "install", 'i', POPT_ARG_NONE, 0, OPT_INSTALL, 
+  "install", 'i', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_INSTALL, 
   "Install packages", NULL
 },
 {
-  "upgrade", 'u', POPT_ARG_NONE, 0, OPT_UPGRADE,
+  "upgrade", 'u', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_UPGRADE,
   "Upgrade packages", NULL
 },
 {
-  "remove", 'd', POPT_ARG_NONE, 0, OPT_REMOVE,
+  "remove", 'd', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_REMOVE,
   "Remove packages", NULL
 },
 {
-  "sync-cache", 's', POPT_ARG_NONE, 0, OPT_REMOVE,
+  "sync-cache", 's', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_SYNC,
   "Synchronize cache", NULL
 },
 POPT_TABLEEND
 };
 
-static gboolean verbose = 0;
-static gboolean dryrun = 0;
+/* options
+ ************************************************************************/
+
+static gint verbose = 0;
+static gint dryrun = 0;
 static gchar* root = "/";
 static gchar* mode = "normal";
 
 static struct poptOption optsOptions[] = {
-{
-  "root", 'r', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &root, 0,
-  "Set altrernate root directory for package operations.", "ROOT"
-},
 {
   "mode", 'm', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &mode, 0,
   "Set command mode of operation. This can be: paranoid (p), "
   "cautious (c), normal (n), brutal (b).", "MODE"
 },
 {
-  "dryrun", 'n', 0, &dryrun, 0,
-  "Don't modify filesystem. Good to use with -v option to show what "
-  "will be done.", NULL
+  "root", 'r', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &root, 0,
+  "Set altrernate root directory for package operations.", "ROOT"
 },
 {
   "verbose", 'v', 0, &verbose, 0,
   "Be verbose about what is going on.", NULL
 },
+{
+  "dryrun", 'n', 0, &dryrun, 0,
+  "Don't modify filesystem. Good to use with -v option to show what "
+  "will be done.", NULL
+},
 POPT_TABLEEND
 };
+
+/* help
+ ************************************************************************/
 
 static gint help = 0;
 static gint usage = 0;
@@ -82,6 +94,9 @@ static struct poptOption optsHelp[] = {
 POPT_TABLEEND
 };
 
+/* main table
+ ************************************************************************/
+
 static struct poptOption opts[] = {
 {
   NULL, '\0', POPT_ARG_INCLUDE_TABLE, &optsCommands, 0, "Commands:", NULL
@@ -95,11 +110,16 @@ static struct poptOption opts[] = {
   POPT_TABLEEND
 };
 
+/* main
+ ************************************************************************/
+
 int main(const int ac, const char* av[])
 {
   poptContext optCon;
   gint rc;
   gint status = 0;
+  const gchar* arg;
+  struct error* err = e_new();
 
   /* check if we have enough privileges */
   if (getuid() != 0)
@@ -111,19 +131,20 @@ int main(const int ac, const char* av[])
   /* initialize popt context */
   optCon = poptGetContext("spkg", ac, av, opts, 0);
 
-  /* first round */
+  /* parse options */
   while ((rc = poptGetNextOpt(optCon)) != -1)
   {
     if (rc < -1)
     {
-      fprintf(stderr, "spkg: bad argument %s: %s\n",
-        poptBadOption(optCon, POPT_BADOPTION_NOALIAS),
-        poptStrerror(rc));
+      fprintf(stderr, "error[main]: invalid argument: %s (%s)\n",
+        poptStrerror(rc),
+        poptBadOption(optCon, POPT_BADOPTION_NOALIAS));
       status = 1;
       goto out;
     }
   }
 
+  /* these are help handlers */
   if (help)
   {
     printf(
@@ -160,25 +181,65 @@ int main(const int ac, const char* av[])
     goto out;
   }
 
-  /* second round */
-  poptResetContext(optCon);
-  while ((rc = poptGetNextOpt(optCon)) > 0)
+  switch (command)
   {
-    switch(rc)
-    {
-      case OPT_INSTALL:
-        printf("i: %s\n", mode);
-      break;
-      case OPT_UPGRADE:
-        printf("u: %s\n", mode);
-      break;
-      case OPT_REMOVE:
-        printf("r: %s\n", mode);
-      break;
-    }
+    case CMD_INSTALL:
+      if (poptPeekArg(optCon) == 0)
+      {
+        fprintf(stderr, "error[main]: invalid argument: no packages given\n");
+        status = 1;
+        goto out;
+      }
+      while ((arg = poptGetArg(optCon)) != 0)
+      {
+      }
+    break;
+    case CMD_UPGRADE:
+      if (poptPeekArg(optCon) == 0)
+      {
+        fprintf(stderr, "error[main]: invalid argument: no packages given\n");
+        status = 1;
+        goto out;
+      }
+      while ((arg = poptGetArg(optCon)) != 0)
+      {
+      }
+    break;
+    case CMD_REMOVE:
+      if (poptPeekArg(optCon) == 0)
+      {
+        fprintf(stderr, "error[main]: invalid argument: no packages given\n");
+        status = 1;
+        goto out;
+      }
+      while ((arg = poptGetArg(optCon)) != 0)
+      {
+      }
+    break;
+    case CMD_SYNC:
+      if (poptPeekArg(optCon) != 0)
+      {
+        fprintf(stderr, "error[main]: invalid argument: garbage on command line (%s...)\n", poptPeekArg(optCon));
+        status = 1;
+        goto out;
+      }
+    break;
+    case 0:
+      fprintf(stderr, "error[main]: invalid argument: no command given\n");
+      status = 1;
+      goto out;
+    default:
+      fprintf(stderr, "error[main]: invalid argument: schizofrenic command usage\n");
+      status = 1;
+      goto out;
   }
 
  out:
+  e_free(err);
   optCon = poptFreeContext(optCon);
+  /* 0 = all ok
+   * 1 = command line error
+   * 2 = package manager error
+   */
   return status;
 }
