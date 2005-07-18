@@ -1,0 +1,72 @@
+.TH SPKG 8 "April 2005" "spkg"
+.SH NAME
+spkg \- The Unofficial \fISlackware Linux\fR Package Manager
+.SH SYNOPSIS
+.B spkg
+[\fB-i\fR|\fB--install\fR] 
+[\fB-u\fR|\fB--upgrade\fR] 
+[\fB-d\fR|\fB--remove\fR] 
+[\fB-s\fR|\fB--sync-cache\fR]
+[\fB-r\fR|\fB--root \fIROOT\fR]
+[\fB-m\fR|\fB--mode \fIMODE\fR]
+[\fB-n\fR|\fB--dryrun\fR]
+[\fB-v\fR|\fB--verbose\fR]
+[\fB--usage]
+[\fB-h\fR|\fB--help\fR]
+[\fB-V\fR|\fB--version\fR]
+[ \fI...\fR ]
+.SH DESCRIPTION
+\fBspkg\fR is tool for package management that is compatible 
+with \fISlackware Linux\fR.
+.SH COMMAND LINE ARGUMENTS
+.SS Commands
+.TP
+\fB-i\fR, \fB--install\fR
+Install package.
+.TP
+\fB-u\fR, \fB--upgrade\fR
+Upgrade package.
+.TP
+\fB-d\fR, \fB--remove\fR
+Remove package.
+.TP
+\fB-s\fR, \fB--sync-cache\fR
+Synchronize spkg cache with package database.
+.SS Options
+.TP
+\fB-v\fR | \fB--verbose\fR
+Be verbose.
+.TP
+\fB-n\fR | \fB--dry-run\fR
+Don't modify filesystem.
+.TP
+\fB-m\fR | \fB--mode=\fIMODE\fR
+Set command mode.
+.TP
+\fB-r\fR | \fB--root=\fIROOT\fR
+Set alternate root directory.
+.SS Help
+.TP
+\fB--usage\fR
+Prints the brief usage and then exits.
+.TP
+\fB-V\fR, \fB--version\fR
+Prints the version and then exits.
+.TP
+\fB-h\fR, \fB--help\fR
+Prints the detailed help and then exits.
+.TP
+.SH FILES
+.IP "var/log/packages"
+Packages database.
+.SH EXAMPLES
+.IP "# "
+Does this.
+.SH AUTHOR
+This program was written by Ondrej Jirman <megous@megous.com>.
+.SH BUGS
+You can report bugs to the <megous@megous.com>.
+.SH SEE ALSO
+.BR installpkg (8),
+.BR upgradepkg (8),
+.BR removepkg (8)

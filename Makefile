@@ -99,9 +99,9 @@ install: all docs
 	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/bin
 	install -o root -g bin -m 0755 spkg $(DESTDIR)$(PREFIX)/bin/
 	strip $(DESTDIR)$(PREFIX)/bin/spkg
-	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/man/man1/
-	install -o root -g root -m 0644 docs/spkg.1 $(DESTDIR)$(PREFIX)/man/man1/
-	gzip -f -9 $(DESTDIR)$(PREFIX)/man/man1/spkg.1
+	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/man/man8/
+	install -o root -g root -m 0644 docs/spkg.8 $(DESTDIR)$(PREFIX)/man/man8/
+	gzip -f -9 $(DESTDIR)$(PREFIX)/man/man8/spkg.8
 	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)
 	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)/html
 	install -o root -g root -m 0644 README INSTALL HACKING NEWS TODO $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)
