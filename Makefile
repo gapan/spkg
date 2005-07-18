@@ -105,7 +105,7 @@ install: all docs python-install
 	gzip -f -9 $(DESTDIR)$(PREFIX)/man/man8/spkg.8
 	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)
 	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)/html
-	install -o root -g root -m 0644 README INSTALL HACKING NEWS TODO $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)
+	install -o root -g root -m 0644 LICENSE README INSTALL HACKING NEWS TODO $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)
 	install -o root -g root -m 0644 docs/html/* $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)/html
 
 uninstall:
