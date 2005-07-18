@@ -6,11 +6,11 @@
 <title><?php echo $title; ?></title>
 
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2" />
-<meta name="Keywords" content="spkg, package manager, slackware, linux, C, fast" />
+<meta name="Keywords" content="spkg, speedy package manager, slackware, linux, C, fast, implementation" />
 <meta name="Description" content="spkg - The Unofficial Slackware Linux Package Manager" />
 <meta name="Author" content="Ondřej Jirman" />
 <meta name="robots" content="all" />
-<meta name="revisit-after" content="7 days" />
+<meta name="revisit-after" content="3 days" />
 <meta name="shortcut icon" content="/favicon.png" />
 
 <link rel="stylesheet" type="text/css" href="/style.css" />

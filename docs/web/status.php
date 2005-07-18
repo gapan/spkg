@@ -1,5 +1,5 @@
 <?php require "inc/common.php"; ?>
-<?php head("spkg - The Unofficial Slackware Linux Package Manager"); ?>
+<?php head("spkg - status page"); ?>
 
  <h1>Status</h1>
 
@@ -16,6 +16,7 @@
     array("sql",     100, 100,  "completed!"),
     array("filedb",   80, 100,  "completed!"),
     array("pkgdb",    80, 100,  "completed!"),
+    array("main",    100, 100,  "completed!"),
     array("commands", 10,  30,  "partly implemented install command"),
   );
   function getclass($p)
@@ -49,6 +50,8 @@
     array(1,"existing codebase is stabilized", "2005-06-04"),
     array(1,"website created", "2005-06-09"),
     array(1,"pkgdb library is fully implemented", "2005-06-29"),
+    array(1,"command line interface is fully implemented", "2005-07-20"),
+    array(1,"first binary alpha release", "2005-07-20"),
     array(0,"three basic commands are implemented", "?"),
     array(0,"first fully functional RC version is released", "?"),
     array(0,"first stable version is released, PyGTK graphical interface", "?"),

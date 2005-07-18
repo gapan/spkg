@@ -152,7 +152,7 @@ int main(const int ac, const char* av[])
       "Written by Ondøej Jirman, 2005\n"
       "\n"
       "This is free software. Not like beer or like in \"freedom\",\n"
-      "but like in \"I don't fucking care what you will do with it.\"\n"
+      "but like in \"I don't care what are you going to do with it.\"\n"
       "\n"
     );
     poptPrintHelp(optCon, stdout, 0);

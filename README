@@ -3,12 +3,3 @@ spkg - The Unofficial Slackware Linux Package Manager
 
 Description
 -----------
-
-
-
-
-
-Required software
------------------
-  - sqlite3 lib
-  - rm, mkdir, bash

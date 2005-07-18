@@ -1,5 +1,5 @@
 <?php require "inc/common.php"; ?>
-<?php head("spkg - The Unofficial Slackware Linux Package Manager"); ?>
+<?php head("spkg - documentation page"); ?>
 
  <h1>Documentation</h1>
 

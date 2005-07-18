@@ -1,5 +1,5 @@
 <?php require "inc/common.php"; ?>
-<?php head("spkg - The Unofficial Slackware Linux Package Manager"); ?>
+<?php head("spkg - main page"); ?>
 
  <h1>Intro</h1>
 
@@ -9,7 +9,6 @@
 
   <p>@SPKG@ is implemented in C and optimized for <strong>speed</strong>.</p>
 
-<!--  <p><strong>Project is suspended!</strong></p> -->
 
  <h1>Features</h1>
 
@@ -26,6 +25,9 @@
   </ul>
 
  <h1>News</h1>
+
+  <p style="font-size:140%;font-weight:bold;color:red;padding:0;
+  border:1px solid yellow;background:white;text-align:center;">@SPKG@ alpha1 released!</p>
 
   <p>The lastest version of @SPKG@ is <strong>@VER@</strong>.</p>
  

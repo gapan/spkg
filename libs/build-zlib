@@ -1,0 +1,22 @@
+#!/bin/sh -e
+# this script can be used to build static glib library
+VER=1.2.3
+OFLAGS="-ggdb1 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer"
+#OFLAGS="-ggdb3 -O0"
+
+rm -rf zlib-$VER
+tar xzf zlib-$VER.tar.gz
+
+( cd zlib-$VER
+  export CFLAGS="$OFLAGS"
+  export CC=$DIET
+#  ./configure --prefix=/usr
+  make libz.a
+) || exit 1
+
+rm -rf zlib
+mkdir -p zlib
+
+cp -a zlib-$VER/{libz.a,zlib.h} zlib/
+
+rm -rf zlib-$VER

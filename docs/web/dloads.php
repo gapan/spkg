@@ -1,18 +1,17 @@
 <?php require "inc/common.php"; ?>
-<?php head("spkg - The Unofficial Slackware Linux Package Manager"); ?>
+<?php head("spkg - downloads page"); ?>
 
  <h1>Downloads</h1>
 
   <p>On this page you can get the lastest version of the @SPKG@.</p>
 
  <h1>Binary package</h1>
-<!--
-  <p>I recommend, that you build @SPKG@ yourself. But 
+
+  <p>I recommend you, to build @SPKG@ yourself. It's very easy, see 
+  building section on this page.</p>
+
   <a href="/dl/spkg-@VER@-i486-1.tgz">binary package</a> for the 
   slackware-current is also available.</p>
--->
-  <p>Binary package is not yet available, because @SPKG@ is under active
-  developement. See roadmap for more info.</p>
 
  <h1>Source code</h1>
 

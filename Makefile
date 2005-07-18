@@ -5,20 +5,33 @@
 #|          No copy/usage restrictions are imposed on anybody.          |#
 #\----------------------------------------------------------------------/#
 DESTDIR :=
-PREFIX := /usr/local
+prefix := /usr/local
 DEBUG := no
 ASSERTS := no
 BENCH := no
 MUDFLAP := no
-VERSION := 20050718
+VERSION := 20050718_alpha1
+RELEASE := no
+
+ifeq ($(RELEASE),yes)
+DEBUG := no
+ASSERTS := yes
+BENCH := no
+MUDFLAP := no
+prefix := /usr
+endif
+
+sbindir = $(prefix)/sbin
+mandir = $(prefix)/man
+docdir = $(prefix)/doc/spkg-$(VERSION)
 
 #CC := /opt/gcc-4.0.1/bin/gcc-4.0.1
 #CC := gcc-3.4.4
 CC := gcc
 AR := ar
 CFLAGS := -pipe -Wall
-CPPFLAGS := -Iinclude -Ilibs/sqlite -Ilibs/glib -Ilibs/popt -D_GNU_SOURCE -DSPKG_VERSION=$(VERSION)
-LDFLAGS := -lz -lpthread libs/sqlite/libsqlite3.a libs/glib/libglib-2.0.a libs/popt/libpopt.a
+CPPFLAGS := -Iinclude -Ilibs/zlib -Ilibs/sqlite -Ilibs/glib -Ilibs/popt -D_GNU_SOURCE -DSPKG_VERSION=$(VERSION)
+LDFLAGS := libs/zlib/libz.a libs/sqlite/libsqlite3.a libs/glib/libglib-2.0.a libs/popt/libpopt.a
 ifeq ($(MUDFLAP),yes)
 CFLAGS += -fmudflap
 LDFLAGS += -fmudflap -lmudflap
@@ -40,21 +53,15 @@ endif
 objs-spkg := main.o pkgtools.o untgz.o sys.o sql.o filedb.o pkgdb.o \
   pkgname.o error.o taction.o 
 
-# magic barrier
 export MAKEFLAGS += --no-print-directory -r
 
 objs-spkg := $(addprefix .build/, $(objs-spkg))
 objs-all := $(sort $(objs-spkg))
 dep-files := $(addprefix .build/,$(addsuffix .d,$(basename $(notdir $(objs-all)))))
 
-# default
+# main
+############################################################################
 vpath %.c src
-
-.PHONY: all py
-all: spkg 
-py: python-build
-
-include Makefile.tests
 
 spkg: .build/libspkg.a
 	$(CC) $^ $(LDFLAGS) -o $@
@@ -74,7 +81,12 @@ ifneq ($(dep-files),)
 -include $(dep-files)
 endif
 
-.PHONY: python-build python-install python-gen python-clean
+# include tests
+include Makefile.tests
+
+# python bindings
+############################################################################
+.PHONY: python-build python-gen python-clean
 
 python-gen:
 	( cd pyspkg && ./gen.sh )
@@ -82,45 +94,73 @@ python-gen:
 python-build: .build/libspkg.a python-gen
 	python setup.py build
 
-python-install: .build/libspkg.a python-gen
-ifneq ($(DESTDIR),)
-	python setup.py install --root=$(DESTDIR)
-else
-	python setup.py install
-endif
-
 python-clean:
 	rm -rf build
 	rm -f pyspkg/pyspkg-meth.h pyspkg/pyspkg-doc.h pyspkg/methtab.c
 
-.PHONY: install uninstall
 # installation
-install: all docs python-install
-	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/sbin
-	install -o root -g bin -m 0755 spkg $(DESTDIR)$(PREFIX)/sbin/
-	install -o root -g bin -m 0755 gspkg/gspkg.py $(DESTDIR)$(PREFIX)/sbin/
-	strip $(DESTDIR)$(PREFIX)/sbin/spkg
-	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/man/man8/
-	install -o root -g root -m 0644 docs/spkg.8 $(DESTDIR)$(PREFIX)/man/man8/
-	gzip -f -9 $(DESTDIR)$(PREFIX)/man/man8/spkg.8
-	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)
-	install -d -o root -g root -m 0755 $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)/html
-	install -o root -g root -m 0644 LICENSE README INSTALL HACKING NEWS TODO $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)
-	install -o root -g root -m 0644 docs/html/* $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)/html
+############################################################################
+.PHONY: install install-docs install-spkg install-gspkg install-pyspkg uninstall
+
+install: install-spkg install-docs
+
+install-spkg: spkg
+	install -d -o root -g root -m 0755 $(DESTDIR)$(sbindir)
+	install -o root -g bin -m 0755 spkg $(DESTDIR)$(sbindir)/
+	strip $(DESTDIR)$(sbindir)/spkg
+
+install-docs: docs
+	install -d -o root -g root -m 0755 $(DESTDIR)$(mandir)/man8/
+	install -o root -g root -m 0644 docs/spkg.8 $(DESTDIR)$(mandir)/man8/
+	gzip -f -9 $(DESTDIR)$(mandir)/man8/spkg.8
+	install -d -o root -g root -m 0755 $(DESTDIR)$(docdir)
+	install -d -o root -g root -m 0755 $(DESTDIR)$(docdir)/html
+	install -o root -g root -m 0644 LICENSE README INSTALL HACKING NEWS TODO $(DESTDIR)$(docdir)/
+	install -o root -g root -m 0644 docs/html/* $(DESTDIR)$(docdir)/html/
+
+install-gspkg: 
+	install -d -o root -g root -m 0755 $(DESTDIR)$(sbindir)
+	install -o root -g bin -m 0755 gspkg/gspkg.py $(DESTDIR)$(sbindir)/
+
+install-pyspkg: .build/libspkg.a python-gen
+ifneq ($(DESTDIR),)
+	python setup.py install --root=$(DESTDIR)
+	strip -g $(DESTDIR)/usr/lib/python2.?/site-packages/spkg.so
+else
+	python setup.py install
+	strip -g /usr/lib/python2.?/site-packages/spkg.so
+endif
 
 uninstall:
-	rm -f $(DESTDIR)$(PREFIX)/bin/spkg
-	rm -f $(DESTDIR)$(PREFIX)/man/man1/spkg.1.gz
-	rm -rf $(DESTDIR)$(PREFIX)/doc/spkg-$(VERSION)
+	rm -f $(DESTDIR)$(sbindir)/spkg
+	rm -f $(DESTDIR)$(sbindir)/gspkg.py
+	rm -f $(DESTDIR)$(mandir)/man8/spkg.8.gz
+	rm -rf $(DESTDIR)$(docdir)
 
+# distribution
+############################################################################
 .PHONY: slackpkg dist
-slackpkg:
+
+PACKAGES := spkg-$(VERSION)-i486-1.tgz pyspkg-$(VERSION)-i486-1.tgz
+
+slackpkg: $(PACKAGES)
+
+spkg-$(VERSION)-i486-1.tgz:
 	make clean
 	rm -rf pkg
-	make install PREFIX=/usr STATIC=no DEBUG=no DESTDIR=./pkg
+	make install RELEASE=yes DESTDIR=./pkg
 	install -d -o root -g root -m 0755 ./pkg/install
-	install -o root -g root -m 0644 docs/slack-desc ./pkg/install/
-	( cd pkg ; makepkg -l y -c n ../spkg-$(VERSION)-i486-1.tgz )
+	install -o root -g root -m 0644 docs/slack-desc.spkg ./pkg/install/slack-desc
+	( cd pkg ; makepkg -l y -c n ../$@ )
+	rm -rf pkg
+
+pyspkg-$(VERSION)-i486-1.tgz:
+	make clean
+	rm -rf pkg
+	make install-pyspkg RELEASE=yes DESTDIR=./pkg
+	install -d -o root -g root -m 0755 ./pkg/install
+	install -o root -g root -m 0644 docs/slack-desc.pyspkg ./pkg/install/slack-desc
+	( cd pkg ; makepkg -l y -c n ../$@ )
 	rm -rf pkg
 
 dist: docs
@@ -132,6 +172,8 @@ dist: docs
 	tar czf spkg-$(VERSION).tar.gz spkg-$(VERSION)
 	rm -rf spkg-$(VERSION)
 
+# documentation
+############################################################################
 .PHONY: docs web web-base web-files
 docs:
 	rm -rf docs/html
@@ -145,17 +187,19 @@ web-base:
 	sed -i 's/@VER@/$(VERSION)/g ; s/@DATE@/$(shell LANG=C date)/g' .website/*.php .website/inc/*.php
 	sed -i 's/@SPKG@/<strong style="color:darkblue;"><span style="color:red;">s<\/span>pkg<\/strong>/g' .website/*.php .website/inc/*.php
 
-web-files: docs dist #slackpkg
+web-files: docs dist slackpkg
 	mkdir -p .website/dl/spkg-docs
 	cp -r docs/html/* .website/dl/spkg-docs
 	tla changelog > .website/dl/ChangeLog
 	cp TODO .website/dl/TODO
 	( cd .website/dl ; tar czf spkg-docs.tar.gz spkg-docs )
 	mv spkg-$(VERSION).tar.gz .website/dl
-#	mv spkg-$(VERSION)-i486-1.tgz .website/dl
+	mv $(PACKAGES) .website/dl
 
 web: web-base web-files
         
+# cleanup
+############################################################################
 .PHONY: clean mrproper 
 clean: tests-clean python-clean
 	-rm -rf .build/*.o .build/*.a spkg build

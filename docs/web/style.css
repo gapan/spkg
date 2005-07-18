@@ -58,7 +58,7 @@ h1 {
 p, dl, ul, code, table {
   color: #224422;
   padding: 0;
-  margin: 0.7ex 0 0 10ex;
+  margin: 0.7ex 0 0 50px;
   line-height: 2.7ex;
 }
 dl, ul {

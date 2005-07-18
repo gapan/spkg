@@ -1,8 +1,8 @@
-#!/bin/sh
+#!/bin/sh -e
 # this script can be used to build static glib library
 VER=1.7
 OFLAGS="-ggdb1 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer"
-#OFLAGS="-ggdb3 -O0 -DDISABLE_MEM_POOLS"
+#OFLAGS="-ggdb3 -O0"
 
 test -d popt-$VER || \
 tar xzf popt-$VER.tar.gz || exit 1
