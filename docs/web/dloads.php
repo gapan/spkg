@@ -5,13 +5,15 @@
 
   <p>On this page you can get the lastest version of the @SPKG@.</p>
 
- <h1>Binary package</h1>
+ <h1>Binary packages</h1>
 
   <p>I recommend you, to build @SPKG@ yourself. It's very easy, see 
   building section on this page.</p>
 
-  <a href="/dl/spkg-@VER@-i486-1.tgz">binary package</a> for the 
-  slackware-current is also available.</p>
+  <p>You can download latest binary packages of
+  <a href="/dl/spkg-@VER@-i486-1.tgz">spkg</a> and
+  <a href="/dl/pyspkg-@VER@-i486-1.tgz">pyspkg</a> for
+  slackware-current <a href="/dl/">here</a>.</p>
 
  <h1>Source code</h1>
 
@@ -22,6 +24,8 @@
   <ul>
    <li><a href="http://www.sqlite.org">sqlite-3.2.2</a> - lightweight SQL database engine</li>
    <li><a href="http://www.gtk.org">glib-2.6.5</a> - general purpose C library</li>
+   <li><a href="ftp://ftp.rpm.org/pub/rpm/dist">popt-1.7</a> - command line parser</li>
+   <li><a href="http://www.zlib.net">zlib-1.2.3</a> - zlib (de)compression library</li>
   </ul>
 
  <h1>Building</h1>

@@ -10,7 +10,7 @@ DEBUG := no
 ASSERTS := no
 BENCH := no
 MUDFLAP := no
-VERSION := 20050718_alpha1
+VERSION := alpha1
 RELEASE := no
 
 ifeq ($(RELEASE),yes)

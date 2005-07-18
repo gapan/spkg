@@ -27,12 +27,10 @@
  <h1>News</h1>
 
   <p style="font-size:140%;font-weight:bold;color:red;padding:0;
-  border:1px solid yellow;background:white;text-align:center;">@SPKG@ alpha1 released!</p>
+  border:1px solid yellow;background:white;text-align:center;">@SPKG@ @VER@ released!</p>
 
-  <p>The lastest version of @SPKG@ is <strong>@VER@</strong>.</p>
- 
   <p>See <a href="/status.php">status</a> page for the current status
-  and roadmap of the @SPKG@ development.</p>
+  and the roadmap of the @SPKG@ development.</p>
 
   <dl>
    <dt>2005-07-17</dt>
