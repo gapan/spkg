@@ -1,4 +1,5 @@
-[main] command line parsing
+[*] check alt root directory usage in library code
+[pkgtools] refine verbose output
 
 [pkgtools] better path validity checks (.., etc.)
 [pkgtools] implement multilevel installation modes

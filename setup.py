@@ -8,9 +8,9 @@ src.extend(glob('pyspkg/m-*.c'))
 
 spkg = Extension('spkg',
 #  define_macros = [],
-  include_dirs = ['/usr/include', 'include', 'libs/sqlite', 'libs/glib'],
+  include_dirs = ['/usr/include', 'include', 'libs/sqlite', 'libs/glib', 'libs/zlib'],
   libraries = ['spkg', 'glib-2.0', 'sqlite3', 'z'],
-  library_dirs = ['libs/sqlite', 'libs/glib', '.build', '/usr/lib'],
+  library_dirs = ['libs/sqlite', 'libs/glib', 'libs/zlib', '.build', '/usr/lib'],
   sources = src,
   depends = ['pyspkg/pyspkg.h', 'pyspkg/pyspkg-priv.h', '.build/libspkg.a']
 )

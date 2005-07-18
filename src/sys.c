@@ -78,9 +78,8 @@ gint sys_mkdir_p(const gchar* path)
 
 gchar* sys_setcwd(const gchar* path)
 {
-  gchar pwd[2048];
-  
-  if (getcwd(pwd, 2048) == 0)
+  gchar* pwd = g_get_current_dir();
+  if (!g_path_is_absolute(pwd))
     return 0;
     
   if (path)

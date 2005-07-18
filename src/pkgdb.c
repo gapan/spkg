@@ -74,13 +74,13 @@ gint db_open(const gchar* root, struct error* e)
   if (root == 0)
     root = "/";
 
-  if (root[0] == '/')
+  if (g_path_is_absolute(root))
     _db.topdir = g_strdup_printf("%s/%s", root, PKGDB_DIR);
   else
   {
-    gchar* cwd = getcwd(0,0);
+    gchar* cwd = g_get_current_dir();
     _db.topdir = g_strdup_printf("%s/%s/%s", cwd, root, PKGDB_DIR); /*XXX: not portable */
-    free(cwd);
+    g_free(cwd);
   }
   _db.pkgdir = g_strdup_printf("%s/packages", _db.topdir);
   _db.scrdir = g_strdup_printf("%s/scripts", _db.topdir);
