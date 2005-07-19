@@ -27,9 +27,10 @@
 
  <div id="topmenu">
   <a href="index.php">home</a> |
+  <a href="dloads.php">downloads</a> |
   <a href="status.php">status</a> |
   <a href="docs.php">documentation</a> |
-  <a href="dloads.php">downloads</a>
+  <a href="history.php">history</a>
  </div>
 
  <div id="main">

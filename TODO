@@ -9,6 +9,7 @@ before alpha1 |
 [pkgtools] implement multilevel installation modes
 
 [pkgdb] sync should erase previous database
+[*] check assertions (are they really used for catching programmer's bugs?)
 
 DEADLINE: 2005-07-20
 
@@ -21,8 +22,6 @@ before alpha2 |
 
 [pkgdb] get_packages: implement data selector
 [pkgdb] when finished, implement missing py bindings
-[*] check assertions (are they really used for catching programmer's bugs?)
-[*] implement safe cleanup mechanisms for cases when user breaks execution
 
 ---------------------------------------------------------------------
 
