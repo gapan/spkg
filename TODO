@@ -1,16 +1,30 @@
-[pkgtools] refine verbose output
+---------------------------------------------------------------------
+before alpha1 |
+--------------/
 
+[pkgtools] refine verbose output
 [pkgtools] better path validity checks (.., etc.)
 [pkgtools] implement multilevel installation modes
-
 [pkgtools] add option to disable doinst.sh script preprocessing 
     (because it may not work for glibc package, because links are 
     created conditionally)
-[pkgtools] implement upgrade, remove
-
 [pkgdb] sync should erase previous database
+
+DEADLINE: 2005-07-20
+---------------------------------------------------------------------
+before alpha2 |
+--------------/
+
+[pkgtools] implement remove
+
 [pkgdb] get_packages: implement data selector
 [pkgdb] when finished, implement missing py bindings
+[*] check assertions (are they really used for catching programmer's bugs?)
+[*] implement safe cleanup mechanisms for cases when user breaks execution
+
+---------------------------------------------------------------------
+
+[pkgtools] implement upgrade
 
 [sys] reimplement sys_rm_rf and sys_mkdir_p in C (should be just some
     Copy&Paste(tm) from my mxm project)
@@ -23,6 +37,4 @@
 
 [tests] automatic testsuite
 
-[*] check assertions (are they really used for catching programmer's bugs?)
-[*] implement safe cleanup mechanisms for cases when user breaks execution
 [*] get rid of G_UNLIKELY G_LIKELY macros (and check speed effect!)

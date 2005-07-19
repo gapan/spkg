@@ -29,4 +29,3 @@ PySpkg_Method(parse_pkgname, "name, part", String,
   char* s = parse_pkgname(name,part);
   return PyString_FromString(s);
 }
-

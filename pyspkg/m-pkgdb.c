@@ -103,6 +103,8 @@ PySpkg_Method(db_get_packages, "", Packages,
   return (PyObject*)newPackages(l);
 }
 
+/* package database modification from python is not supported */
+
 PySpkg_Method(db_add_pkg, "pkg", Null,
 "Add package to the database")
 {
