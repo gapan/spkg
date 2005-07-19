@@ -141,6 +141,7 @@ int main(const int ac, const char* av[])
 
   /* initialize popt context */
   optCon = poptGetContext("spkg", ac, av, opts, 0);
+  poptSetOtherOptionHelp(optCon, "<command> [options] [packages...]");
 
   /* parse options */
   while ((rc = poptGetNextOpt(optCon)) != -1)

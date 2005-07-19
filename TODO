@@ -2,12 +2,12 @@
 before alpha1 |
 --------------/
 
-[pkgtools] refine verbose output
-[pkgtools] better path validity checks (.., etc.)
-[pkgtools] implement multilevel installation modes
-[pkgtools] add option to disable doinst.sh script preprocessing 
+[pkgtools] implement doinst.sh script preprocessing 
     (because it may not work for glibc package, because links are 
     created conditionally)
+[pkgtools] better path validity checks (.., etc.)
+[pkgtools] implement multilevel installation modes
+
 [pkgdb] sync should erase previous database
 
 DEADLINE: 2005-07-20
