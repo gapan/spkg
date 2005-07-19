@@ -20,8 +20,12 @@
 
   <code># spkg -vimp some-package-1.0-i486-1.tgz</code>
 
-  <p>For more see help:</p>
+  <p>For more info see help:</p>
 
   <code># spkg --help</code>
+
+  <p>or manpage:</p>
+
+  <code># man 8 spkg</code>
 
 <?php foot(); ?>
