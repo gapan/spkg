@@ -30,6 +30,7 @@
   <a href="dloads.php">downloads</a> |
   <a href="status.php">status</a> |
   <a href="docs.php">documentation</a> |
+  <a href="howto.php">howto</a> |
   <a href="history.php">history</a>
  </div>
 
