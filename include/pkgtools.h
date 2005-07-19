@@ -37,6 +37,7 @@ struct pkg_options {
   gboolean dryrun;   /**< Don't touch filesystem or database. */
   gboolean verbose;  /**< Be verbose. */
   gboolean noptsym;  /**< Turn off symlinks optimization. */
+  gboolean nodoinst; /**< Turn off doinst.sh execution. */
   pkg_mode mode;     /**< Mode of operation of command. */
 };
 

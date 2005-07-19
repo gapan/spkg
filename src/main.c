@@ -51,6 +51,7 @@ static struct pkg_options pkg_opts = {
   .dryrun = 0,
   .verbose = 0,
   .noptsym = 0,
+  .nodoinst = 0,
   .mode = PKG_NORMAL
 };
 
@@ -59,8 +60,8 @@ static gchar* mode = "normal";
 static struct poptOption optsOptions[] = {
 {
   "mode", 'm', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &mode, 0,
-  "Set command mode of operation. This can be: paranoid (p), "
-  "cautious (c), normal (n), brutal (b).", "MODE"
+  "Set command mode of operation. This can be: \"paranoid\" (p), "
+  "\"cautious\" (c), \"normal\" (n) or \"brutal\" (b).", "MODE"
 },
 {
   "root", 'r', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &pkg_opts.root, 0,
@@ -72,12 +73,18 @@ static struct poptOption optsOptions[] = {
 },
 {
   "dry-run", 'n', 0, &pkg_opts.dryrun, 0,
-  "Don't modify filesystem. Good to use with -v option to show what "
-  "will be done.", NULL
+  "Don't modify filesystem or database. Good to use this option with -v option "
+  "to show what will be done.", NULL
 },
 {
-  "disable-symlink-opt", '\0', 0, &pkg_opts.noptsym, 0,
-  "Disable symlink optimizations. This may negatively affect speed.", NULL
+  "no-fast-symlinks", '\0', 0, &pkg_opts.noptsym, 0,
+  "Spkg by default parses doinst.sh for symlink creation code and removes "
+  "it from the script. This improves execution times of doinst.sh. Use "
+  "this option to disable such optimizations.", NULL
+},
+{
+  "no-postinst", '\0', 0, &pkg_opts.nodoinst, 0,
+  "Disable postinstallation script.", NULL
 },
 POPT_TABLEEND
 };
@@ -185,6 +192,7 @@ int main(const int ac, const char* av[])
   }
   if (usage)
   {
+    poptSetOtherOptionHelp(optCon, "");
     poptPrintUsage(optCon, stdout, 0);
     goto out;
   }
