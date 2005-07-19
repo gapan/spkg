@@ -40,10 +40,11 @@
     <dd>Firtst alpha version released! This version implements install
     command with four modes of operation: brutal, normal, cautious and
     paranoid. See documentation for more information. Other new features
-    include fully functional command line interface with correpsonding
+    include fully functional command line interface with corresponding
     manpage and implementation of safe break points. You can safely break
-    installation using some reaonable signal like SIGINT and all changes
-    made so far during installation will be automatically rolled back.</dd>
+    installation using some reasonable signal like SIGINT and all changes
+    made so far during installation will be automatically rolled back. 
+    Enjoy it!</dd>
 
    <dt><a href="/history.php">older news</a>...</dt>
   </dl>

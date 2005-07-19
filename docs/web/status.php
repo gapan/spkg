@@ -53,7 +53,7 @@
     array(1,"command line interface is fully implemented", "2005-07-20"),
     array(1,"first binary alpha release", "2005-07-20"),
     array(0,"three basic commands are implemented", "?"),
-    array(0,"first fully functional RC version is released", "?"),
+    array(0,"first fully functional beta release", "?"),
     array(0,"first stable version is released, PyGTK graphical interface", "?"),
   );
   foreach($milestones as $m)
