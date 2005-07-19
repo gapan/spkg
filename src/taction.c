@@ -11,7 +11,6 @@
 #include <time.h>
 #include <string.h>
 
-#include "sys.h"
 #include "taction.h"
 
 /* private
@@ -107,10 +106,7 @@ gint ta_link_nothing(gchar* path, gchar* src_path)
 
 gint ta_finalize()
 {
-  sigset_t oldsig;
   GSList* l;
-
-  sys_sigblock(&oldsig);
 
   if (!_ta.active)
   {
@@ -146,19 +142,15 @@ gint ta_finalize()
   _ta.list = 0;
   _ta.active = 0;
 
-  sys_sigunblock(&oldsig);
   return 0;
  err:
-  sys_sigunblock(&oldsig);
   return 1;
 }
 
 gint ta_rollback()
 {
-  sigset_t oldsig;
   GSList* l;
 
-  sys_sigblock(&oldsig);
   if (!_ta.active)
   {
     e_set(E_ERROR|TA_NACTIVE, "transaction is not initialized");
@@ -192,9 +184,7 @@ gint ta_rollback()
   _ta.list = 0;
   _ta.active = 0;
 
-  sys_sigunblock(&oldsig);
   return 0;
  err:
-  sys_sigunblock(&oldsig);
   return 1;
 }
