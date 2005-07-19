@@ -11,9 +11,11 @@ before alpha1 |
 [pkgdb] sync should erase previous database
 
 DEADLINE: 2005-07-20
+
 ---------------------------------------------------------------------
 before alpha2 |
 --------------/
+[main] new options: --no-postinst --no-preinst --no-ldconfig
 
 [pkgtools] implement remove
 
