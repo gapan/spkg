@@ -17,6 +17,7 @@
 #include "sys.h"
 #include "taction.h"
 #include "pkgtools.h"
+#include "sigtrap.h"
 
 /* private 
  ************************************************************************/
@@ -36,6 +37,15 @@ void __pkg_printf(const gboolean enable, const gchar* action, const gchar* fmt, 
 }
 
 #define _message(fmt, args...) __pkg_printf(opts->verbose, "install", fmt, ##args)
+
+#define _safe_breaking_point(label) \
+  do { \
+    if (sig_break) \
+    { \
+      e_set(E_BREAK, "terminated by signal"); \
+      goto label; \
+    } \
+  } while(0)
 
 /* public 
  ************************************************************************/
@@ -66,6 +76,8 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
     goto err0;
   }
 
+  _safe_breaking_point(err1);
+
   /* check if package is already in the database */  
   pkg = db_get_pkg(name,0);
   if (pkg)
@@ -80,6 +92,8 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
     goto err1;
   }
   e_clean(e); /* cleanup error object */
+
+  _safe_breaking_point(err1);
 
   /* open package's tgz archive */
   tgz = untgz_open(pkgfile, 0, e);
@@ -98,6 +112,8 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
     goto err2;
   }
 
+  _safe_breaking_point(err3);
+
   /* alloc package object */
   pkg = db_alloc_pkg(name);
   pkg->location = g_strdup(pkgfile);
@@ -105,6 +121,8 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
   /* for each file in package */
   while (untgz_get_header(tgz) == 0)
   {
+    _safe_breaking_point(err3);
+
     /* check file path */
     if (tgz->f_name[0] == '/') /* XXX: what checks are neccessary? */
     {
@@ -295,6 +313,24 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
     goto err3;
   }
 
+  /* add package to the database */
+  if (!opts->dryrun)
+  {
+    _message("updating legacy database");
+    if (db_legacy_add_pkg(pkg))
+    {
+      e_set(E_ERROR|PKG_DB,"can't add package to the legacy database");
+      goto err3;
+    }
+    _safe_breaking_point(err4);
+    _message("updating spkg database");
+    if (db_add_pkg(pkg))
+    {
+      e_set(E_ERROR|PKG_DB,"can't add package to the database");
+      goto err4;
+    }
+  }
+
   /* finalize transaction */
   _message("finalizing transaction");
   ta_finalize();
@@ -329,23 +365,6 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
     }
   }
 
-  /* add package to the database */
-  if (!opts->dryrun)
-  {
-    _message("updating legacy database");
-    if (db_legacy_add_pkg(pkg))
-    {
-      e_set(E_ERROR|PKG_DB,"can't add package to the legacy database");
-      goto err3;
-    }
-    _message("updating spkg database");
-    if (db_add_pkg(pkg))
-    {
-      e_set(E_ERROR|PKG_DB,"can't add package to the database");
-      goto err3;
-    }
-  }
-
   _message("finished");
 
   db_free_pkg(pkg);
@@ -353,6 +372,8 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
   g_free(shortname);
   return 0;
 
+ err4:
+  db_legacy_rem_pkg(name);
  err3:
   _message("rolling back");
   ta_rollback();

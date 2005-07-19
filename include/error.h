@@ -21,6 +21,7 @@ This is common error handling API for all parts of spkg.
 #define E_ERROR   1 /**< nonfatal error */
 #define E_BADARG  2 /**< invalid function arguments */
 #define E_FATAL   4 /**< fatal error */
+#define E_BREAK   5 /**< terminated by signal */
 
 #define E_PASS    0xffffffff /**< leave previous error code (useful for longjmp error handling) */
 
