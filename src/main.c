@@ -13,6 +13,7 @@
 
 #include "pkgtools.h"
 #include "pkgdb.h"
+#include "sigtrap.h"
 
 /* commands
  ************************************************************************/
@@ -133,7 +134,7 @@ static struct poptOption opts[] = {
 
 int main(const int ac, const char* av[])
 {
-  poptContext optCon;
+  poptContext optCon=0;
   gint rc;
   gint status = 0;
   const gchar* arg;
@@ -216,6 +217,9 @@ int main(const int ac, const char* av[])
     status = 1;
     goto out;
   }
+
+  if (sig_trap(err))
+    goto err;
 
   switch (command)
   {
@@ -315,8 +319,8 @@ int main(const int ac, const char* av[])
   }
 
  out:
-  e_free(err);
   optCon = poptFreeContext(optCon);
+  e_free(err);
   /* 0 = all ok
    * 1 = command line error
    * 2 = package manager error
