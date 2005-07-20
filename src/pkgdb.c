@@ -709,8 +709,13 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
       g_free(p->desc);
       p->desc = ndesc;
     }
-    if (LINEMATCH("FILE LIST:"))
+    else if (LINEMATCH("FILE LIST:"))
       goto parse_files;
+    else
+    {
+      e_set(E_ERROR, "corrupt legacy package database");
+      goto err_1;
+    }
   }
   goto err_1;
 

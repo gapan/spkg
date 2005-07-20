@@ -2,11 +2,15 @@
 before alpha1 |
 --------------/
 
+[pkgtools] add --quiet and _warning to the command code
+[pkgtools] strip ./ from the file names in archive
 [pkgtools] implement doinst.sh script preprocessing 
     (because it may not work for glibc package, because links are 
     created conditionally)
 [pkgtools] better path validity checks (.., etc.)
 [pkgtools] implement multilevel installation modes
+
+[doc] finish manpage 
 
 [pkgdb] sync should erase previous database
 [*] check assertions (are they really used for catching programmer's bugs?)
@@ -16,6 +20,7 @@ DEADLINE: 2005-07-20
 ---------------------------------------------------------------------
 before alpha2 |
 --------------/
+
 [main] new options: --no-postinst --no-preinst --no-ldconfig
 
 [pkgtools] implement remove
@@ -34,7 +39,6 @@ before alpha2 |
     user side (approx. by some 5%)
 
 [doc] finish readmes
-[doc] finish manpage 
 
 [tests] automatic testsuite
 
