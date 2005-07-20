@@ -183,7 +183,7 @@ gint sys_write_buffer_to_file(const gchar* file, const gchar* buf, gsize len, st
   }
   if (len == 0)
     len = strlen(buf);
-  if (len != fwrite(buf, len, 1, f))
+  if (1 != fwrite(buf, len, 1, f))
   {
     e_set(e, E_FATAL, "can't write data to a file: %s", file);
     fclose(f);

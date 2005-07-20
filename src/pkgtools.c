@@ -58,7 +58,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
   gchar *name, *shortname;
   struct untgz_state* tgz=0;
   struct db_pkg* pkg=0;
-  gchar* doinst = 0;
+  gboolean has_doinst = 0;
 
   g_assert(pkgfile != 0);
   g_assert(opts != 0);
@@ -180,6 +180,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
           goto err3;
         }
         g_free(fullpath);
+        has_doinst = 1;
         continue;
       }
 
@@ -190,6 +191,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
       
       /* optimize out symlinks creation from doinst.sh */
       gchar *b, *end, *ln, *n=buf;
+      gchar* doinst = 0;
       while(iter_lines(&b, &end, &n, &ln))
       { /* for each line */
         gchar* dir;
@@ -223,11 +225,15 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
       pkg->doinst = buf;
 
       /* write stripped down version of doinst.sh to a file */
-      if (sys_write_buffer_to_file(fullpath, doinst, (gsize)0, e))
+      if (doinst != 0)
       {
-        e_set(E_ERROR|PKG_BADIO,"file extraction failed %s (%s)", tgz->f_name, pkgfile);
-        g_free(fullpath);
-        goto err3;        
+        if (sys_write_buffer_to_file(fullpath, doinst, (gsize)0, e))
+        {
+          e_set(E_ERROR|PKG_BADIO,"file extraction failed %s (%s)", tgz->f_name, pkgfile);
+          g_free(fullpath);
+          goto err3;        
+        }
+        has_doinst = 1;
       }
       
       g_free(fullpath);
@@ -354,7 +360,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
   }
 
   /* add package to the database */
-  if (!opts->dryrun)
+  if (!opts->dryrun && has_doinst)
   {
     _message("updating legacy database");
     if (db_legacy_add_pkg(pkg))
