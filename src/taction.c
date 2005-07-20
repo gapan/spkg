@@ -148,7 +148,7 @@ gint ta_finalize()
       {
         if (link(a->path2, a->path1) == -1)
         {
-          _warning("ln %s %s", a->path2, a->path1);
+          _warning("failed ln %s %s", a->path2, a->path1);
           goto next_action;
         }
       }
@@ -160,7 +160,7 @@ gint ta_finalize()
       {
         if (symlink(a->path2, a->path1) == -1)
         {
-          _warning("ln -s %s %s", a->path2, a->path1);
+          _warning("failed ln -s %s %s", a->path2, a->path1);
           goto next_action;
         }
       }
@@ -199,7 +199,7 @@ gint ta_rollback()
         {
           if (rmdir(a->path1) == -1)
           {
-            _warning("rmdir %s", a->path1);
+            _warning("failed rmdir %s", a->path1);
             goto next_action;
           }
         }
@@ -211,7 +211,7 @@ gint ta_rollback()
         {
           if (unlink(a->path1) == -1)
           {
-            _warning("rmdir %s", a->path1);
+            _warning("failed rmdir %s", a->path1);
             goto next_action;
           }
         }

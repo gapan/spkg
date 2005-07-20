@@ -39,11 +39,6 @@
 
 gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct error* e)
 {
-  gchar *name, *shortname;
-  struct untgz_state* tgz=0;
-  struct db_pkg* pkg=0;
-  gboolean has_doinst = 0;
-
   g_assert(pkgfile != 0);
   g_assert(opts != 0);
   g_assert(e != 0);
@@ -58,6 +53,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
   }
 
   /* parse package name from the file path */
+  gchar *name, *shortname;
   if ((name = parse_pkgname(pkgfile,5)) == 0 
       || (shortname = parse_pkgname(pkgfile,1)) == 0)
   {
@@ -68,6 +64,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
   _safe_breaking_point(err1);
 
   /* check if package is already in the database */  
+  struct db_pkg* pkg=0;
   pkg = db_get_pkg(name,0);
   if (pkg)
   {
@@ -85,6 +82,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
   _safe_breaking_point(err1);
 
   /* open package's tgz archive */
+  struct untgz_state* tgz=0;
   tgz = untgz_open(pkgfile, 0, e);
   if (tgz == 0)
   {
@@ -108,25 +106,33 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
   _safe_breaking_point(err3);
 
   /* for each file in package */
+  gboolean has_doinst = 0;
   while (untgz_get_header(tgz) == 0)
   {
     _safe_breaking_point(err3);
 
     /* check file path */
-    if (tgz->f_name[0] == '/') /* XXX: what checks are neccessary? (/../ !) */
+    if (tgz->f_name[0] == '/' ||
+        strstr(tgz->f_name, "/../") ||
+        !strncmp(tgz->f_name, "../", 3))
     {
       /* some damned fucker created this package to mess our system */
-      e_set(E_ERROR|PKG_CORRUPT,"package contains files with absolute paths");
+      e_set(E_ERROR|PKG_CORRUPT,"package contains files with unsecure paths");
       goto err3;
     }
 
-    /*XXX: remove ./ */
+    /* trim ./ */
+    if (strcmp(tgz->f_name, "./") && !strncmp(tgz->f_name, "./", 2))
+    {
+      gchar* tmp = tgz->f_name;
+      tgz->f_name = g_strdup(tmp+2);
+      g_free(tmp);
+    }
 
     /* check for metadata files */
-    if (!strcmp(tgz->f_name, "install/slack-desc") ||
-        !strcmp(tgz->f_name, "./install/slack-desc"))
+    if (!strcmp(tgz->f_name, "install/slack-desc"))
     {
-      if (tgz->f_size > 1024*16) /* 16K is enough. */
+      if (tgz->f_size > 1024*16) /* 16K is enough */
       {
         e_set(E_ERROR|PKG_CORRUPT, "slack-desc file is too big (%d kB)", tgz->f_size/1024);
         goto err3;
@@ -147,10 +153,9 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
       }  
       continue;
     }
-    else if (!strcmp(tgz->f_name, "install/doinst.sh") ||
-             !strcmp(tgz->f_name, "./install/doinst.sh"))
+    else if (!strcmp(tgz->f_name, "install/doinst.sh"))
     {
-      if (tgz->f_size > 1024*512) /* 512K is enough for all. */
+      if (tgz->f_size > 1024*512) /* 512K is enough for all. :) */
       {
         e_set(E_ERROR|PKG_CORRUPT, "doinst.sh file is too big (%d kB)", tgz->f_size/1024);
         goto err3;

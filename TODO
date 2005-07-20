@@ -3,8 +3,6 @@ before alpha1 |
 --------------/
 
 [pkgtools] implement multilevel installation modes
-[pkgtools] strip ./ from the file names in archive
-[pkgtools] better path validity checks (.., etc.)
 
 [doc] finish manpage 
 
