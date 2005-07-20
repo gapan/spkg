@@ -2,8 +2,6 @@
 before alpha1 |
 --------------/
 
-[taction] finalize/rollback error handling code
-[pkgtools] implement symlinks creation
 [pkgtools] implement multilevel installation modes
 [pkgtools] strip ./ from the file names in archive
 [pkgtools] better path validity checks (.., etc.)
@@ -15,7 +13,7 @@ before alpha1 |
 
 [*] check assertions (are they really used for catching programmer's bugs?)
 
-DEADLINE: 2005-07-20
+DEADLINE: 2005-07-24
 
 ---------------------------------------------------------------------
 before alpha2 |

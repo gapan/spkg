@@ -18,28 +18,12 @@
 #include "taction.h"
 #include "pkgtools.h"
 #include "sigtrap.h"
+#include "message.h"
 
 /* private 
  ************************************************************************/
 
 #define e_set(n, fmt, args...) e_add(e, "pkgtools", __func__, n, fmt, ##args)
-
-void __pkg_printf(const gint verbosity, const gint type, const gchar* action, const gchar* fmt, ...)
-{
-  if (verbosity < type)
-    return;
-  printf("%s: ", action);
-  if (type == 1)
-    printf("WARN: ");
-  va_list ap;
-  va_start(ap, fmt);
-  vprintf(fmt, ap);
-  va_end(ap);
-  printf("\n");
-}
-
-#define _message(fmt, args...) __pkg_printf(opts->verbosity, 2, "install", fmt, ##args)
-#define _warning(fmt, args...) __pkg_printf(opts->verbosity, 1, "install", fmt, ##args)
 
 #define _safe_breaking_point(label) \
   do { \
@@ -63,6 +47,8 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
   g_assert(pkgfile != 0);
   g_assert(opts != 0);
   g_assert(e != 0);
+
+  msg_setup("install", opts->verbosity);
 
   /* check if file exist and is regular file */
   if (sys_file_type(pkgfile,1) != SYS_REG)

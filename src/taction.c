@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "taction.h"
+#include "message.h"
 
 /* private
  ************************************************************************/
@@ -129,31 +130,43 @@ gint ta_finalize()
   for (l=_ta.list; l!=0; l=l->next)
   {
     struct action* a = l->data;
-    if (a->on_finalize == KEEP)
+    if (a->on_finalize == MOVE)
     {
-      /* null */
-    }
-    else if (a->on_finalize == MOVE)
-    {
-      /*XXX: check for errors */
       if (!_ta.dryrun)
-        rename(a->path1, a->path2);
-//      printf("mv %s %s\n", a->path1, a->path2);
+      {
+        if (rename(a->path1, a->path2) == -1)
+        {
+          _warning("failed mv %s %s", a->path1, a->path2);
+          goto next_action;
+        }
+      }
+      _message("mv %s %s", a->path1, a->path2);
     }
     else if (a->on_finalize == LINK)
     {
-      /*XXX: check for errors */
       if (!_ta.dryrun)
-        link(a->path2, a->path1);
-//      printf("ln %s %s\n", a->path2, a->path1);
+      {
+        if (link(a->path2, a->path1) == -1)
+        {
+          _warning("ln %s %s", a->path2, a->path1);
+          goto next_action;
+        }
+      }
+      _message("ln %s %s", a->path2, a->path1);
     }
     else if (a->on_finalize == SYMLINK)
     {
-      /*XXX: check for errors */
       if (!_ta.dryrun)
-        symlink(a->path2, a->path1);
-//      printf("ln %s %s\n", a->path2, a->path1);
+      {
+        if (symlink(a->path2, a->path1) == -1)
+        {
+          _warning("ln -s %s %s", a->path2, a->path1);
+          goto next_action;
+        }
+      }
+      _message("ln -s %s %s", a->path2, a->path1);
     }
+   next_action:
     _ta_free_action(a);
   }
   g_slist_free(_ta.list);
@@ -183,19 +196,32 @@ gint ta_rollback()
       if (a->is_dir)
       {
         if (!_ta.dryrun)
-          rmdir(a->path1);
-//        printf("rmdir %s\n", a->path1);
+        {
+          if (rmdir(a->path1) == -1)
+          {
+            _warning("rmdir %s", a->path1);
+            goto next_action;
+          }
+        }
+        _message("rmdir %s", a->path1);
       }
       else
       {
         if (!_ta.dryrun)
-          unlink(a->path1);
-//        printf("rm -f %s\n", a->path1);
+        {
+          if (unlink(a->path1) == -1)
+          {
+            _warning("rmdir %s", a->path1);
+            goto next_action;
+          }
+        }
+        _message("rm %s", a->path1);
       }
     }
     else if (a->on_rollback == NOTHING)
     {
     }
+   next_action:
     _ta_free_action(a);
   }
   g_slist_free(_ta.list);
