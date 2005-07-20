@@ -113,6 +113,16 @@ extern gint sys_lock_put(gint fd, struct error* e);
  */
 extern void sys_lock_del(gint fd);
 
+/** Write buffer to a file.
+ *
+ * @param file file name
+ * @param buf pointer to a buffer
+ * @param len lenght of a buffer
+ * @param e error object
+ * @return 1 on failure, 0 on success
+ */
+extern gint sys_write_buffer_to_file(const gchar* file, const gchar* buf, gsize len, struct error* e);
+
 #endif
 
 /*! @} */

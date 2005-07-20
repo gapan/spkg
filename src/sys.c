@@ -168,3 +168,27 @@ void sys_lock_del(gint fd)
 {
   close(fd);
 }
+
+gint sys_write_buffer_to_file(const gchar* file, const gchar* buf, gsize len, struct error* e)
+{
+  g_assert(file != 0);
+  g_assert(buf != 0);
+  g_assert(e != 0);
+
+  FILE* f = fopen(file, "w");
+  if (f == 0)
+  {
+    e_set(e, E_FATAL, "can't open file for writing: %s", strerror(errno));
+    return 1;
+  }
+  if (len == 0)
+    len = strlen(buf);
+  if (len != fwrite(buf, len, 1, f))
+  {
+    e_set(e, E_FATAL, "can't write data to a file: %s", file);
+    fclose(f);
+    return 1;
+  }
+  fclose(f);
+  return 0;
+}

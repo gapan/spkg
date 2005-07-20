@@ -115,11 +115,11 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
     goto err2;
   }
 
-  _safe_breaking_point(err3);
-
   /* alloc package object */
   pkg = db_alloc_pkg(name);
   pkg->location = g_strdup(pkgfile);
+
+  _safe_breaking_point(err3);
 
   /* for each file in package */
   while (untgz_get_header(tgz) == 0)
@@ -127,26 +127,33 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
     _safe_breaking_point(err3);
 
     /* check file path */
-    if (tgz->f_name[0] == '/') /* XXX: what checks are neccessary? */
+    if (tgz->f_name[0] == '/') /* XXX: what checks are neccessary? (/../ !) */
     {
       /* some damned fucker created this package to mess our system */
       e_set(E_ERROR|PKG_CORRUPT,"package contains files with absolute paths");
       goto err3;
     }
 
+    /*XXX: remove ./ */
+
     /* check for metadata files */
-    if (!strcmp(tgz->f_name, "install/slack-desc") || 
+    if (!strcmp(tgz->f_name, "install/slack-desc") ||
         !strcmp(tgz->f_name, "./install/slack-desc"))
     {
+      if (tgz->f_size > 1024*16) /* 16K is enough. */
+      {
+        e_set(E_ERROR|PKG_CORRUPT, "slack-desc file is too big (%d kB)", tgz->f_size/1024);
+        goto err3;
+      }
+
       gchar *buf, *desc[11] = {0};
       gsize len;
-      gint i;
-      
-      untgz_write_data(tgz,&buf,&len);
-      parse_slackdesc(buf,shortname,desc);
-      pkg->desc = gen_slackdesc(shortname,desc);
+      untgz_write_data(tgz, &buf, &len);
+      parse_slackdesc(buf, shortname, desc);
+      pkg->desc = gen_slackdesc(shortname, desc);
 
       /* free description */
+      gint i;
       for (i=0;i<11;i++)
       {
         _message("%s", desc[i]);
@@ -157,14 +164,33 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
     else if (!strcmp(tgz->f_name, "install/doinst.sh") ||
              !strcmp(tgz->f_name, "./install/doinst.sh"))
     {
-      /* read doinst.sh into buffer XXX: check if it is not too big */
+      if (tgz->f_size > 1024*512) /* 512K is enough for all. */
+      {
+        e_set(E_ERROR|PKG_CORRUPT, "doinst.sh file is too big (%d kB)", tgz->f_size/1024);
+        goto err3;
+      }
+
+      gchar* fullpath = g_strdup_printf("%s/%s", opts->root, tgz->f_name);
+      if (opts->noptsym) /* optimization disabled, just extract */
+      {
+        if (untgz_write_file(tgz, fullpath))
+        {
+          g_free(fullpath);
+          e_set(E_ERROR|PKG_BADIO,"file extraction failed %s (%s)", tgz->f_name, pkgfile);
+          goto err3;
+        }
+        g_free(fullpath);
+        continue;
+      }
+
+      /* read doinst.sh into buffer */
       gchar* buf;
       gsize len;
-      untgz_write_data(tgz,&buf,&len);
+      untgz_write_data(tgz, &buf, &len);
       
       /* optimize out symlinks creation from doinst.sh */
-      gchar *b, *e, *ln, *n=buf;
-      while(iter_lines(&b, &e, &n, &ln))
+      gchar *b, *end, *ln, *n=buf;
+      while(iter_lines(&b, &end, &n, &ln))
       { /* for each line */
         gchar* dir;
         gchar* link;
@@ -182,6 +208,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
         else if (!parse_cleanuplink(ln))
         {
           /* ...append it to doinst buffer */
+          /*XXX: this is stupid braindead hack */
           gchar* nd;
           if (doinst)
             nd = g_strdup_printf("%s%s\n", doinst, ln);
@@ -194,6 +221,16 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
       }
       /* we always store full doinst.sh in database */
       pkg->doinst = buf;
+
+      /* write stripped down version of doinst.sh to a file */
+      if (sys_write_buffer_to_file(fullpath, doinst, (gsize)0, e))
+      {
+        e_set(E_ERROR|PKG_BADIO,"file extraction failed %s (%s)", tgz->f_name, pkgfile);
+        g_free(fullpath);
+        goto err3;        
+      }
+      
+      g_free(fullpath);
       continue;
     }
 
@@ -356,6 +393,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
       _message("running ldconfig");
       if (system("/sbin/ldconfig -r ."))
         _warning("ldconfig failed");
+#endif
       /* run doinst sh */
       if (sys_file_type("install/doinst.sh",0) == SYS_REG)
       {
@@ -363,7 +401,6 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
         if (system(". install/doinst.sh"))
           _warning("doinst.sh failed");
       }
-#endif
       sys_setcwd(old_cwd);
     }
   }
