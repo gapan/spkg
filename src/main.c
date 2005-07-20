@@ -50,13 +50,15 @@ POPT_TABLEEND
 static struct pkg_options pkg_opts = {
   .root = "/",
   .dryrun = 0,
-  .verbose = 0,
+  .verbosity = 1,
   .noptsym = 0,
   .nodoinst = 0,
   .mode = PKG_NORMAL
 };
 
 static gchar* mode = "normal";
+static gint verbose = 0;
+static gint quiet = 0;
 
 static struct poptOption optsOptions[] = {
 {
@@ -69,8 +71,12 @@ static struct poptOption optsOptions[] = {
   "Set altrernate root directory for package operations.", "ROOT"
 },
 {
-  "verbose", 'v', 0, &pkg_opts.verbose, 0,
+  "verbose", 'v', 0, &verbose, 0,
   "Be verbose about what is going on.", NULL
+},
+{
+  "quiet", 'q', 0, &quiet, 0,
+  "Be quiet about what is going on. Only warnings will be shown.", NULL
 },
 {
   "dry-run", 'n', 0, &pkg_opts.dryrun, 0,
@@ -217,6 +223,17 @@ int main(const int ac, const char* av[])
     status = 1;
     goto out;
   }
+
+  if (verbose && quiet)
+  {
+    fprintf(stderr, "error[main]: invalid argument: verbose or quiet?\n");
+    status = 1;
+    goto out;
+  }
+  if (verbose)
+    pkg_opts.verbosity = 2;
+  if (quiet)
+    pkg_opts.verbosity = 0;
 
   if (sig_trap(err))
     goto err;

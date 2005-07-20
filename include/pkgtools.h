@@ -35,7 +35,7 @@ typedef enum {
 struct pkg_options {
   gchar* root;       /**< Root directory. */
   gboolean dryrun;   /**< Don't touch filesystem or database. */
-  gboolean verbose;  /**< Be verbose. */
+  gint verbosity;    /**< Verbosity level 0=errors only, 1=warnings only, 2=all messages. */
   gboolean noptsym;  /**< Turn off symlinks optimization. */
   gboolean nodoinst; /**< Turn off doinst.sh execution. */
   pkg_mode mode;     /**< Mode of operation of command. */

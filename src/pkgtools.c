@@ -24,11 +24,13 @@
 
 #define e_set(n, fmt, args...) e_add(e, "pkgtools", __func__, n, fmt, ##args)
 
-void __pkg_printf(const gboolean enable, const gchar* action, const gchar* fmt, ...)
+void __pkg_printf(const gint verbosity, const gint type, const gchar* action, const gchar* fmt, ...)
 {
-  if (!enable)
+  if (verbosity < type)
     return;
   printf("%s: ", action);
+  if (type == 1)
+    printf("WARN: ");
   va_list ap;
   va_start(ap, fmt);
   vprintf(fmt, ap);
@@ -36,7 +38,8 @@ void __pkg_printf(const gboolean enable, const gchar* action, const gchar* fmt, 
   printf("\n");
 }
 
-#define _message(fmt, args...) __pkg_printf(opts->verbose, "install", fmt, ##args)
+#define _message(fmt, args...) __pkg_printf(opts->verbosity, 2, "install", fmt, ##args)
+#define _warning(fmt, args...) __pkg_printf(opts->verbosity, 1, "install", fmt, ##args)
 
 #define _safe_breaking_point(label) \
   do { \
@@ -234,17 +237,17 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
         }
         else if (existing == SYS_ERR)
         {
-          _message("WARN: stat failed %s", tgz->f_name);
+          _warning("stat failed %s", tgz->f_name);
           /*XXX: bug */
         }
         else
         {
-          _message("WARN: can't mkdir over ordinary file %s", tgz->f_name);
+          _warning("can't mkdir over ordinary file %s", tgz->f_name);
           /*XXX: bug (ordinary file) */
         }
       break;
       case UNTGZ_SYM: /* wtf?, symlinks are not permitted to be in package */
-        _message("WARN: symlink in archive %s", tgz->f_name);
+        _warning("symlink in archive %s", tgz->f_name);
         /* XXX: bug */
       break;
       case UNTGZ_LNK: /* hardlinks are special beasts, most easy solution is to 
@@ -263,7 +266,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
       default: /* ordinary file */
         if (existing == SYS_DIR)
         {
-          _message("WARN: can't extract file over dir %s", tgz->f_name);
+          _warning("can't extract file over dir %s", tgz->f_name);
           /* target path is a directory, bad! */
         }
         else if (existing == SYS_NONE)
@@ -278,13 +281,13 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
         }
         else if (existing == SYS_ERR)
         {
-          _message("WARN: stat failed %s", tgz->f_name);
+          _warning("stat failed %s", tgz->f_name);
           /*XXX: bug */
         }
         else /* file already exist there */
         {
           /*XXX: here we may check file types, etc. */
-          _message("WARN: file already exist %s", tgz->f_name);
+          _warning("file already exist %s", tgz->f_name);
           if (!opts->dryrun)
             if (untgz_write_file(tgz, temppath))
               goto extract_failed;
@@ -352,13 +355,13 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
       /* run ldconfig */
       _message("running ldconfig");
       if (system("/sbin/ldconfig -r ."))
-        _message("WARN: ldconfig failed");
+        _warning("ldconfig failed");
       /* run doinst sh */
       if (sys_file_type("install/doinst.sh",0) == SYS_REG)
       {
         _message("running doinst.sh");
         if (system(". install/doinst.sh"))
-          _message("WARN: doinst.sh failed");
+          _warning("doinst.sh failed");
       }
 #endif
       sys_setcwd(old_cwd);
