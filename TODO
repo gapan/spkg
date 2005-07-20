@@ -2,17 +2,16 @@
 before alpha1 |
 --------------/
 
-[pkgtools] add --quiet and _warning to the command code
-[pkgtools] strip ./ from the file names in archive
-[pkgtools] implement doinst.sh script preprocessing 
-    (because it may not work for glibc package, because links are 
-    created conditionally)
-[pkgtools] better path validity checks (.., etc.)
+[pkgtools] implement symlinks creation
 [pkgtools] implement multilevel installation modes
+[pkgtools] strip ./ from the file names in archive
+[pkgtools] better path validity checks (.., etc.)
 
 [doc] finish manpage 
 
+[*] check sync command
 [pkgdb] sync should erase previous database
+
 [*] check assertions (are they really used for catching programmer's bugs?)
 
 DEADLINE: 2005-07-20
