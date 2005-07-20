@@ -40,25 +40,29 @@ extern gint ta_rollback();
  * 
  * @param path path to the transactioned object
  * @param is_dir if path points to a directory
- * @return 0 on success, 1 on error
  */
-extern gint ta_keep_remove(gchar* path, gboolean is_dir);
+extern void ta_keep_remove(gchar* path, gboolean is_dir);
 
 /** Add action to the current transaction.
  * 
  * @param path path to the transactioned object
  * @param fin_path destination path
- * @return 0 on success, 1 on error
  */
-extern gint ta_move_remove(gchar* path, gchar* fin_path);
+extern void ta_move_remove(gchar* path, gchar* fin_path);
 
 /** Add action to the current transaction.
  * 
  * @param path path to the transactioned object
  * @param src_path link source path
- * @return 0 on success, 1 on error
  */
-extern gint ta_link_nothing(gchar* path, gchar* src_path);
+extern void ta_link_nothing(gchar* path, gchar* src_path);
+
+/** Add action to the current transaction.
+ * 
+ * @param path path to the transactioned object
+ * @param src_path link source path
+ */
+extern void ta_symlink_nothing(gchar* path, gchar* src_path);
 
 #endif
 

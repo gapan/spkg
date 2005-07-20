@@ -2,6 +2,7 @@
 before alpha1 |
 --------------/
 
+[taction] finalize/rollback error handling code
 [pkgtools] implement symlinks creation
 [pkgtools] implement multilevel installation modes
 [pkgtools] strip ./ from the file names in archive

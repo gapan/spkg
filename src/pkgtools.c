@@ -205,6 +205,8 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
           g_free(link);
           _message("symlink %s -> %s", path, target);
           pkg->files = g_slist_prepend(pkg->files, db_alloc_file(path, target));
+          gchar* fullpath = g_strdup_printf("%s/%s", opts->root, path);
+          ta_symlink_nothing(fullpath, g_strdup(target));
         }
         /* if this is not 'delete old file' line... */
         else if (!parse_cleanuplink(ln))
@@ -274,8 +276,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
           if (!opts->dryrun)
             if (untgz_write_file(tgz, fullpath))
               goto extract_failed;
-          if (ta_keep_remove(fullpath, 1))
-            goto transact_insert_failed;
+          ta_keep_remove(fullpath, 1);
           fullpath = 0;
         }
         else if (existing == SYS_ERR)
@@ -298,8 +299,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
       {
         gchar* linkpath = g_strdup_printf("%s/%s", opts->root, tgz->f_link);
         _message("hardlink found %s -> %s (postponed)", tgz->f_name, tgz->f_link);
-        if (ta_link_nothing(fullpath, linkpath))
-          goto transact_insert_failed;
+        ta_link_nothing(fullpath, linkpath);
         fullpath = 0;
       }
       break;
@@ -318,8 +318,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
           if (!opts->dryrun)
             if (untgz_write_file(tgz, fullpath))
               goto extract_failed;
-          if (ta_keep_remove(fullpath, 0))
-            goto transact_insert_failed;
+          ta_keep_remove(fullpath, 0);
           fullpath = temppath = 0;
         }
         else if (existing == SYS_ERR)
@@ -334,16 +333,12 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
           if (!opts->dryrun)
             if (untgz_write_file(tgz, temppath))
               goto extract_failed;
-          if (ta_move_remove(temppath, fullpath))
-            goto transact_insert_failed;
+          ta_move_remove(temppath, fullpath);
           fullpath = temppath = 0;
         }
     }
     if (0) /* common error handling */
     {
-     transact_insert_failed:
-      e_set(E_ERROR|PKG_BADIO,"transaction insert failed for file %s (%s)", tgz->f_name, pkgfile);
-      goto err3;
      extract_failed:
       e_set(E_ERROR|PKG_BADIO,"file extraction failed %s (%s)", tgz->f_name, pkgfile);
       goto err3;
