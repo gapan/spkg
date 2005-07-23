@@ -345,8 +345,11 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
     goto err3;
   }
 
+  pkg->usize = tgz->usize/1024;
+  pkg->csize = tgz->csize/1024;
+
   /* add package to the database */
-  if (!opts->dryrun && has_doinst)
+  if (!opts->dryrun)
   {
     _message("updating legacy database");
     if (db_legacy_add_pkg(pkg))
@@ -367,15 +370,12 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
   _message("finalizing transaction");
   ta_finalize();
 
-  pkg->usize = tgz->usize/1024;
-  pkg->csize = tgz->csize/1024;
-  
   /* close tgz */
   _message("closing package");
   untgz_close(tgz);
   tgz = 0;
 
-  if (!opts->dryrun)
+  if (!opts->dryrun && has_doinst)
   {
     gchar* old_cwd = sys_setcwd(opts->root);
     if (old_cwd)

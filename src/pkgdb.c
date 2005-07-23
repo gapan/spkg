@@ -547,8 +547,8 @@ gint db_legacy_add_pkg(struct db_pkg* pkg)
   /* construct header */
   fprintf(pf,
     "PACKAGE NAME:              %s\n"
-    "COMPRESSED PACKAGE SIZE:   %d K\n"
-    "UNCOMPRESSED PACKAGE SIZE: %d K\n"
+    "COMPRESSED PACKAGE SIZE:   %u K\n"
+    "UNCOMPRESSED PACKAGE SIZE: %u K\n"
     "PACKAGE LOCATION:          %s\n"
     "PACKAGE DESCRIPTION:\n"
     "%s"

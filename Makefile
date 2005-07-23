@@ -6,8 +6,8 @@
 #\----------------------------------------------------------------------/#
 DESTDIR :=
 prefix := /usr/local
-DEBUG := no
-ASSERTS := yes
+DEBUG := yes
+ASSERTS := no
 BENCH := no
 MUDFLAP := no
 VERSION := alpha1
