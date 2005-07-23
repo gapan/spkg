@@ -595,6 +595,7 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
   gsize sp, ss=0;
   struct db_pkg* p=0;
   gchar *tmpstr;
+  gchar *eof;
   
   g_assert(name != 0);
 
@@ -623,7 +624,7 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
     e_set(E_ERROR, "can't get main package entry file mtime: %s", strerror(errno));
     goto err_0;
   }
-  sp = lseek(fp, 0, SEEK_END)+1;
+  sp = lseek(fp, 0, SEEK_END);
   ap = mmap(0, sp, PROT_READ, MAP_SHARED, fp, 0);
   if (ap == (void*)-1)
   {
@@ -632,12 +633,13 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
     goto err_0;
   }
 
+  /*XXX: better checks here (if NOTEX, or other error) */
   tmpstr = g_strdup_printf("%s/%s", _db.scrdir, name);
   fs = open(tmpstr, O_RDONLY);
   g_free(tmpstr);
   if (fs != -1) /* script entry can't be open */
   {
-    ss = lseek(fs, 0, SEEK_END)+1;
+    ss = lseek(fs, 0, SEEK_END);
     as = mmap(0, ss, PROT_READ, MAP_SHARED, fs, 0);
     if (as == (void*)-1)
     {
@@ -660,7 +662,8 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
   occur anymore, so we cache info about already matched lines */
 
   gchar *b, *e, *ln, *n=ap;
-  while(iter_lines(&b, &e, &n, 0))
+  eof = ap+sp;
+  while(iter_lines2(&b, &e, &n, eof, 0))
   {
 #define LINEMATCH(s) (strncmp(b, s, sizeof(s)-1) == 0)
 #define LINESIZE(s) (sizeof(s)-1)
@@ -723,14 +726,15 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
   if (!files)
     goto fini;
 
-  while(iter_lines(&b, &e, &n, &ln))
+  while(iter_lines2(&b, &e, &n, eof, &ln))
     p->files = g_slist_prepend(p->files, db_alloc_file(ln,0));
 
   if (fs == -1)
     goto fini;
 
   n = as;
-  while(iter_lines(&b, &e, &n, &ln))
+  eof = as+ss;
+  while(iter_lines2(&b, &e, &n, eof, &ln))
   {
     gchar* dir;
     gchar* link;

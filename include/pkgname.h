@@ -79,6 +79,8 @@ extern gint parse_cleanuplink(gchar* line);
  */
 extern gint iter_lines(gchar** b, gchar** e, gchar** n, gchar** ln);
 
+extern gint iter_lines2(gchar** b, gchar** e, gchar** n, gchar* eof, gchar** ln);
+
 #endif
 
 /*! @} */

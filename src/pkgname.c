@@ -279,3 +279,28 @@ gint iter_lines(gchar** b, gchar** e, gchar** n, gchar** ln)
     *ln = g_strndup(*b, *e-*b+1);
   return 1;
 }
+
+/* eof points after last character */
+gint iter_lines2(gchar** b, gchar** e, gchar** n, gchar* eof, gchar** ln)
+{
+  g_assert(b != 0);
+  g_assert(e != 0);
+  g_assert(n != 0);
+  *b = *n; /* move to the next line */
+  if (*b == 0) /* nothing? */
+    return 0;
+  if (eof == *b)
+    return 0;
+  gchar* t = *b; /* temp pointer */
+  while (t < eof && *t != '\n') /* go forward until eof or \n */
+    t++;
+  if (t == eof) /* eof */
+    *e = t-1, *n=0;
+  else if (t == '\n') /* eoln */
+    *e = t-1, *n=(t+1==eof)?0:t+1; /* ignore last line if it is empty */
+  else
+    *n = t+1, *e=t-1; /* next line */
+  if (ln)
+    *ln = g_strndup(*b, *e-*b+1);
+  return 1;
+}
