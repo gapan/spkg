@@ -211,6 +211,7 @@ gint db_open(const gchar* root, struct error* e)
 
 void db_close()
 {
+  /*XXX: check if db is open */
   continue_timer(1);
   fdb_close(_db.fdb);
   _db.fdb = 0;
@@ -244,7 +245,8 @@ void db_close()
 struct db_pkg* db_alloc_pkg(gchar* name)
 {
   struct db_pkg* p;
-  if (name == 0 || !parse_pkgname(name, 6))
+  g_assert(name != 0);
+  if (parse_pkgname(name, 6) != (gchar*)-1)
   {
     e_set(E_ERROR, "invalid package name");
     return 0;
@@ -262,13 +264,12 @@ struct db_pkg* db_alloc_pkg(gchar* name)
 void db_free_pkg(struct db_pkg* pkg)
 {
   continue_timer(6);
-  struct db_pkg* p = pkg;
   GSList* l;
-  if (p == 0)
+  if (pkg == 0)
     return;
-  if (p->files)
+  if (pkg->files)
   {
-    for (l=p->files; l!=0; l=l->next)
+    for (l=pkg->files; l!=0; l=l->next)
     {
       struct db_file* f = l->data;
       g_free(f->path);
@@ -276,17 +277,17 @@ void db_free_pkg(struct db_pkg* pkg)
       g_free(f);
       l->data = 0;
     }
-    g_slist_free(p->files);
+    g_slist_free(pkg->files);
   }
-  g_free(p->name);
-  g_free(p->shortname);
-  g_free(p->version);
-  g_free(p->arch);
-  g_free(p->build);
-  g_free(p->location);
-  g_free(p->desc);
-  g_free(p->doinst);
-  g_free(p);
+  g_free(pkg->name);
+  g_free(pkg->shortname);
+  g_free(pkg->version);
+  g_free(pkg->arch);
+  g_free(pkg->build);
+  g_free(pkg->location);
+  g_free(pkg->desc);
+  g_free(pkg->doinst);
+  g_free(pkg);
   stop_timer(6);
 }
 

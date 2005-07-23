@@ -18,6 +18,7 @@
 
 sys_ftype sys_file_type(const gchar* path, gboolean deref)
 {
+  g_assert(path != 0);
   struct stat s;
   gint rs;
   if (deref)
@@ -41,6 +42,7 @@ sys_ftype sys_file_type(const gchar* path, gboolean deref)
 
 time_t sys_file_mtime(const gchar* path, gboolean deref)
 {
+  g_assert(path != 0);
   struct stat s;
   gint rs;
   if (deref)
@@ -55,6 +57,7 @@ time_t sys_file_mtime(const gchar* path, gboolean deref)
 /*XXX: implement this in C */
 gint sys_rm_rf(const gchar* path)
 {
+  g_assert(path != 0);
   gint rval;
   gchar* s = g_strdup_printf("/bin/rm -rf %s", path);
   rval = system(s);
@@ -67,6 +70,7 @@ gint sys_rm_rf(const gchar* path)
 /*XXX: implement this in C */
 gint sys_mkdir_p(const gchar* path)
 {
+  g_assert(path != 0);
   gint rval;
   gchar* s = g_strdup_printf("/bin/mkdir -p %s", path);
   rval = system(s);
@@ -78,6 +82,7 @@ gint sys_mkdir_p(const gchar* path)
 
 gchar* sys_setcwd(const gchar* path)
 {
+  g_assert(path != 0);
   gchar* pwd = g_get_current_dir();
   if (!g_path_is_absolute(pwd))
     return 0;
@@ -94,6 +99,7 @@ gchar* sys_setcwd(const gchar* path)
 
 void sys_sigblock(sigset_t* sigs)
 {
+  g_assert(sigs != 0);
   gint rs;
   sigset_t s;
   sigfillset(&s);
@@ -107,6 +113,7 @@ void sys_sigblock(sigset_t* sigs)
 
 void sys_sigunblock(sigset_t* sigs)
 {
+  g_assert(sigs != 0);
   gint rs;
   rs = sigprocmask(SIG_SETMASK, sigs, 0);
   if (rs == -1)
@@ -118,6 +125,8 @@ void sys_sigunblock(sigset_t* sigs)
 
 gint sys_lock_new(const gchar* path, struct error* e)
 {
+  g_assert(path != 0);
+  g_assert(e != 0);
   gint fd = open(path, O_CREAT, 0644);
   if (fd < 0)
   {
@@ -129,6 +138,7 @@ gint sys_lock_new(const gchar* path, struct error* e)
 
 gint sys_lock_trywait(gint fd, gint timeout, struct error* e)
 {
+  g_assert(e != 0);
   gint c=0;
   while (1)
   {
@@ -155,6 +165,7 @@ gint sys_lock_trywait(gint fd, gint timeout, struct error* e)
 
 gint sys_lock_put(gint fd, struct error* e)
 {
+  g_assert(e != 0);
   gint s = flock(fd, LOCK_NB|LOCK_UN);
   if (s == -1) /* error */
   {

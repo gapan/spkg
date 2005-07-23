@@ -25,11 +25,13 @@ struct error {
 
 gchar* e_string(struct error* e)
 {
+  g_assert(e != 0);
   return e->string;
 }
 
 gint e_errno(struct error* e)
 {
+  g_assert(e != 0);
   return e->number;
 }
 
@@ -40,6 +42,7 @@ struct error* e_new()
 
 void e_free(struct error* e)
 {
+  g_assert(e != 0);
   e_clean(e);
   g_free(e);
 }
@@ -53,6 +56,11 @@ void e_add(
   ...
 )
 {
+  g_assert(e != 0);
+  g_assert(context != 0);
+  g_assert(function != 0);
+  g_assert(errfmt != 0);
+
   va_list ap;
   va_start(ap, errfmt);
   gchar* msg = g_strdup_vprintf(errfmt, ap);
@@ -74,6 +82,7 @@ void e_add(
 
 void e_clean(struct error* e)
 {
+  g_assert(e != 0);
   if (G_UNLIKELY(e->string != 0))
   {
     g_free(e->string);
@@ -85,11 +94,13 @@ void e_clean(struct error* e)
 
 void e_print(struct error* e)
 {
+  g_assert(e != 0);
   if (e->bad && e->string)
     fputs(e->string, stderr);
 }
 
 gint e_ok(struct error* e)
 {
+  g_assert(e != 0);
   return !e->bad;
 }

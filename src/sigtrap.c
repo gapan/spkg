@@ -40,6 +40,7 @@ gboolean sig_break = 0;
 
 gint sig_trap(struct error* e)
 {
+  g_assert(e != 0);
   struct sigaction act;
   act.sa_handler = _sig_handler;
   act.sa_flags = 0;

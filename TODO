@@ -6,10 +6,16 @@ before alpha1 |
 
 [doc] finish manpage 
 
+[main] new options: --no-postinst --no-preinst --no-ldconfig
+
 [*] check sync command
 [pkgdb] sync should erase previous database
 
-[*] check assertions (are they really used for catching programmer's bugs?)
+[sql,pkgdb,filedb] check assertions (are they really used for catching programmer's bugs?)
+
+[pkgdb] get_packages: implement data selector using generic function 
+  with callback and selectors + specializations
+[pkgdb] when finished, implement missing py bindings
 
 DEADLINE: 2005-07-24
 
@@ -17,12 +23,7 @@ DEADLINE: 2005-07-24
 before alpha2 |
 --------------/
 
-[main] new options: --no-postinst --no-preinst --no-ldconfig
-
 [pkgtools] implement remove
-
-[pkgdb] get_packages: implement data selector
-[pkgdb] when finished, implement missing py bindings
 
 ---------------------------------------------------------------------
 

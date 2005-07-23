@@ -262,6 +262,9 @@ gint parse_cleanuplink(gchar* line)
 
 gint iter_lines(gchar** b, gchar** e, gchar** n, gchar** ln)
 {
+  g_assert(b != 0);
+  g_assert(e != 0);
+  g_assert(n != 0);
   *b = *n;
   if (*b == 0)
     return 0;

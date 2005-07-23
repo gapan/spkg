@@ -22,6 +22,7 @@ void msg_setup(const gchar* prefix, gint verbosity)
 
 void msg(const gint type, const gchar* fmt, ...)
 {
+  g_assert(fmt != 0);
   if (_msg_verbosity < type)
     return;
   printf("%s: ", _msg_prefix);
