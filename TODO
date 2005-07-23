@@ -8,14 +8,11 @@ before alpha1 |
 
 [main] new options: --no-postinst --no-preinst --no-ldconfig
 
-[*] check sync command
-[pkgdb] sync should erase previous database
-
 [sql,pkgdb,filedb] check assertions (are they really used for catching programmer's bugs?)
 
-[pkgdb] get_packages: implement data selector using generic function 
-  with callback and selectors + specializations
-[pkgdb] when finished, implement missing py bindings
+[pkgdb] implement some useful queries
+[pkgdb] implement missing py bindings for queries
+[pkgdb] implement database integrity checks and use them before syncs
 
 DEADLINE: 2005-07-24
 

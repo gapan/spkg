@@ -174,11 +174,13 @@ dist: docs
 
 # documentation
 ############################################################################
-.PHONY: docs web web-base web-files
+.PHONY: docs web web-base web-docs web-dist
 docs:
 	rm -rf docs/html
 	doxygen docs/Doxyfile
 	rm -f docs/html/doxygen.png
+
+web: web-base web-docs #web-dist
 
 web-base:
 	rm -rf .website
@@ -187,16 +189,16 @@ web-base:
 	sed -i 's/@VER@/$(VERSION)/g ; s/@DATE@/$(shell LANG=C date)/g' .website/*.php .website/inc/*.php
 	sed -i 's/@SPKG@/<strong style="color:darkblue;"><span style="color:red;">s<\/span>pkg<\/strong>/g' .website/*.php .website/inc/*.php
 
-web-files: docs dist slackpkg
+web-docs:
 	mkdir -p .website/dl/spkg-docs
 	cp -r docs/html/* .website/dl/spkg-docs
 	tla changelog > .website/dl/ChangeLog
 	cp TODO .website/dl/TODO
+
+web-dist: docs dist slackpkg
 	( cd .website/dl ; tar czf spkg-docs.tar.gz spkg-docs )
 	mv spkg-$(VERSION).tar.gz .website/dl
 	mv $(PACKAGES) .website/dl
-
-web: web-base web-files
         
 # cleanup
 ############################################################################

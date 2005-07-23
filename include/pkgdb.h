@@ -6,6 +6,19 @@
 \*----------------------------------------------------------------------*/
 /** @defgroup pkgdb_api Package Database API
 
+\ref pkgdb_api consists of three groups of functions:
+
+\section funcs1 Database manipulation functions
+\li \ref db_open and \ref db_close
+\li \ref db_sync_from_legacydb and \ref db_sync_to_legacydb
+
+\section funcs2 Package manipulation functions
+\li \ref db_get_pkg, \ref db_add_pkg and \ref db_rem_pkg
+\li \ref db_legacy_get_pkg, \ref db_legacy_add_pkg and \ref db_legacy_rem_pkg
+
+\section funcs3 Packages list query functions
+These functions returns list of package names.
+\li \ref db_query and \ref db_legacy_query
 
 *//*--------------------------------------------------------------------*/
 /** @addtogroup pkgdb_api */
@@ -151,23 +164,35 @@ extern struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files);
  */
 extern gint db_legacy_rem_pkg(gchar* name);
 
+/** Package selector callback function.
+ *
+ * @param pkg filled package structure
+ * @param data arbitrary data passed from the \ref db_query function.
+ * @return 1 if package should be selected, 0 otherwise, -1 on error.
+ */
+typedef gint (*db_selector)(struct db_pkg* pkg, void* data);
+
 /** Get packages list from the database.
  *
- * @return packages list, 0 on error
+ * @param cb package selector callback function
+ * @param data arbitrary data passed to the package selector function
+ * @return list of package names, 0 if empty or error
  */
-extern GSList* db_get_packages();
+extern GSList* db_query(db_selector cb, void* data);
 
 /** Get packages list from the legacy database.
  *
- * @return packages list, 0 on error
+ * @param cb package selector callback function
+ * @param data arbitrary data passed to the package selector function
+ * @return list of package names, 0 if empty or error
  */
-extern GSList* db_legacy_get_packages();
+extern GSList* db_legacy_query(db_selector cb, void* data);
 
-/** Free packages list returned by \ref db_get_packages().
+/** Free packages list returned by \ref db_query().
  *
- * @param pkgs Packages list returned by \ref db_get_packages()
+ * @param pkgs Packages list returned by \ref db_query()
  */
-extern void db_free_packages(GSList* pkgs);
+extern void db_free_query(GSList* pkgs);
 
 /** Synchronize legacy databse with spkg database.
  *

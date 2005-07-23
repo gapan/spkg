@@ -179,6 +179,9 @@ static __inline__ guint32 _fdb_new_idx(struct fdb* db, guint32 offset, guint32 h
   idx->off = offset;
   idx->hash = hash;
   idx->refs = 1;
+  idx->bal = 0;
+  idx->lnk[0] = 0;
+  idx->lnk[1] = 0;
   db->lastid++;
 #if FDB_CHECKSUMS == 1
   /* calculate new csum */
@@ -718,6 +721,24 @@ void fdb_close(struct fdb* db)
   print_timer(4, "[filedb] fdb_get_file");
   print_timer(5, "[filedb] fdb_del_file");
   print_timer(10, "[filedb] BENCH");
+}
+
+gint fdb_flush(struct fdb* db)
+{
+  g_assert(db != 0);
+  if (!db->is_open)
+  {
+    e_set(E_FATAL|FDB_NOPEN,"file database is NOT open");
+    return 1;
+  }
+
+  db->lastid = db->ihdr->lastid = 0;
+  db->newoff = db->phdr->newoff = sizeof(struct file_pld_hdr);
+  gint j;
+  for (j=0;j<MAXHASH;j++)
+    db->ihdr->hashmap[j] = 0;
+
+  return 0;
 }
 
 #define _fdb_call_entry_checks(v) \

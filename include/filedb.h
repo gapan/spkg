@@ -51,6 +51,12 @@ extern struct fdb* fdb_open(const gchar* path, struct error* e);
  */
 extern void fdb_close(struct fdb* db);
 
+/** Flush file database.
+ *
+ * @param db File database handle.
+ */
+extern gint fdb_flush(struct fdb* db);
+
 /** Add file to the database.
  *
  * @param db File database handle.
