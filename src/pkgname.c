@@ -296,10 +296,8 @@ gint iter_lines2(gchar** b, gchar** e, gchar** n, gchar* eof, gchar** ln)
     t++;
   if (t == eof) /* eof */
     *e = t-1, *n=0;
-  else if (t == '\n') /* eoln */
+  else /* must be newline */
     *e = t-1, *n=(t+1==eof)?0:t+1; /* ignore last line if it is empty */
-  else
-    *n = t+1, *e=t-1; /* next line */
   if (ln)
     *ln = g_strndup(*b, *e-*b+1);
   return 1;
