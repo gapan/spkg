@@ -4,17 +4,14 @@ before alpha1 |
 
 [pkgtools] implement multilevel installation modes
 
-[doc] finish manpage 
-
 [main] new options: --no-postinst --no-preinst --no-ldconfig
 
 [sql,pkgdb,filedb] check assertions (are they really used for catching programmer's bugs?)
 
 [pkgdb] implement some useful queries
 [pkgdb] implement missing py bindings for queries
-[pkgdb] implement database integrity checks and use them before syncs
 
-[misc] add eof checking for non zero terminated (mmapped buffers will SIGBUS)
+[doc] finish manpage 
 
 DEADLINE: 2005-07-24
 
@@ -22,14 +19,22 @@ DEADLINE: 2005-07-24
 before alpha2 |
 --------------/
 
+[pkgdb] implement database integrity checks and use them before syncs
+
 [pkgtools] implement remove
 
 ---------------------------------------------------------------------
+before alpha3 |
+--------------/
 
 [pkgtools] implement upgrade
 
 [sys] reimplement sys_rm_rf and sys_mkdir_p in C (should be just some
     Copy&Paste(tm) from my mxm project)
+
+---------------------------------------------------------------------
+before beta1 |
+-------------/
 
 [untgz] using blockbuf as writebuf can speedup things slightly on the 
     user side (approx. by some 5%)

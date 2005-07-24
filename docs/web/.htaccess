@@ -7,3 +7,7 @@ Allow from all
 </Files>
 
 DirectoryIndex index.php
+
+AuthType Basic
+AuthName "megiWeb restricted area"
+AuthUserFile  /home/ftpsite/megous.com/www/.htpasswd

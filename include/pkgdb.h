@@ -190,9 +190,17 @@ extern GSList* db_legacy_query(db_selector cb, void* data);
 
 /** Free packages list returned by \ref db_query().
  *
- * @param pkgs Packages list returned by \ref db_query()
+ * @param pkgs list of package names returned by \ref db_query()
  */
 extern void db_free_query(GSList* pkgs);
+
+/** Get names of packages that match given pattern.
+ *
+ * @param legacy search in legacy database
+ * @param pattern matching pattern (shell like)
+ * @return list of package names, 0 if empty or error
+ */
+extern GSList* db_query_glob(gboolean legacy, gchar* pattern);
 
 /** Synchronize legacy databse with spkg database.
  *

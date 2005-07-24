@@ -48,7 +48,7 @@ static struct db_state _db = {0};
     return v; \
   }
 
-/* public 
+/* public - open/close
  ************************************************************************/
 
 gint db_open(const gchar* root, struct error* e)
@@ -241,6 +241,9 @@ void db_close()
   print_timer(9, "[pkgdb] db_free_query");
 }
 
+/* public - memmory management
+ ************************************************************************/
+
 struct db_pkg* db_alloc_pkg(gchar* name)
 {
   struct db_pkg* p;
@@ -298,6 +301,9 @@ struct db_file* db_alloc_file(gchar* path, gchar* link)
   f->link = link;
   return f;
 }
+
+/* public - main database package operations
+ ************************************************************************/
 
 gint db_add_pkg(struct db_pkg* pkg)
 {
@@ -502,6 +508,9 @@ gint db_rem_pkg(gchar* name)
   sql_pop_context(1);
   return 0;
 }
+
+/* public - legacy database package operations
+ ************************************************************************/
 
 gint db_legacy_add_pkg(struct db_pkg* pkg)
 {
@@ -804,6 +813,9 @@ gint db_legacy_rem_pkg(gchar* name)
   return ret;
 }
 
+/* public - generic database package queries
+ ************************************************************************/
+
 GSList* db_query(db_selector cb, void* data)
 {
   GSList *pkgs=0;
@@ -933,6 +945,36 @@ void db_free_query(GSList* pkgs)
   g_slist_free(pkgs);
   stop_timer(9);
 }
+
+/* public - specialized database package queries
+ ************************************************************************/
+
+typedef GSList* (*query_func)(db_selector, void*);
+
+static gint _db_query_regexp_selector(struct db_pkg* p, void* d)
+{
+  gint s = fnmatch(d, p->name, 0);
+  if (s == FNM_NOMATCH)
+    return 0;
+  if (s == 0)
+    return 1;
+  return -1;
+}
+
+GSList* db_query_glob(gboolean legacy, gchar* pattern)
+{
+  query_func query = legacy?db_legacy_query:db_query;
+  GSList* l = query(_db_query_regexp_selector, pattern);
+  if (l == 0)
+  {
+    e_set(E_ERROR, "globing failed");
+    return 0;
+  }
+  return l;
+}
+
+/* public - database synchronization
+ ************************************************************************/
 
 gint db_sync_to_legacydb()
 {
