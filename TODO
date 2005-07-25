@@ -2,14 +2,11 @@
 before alpha1 |
 --------------/
 
-[pkgtools] implement multilevel installation modes
+[pkgtools] implement installation modes
 
 [main] new options: --no-postinst --no-preinst --no-ldconfig
 
 [sql,pkgdb,filedb] check assertions (are they really used for catching programmer's bugs?)
-
-[pkgdb] implement some useful queries
-[pkgdb] implement missing py bindings for queries
 
 [doc] finish manpage 
 
@@ -29,12 +26,11 @@ before alpha3 |
 
 [pkgtools] implement upgrade
 
-[sys] reimplement sys_rm_rf and sys_mkdir_p in C (should be just some
-    Copy&Paste(tm) from my mxm project)
-
 ---------------------------------------------------------------------
 before beta1 |
 -------------/
+
+[pkgdb] implement missing py bindings for queries
 
 [untgz] using blockbuf as writebuf can speedup things slightly on the 
     user side (approx. by some 5%)
