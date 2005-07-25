@@ -436,6 +436,7 @@ gint untgz_get_header(struct untgz_state* s)
     case LNKTYPE: s->f_type = UNTGZ_LNK; break;
     case CHRTYPE: s->f_type = UNTGZ_CHR; break;
     case BLKTYPE: s->f_type = UNTGZ_BLK; break;
+    case FIFOTYPE: s->f_type = UNTGZ_FIFO; break;
     default: e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] \"corrupted\" tgz archive (unimplemented typeflag [%c])", i->blockid, b->h.typeflag);
   }
 
@@ -593,6 +594,10 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
     case UNTGZ_SYM:
       if (symlink(s->f_link, path) == -1)
         e_throw(E_ERROR|UNTGZ_BADIO, "can't create symlink: %s", strerror(errno));
+      break;
+    case UNTGZ_FIFO:
+      if (mkfifo(path, s->f_mode) == -1)
+        e_throw(E_ERROR|UNTGZ_BADIO, "can't create fifo: %s", strerror(errno));
       break;
     case UNTGZ_LNK:
       printf("** ln %s %s", s->f_link, path);
