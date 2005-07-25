@@ -14,6 +14,7 @@
 #include <sys/mman.h>
 #include <utime.h>
 #include <errno.h>
+#include <fnmatch.h>
 
 #include "sql.h"
 #include "sys.h"
