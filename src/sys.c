@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include "sys.h"
+#include "misc.h"
 
 #define e_set(e, n, fmt, args...) e_add(e, "filedb", __func__, n, fmt, ##args)
 

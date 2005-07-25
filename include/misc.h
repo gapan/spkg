@@ -7,8 +7,8 @@
 /** @addtogroup other_api */
 /*! @{ */
 
-#ifndef __PKGNAME_H
-#define __PKGNAME_H
+#ifndef __MISC_H
+#define __MISC_H
 
 #include <glib.h>
 
@@ -97,29 +97,6 @@ extern gint iter_lines(gchar** b, gchar** e, gchar** n, gchar** ln);
  * @endcode
  */
 extern gint iter_lines2(gchar** b, gchar** e, gchar** n, gchar* eof, gchar** ln);
-
-/** Remove trailing slashes and squeeze any consecutive slashes into one.
- *
- * For examle "//path/to///" -> "/path/to"
- * @param path path to be sanitizd.
- * @return sanitized path (always)
- */
-extern gchar* path_sanitize_slashes(const gchar* path);
-
-/** Powerful path simplification function.
- *
- * Will do this: "/./path/../../to//./" -> "/to", or "././path/../../to//./" -> "../to"
- * @param path path to be simlified.
- * @return simplified path (always)
- */
-extern gchar* path_simplify(const gchar* path);
-
-/** Get path elements.
- *
- * @param path path to be splitted
- * @return string vector of path elements, must be freed using g_strfreev (always)
- */
-extern gchar** path_get_elements(const gchar* path);
 
 #endif
 
