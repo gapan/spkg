@@ -11,7 +11,7 @@
 #include <time.h>
 #include <string.h>
 
-#include "pkgname.h"
+#include "misc.h"
 #include "untgz.h"
 #include "pkgdb.h"
 #include "sys.h"

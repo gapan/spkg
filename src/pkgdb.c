@@ -18,7 +18,7 @@
 
 #include "sql.h"
 #include "sys.h"
-#include "pkgname.h"
+#include "misc.h"
 #include "filedb.h"
 #include "pkgdb.h"
 #include "bench.h"

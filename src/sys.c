@@ -67,17 +67,65 @@ gint sys_rm_rf(const gchar* path)
   return 1;
 }
 
-/*XXX: implement this in C */
 gint sys_mkdir_p(const gchar* path)
 {
-  g_assert(path != 0);
-  gint rval;
-  gchar* s = g_strdup_printf("/bin/mkdir -p %s", path);
-  rval = system(s);
-  g_free(s);
-  if (rval == 0)
-    return 0;
-  return 1;
+  char *working;
+  char *dir_start;
+  char *dir_proc;
+  char *dir_end;
+  char cwd[256];
+  int cwd_saved = 0;
+
+  if (path == NULL)
+    return 1;
+
+  dir_start = working = strdup(path);
+
+  /*
+   * strip leading slashes
+   */
+  if (*dir_start == '/')
+  {
+    getcwd(cwd, 256);
+    cwd_saved = 1;
+    chdir("/");
+  }
+
+  while (*dir_start == '/')
+    dir_start++;
+
+  /*
+   * strip trailing slashes
+   */
+  while ((dir_end = strrchr(dir_start, '/')) != NULL)
+  {
+    if (strcmp(dir_end, "/") == 0)
+      *dir_end = 0;
+    else
+      break;
+  }
+
+  /*
+   * make directory
+   */
+  dir_proc = dir_start;
+  while (1)
+  {
+    dir_end = strchr(dir_proc, '/');
+    if (dir_end == NULL)
+    {                         /* we are done */
+      mkdir(dir_start, 0755);
+      break;
+    }
+    *dir_end = 0;
+    mkdir(dir_start, 0755);
+    *dir_end = '/';
+    dir_proc = dir_end + 1;
+  }
+  if (cwd_saved)
+    chdir(cwd);
+  free(working);
+  return 0;
 }
 
 gchar* sys_setcwd(const gchar* path)

@@ -79,7 +79,47 @@ extern gint parse_cleanuplink(gchar* line);
  */
 extern gint iter_lines(gchar** b, gchar** e, gchar** n, gchar** ln);
 
+/** Iterate through buffer line by line and terminate just before eof.
+ *
+ * @param b  begining of the line
+ * @param e  end of the line
+ * @param eof end of the buffer (after the last valid character eof=b+length)
+ * @param n  next line start (set this to the buffer begining at start)
+ * @param ln line (zero terminated g_strduped string, freed by user) 
+ *           (could be zero if you don't want to us it)
+ * @return 0 if not a valid cleanup link line, 1 if valid
+ * @code
+ *  gchar *b, *e, *ln, *n=buf, eof=buf+strlen(buf);
+ *  while(iter_lines(&b, &e, &n, eof, &ln))
+ *  {
+ *    g_free(ln);
+ *  }
+ * @endcode
+ */
 extern gint iter_lines2(gchar** b, gchar** e, gchar** n, gchar* eof, gchar** ln);
+
+/** Remove trailing slashes and squeeze any consecutive slashes into one.
+ *
+ * For examle "//path/to///" -> "/path/to"
+ * @param path path to be sanitizd.
+ * @return sanitized path (always)
+ */
+extern gchar* path_sanitize_slashes(const gchar* path);
+
+/** Powerful path simplification function.
+ *
+ * Will do this: "/./path/../../to//./" -> "/to", or "././path/../../to//./" -> "../to"
+ * @param path path to be simlified.
+ * @return simplified path (always)
+ */
+extern gchar* path_simplify(const gchar* path);
+
+/** Get path elements.
+ *
+ * @param path path to be splitted
+ * @return string vector of path elements, must be freed using g_strfreev (always)
+ */
+extern gchar** path_get_elements(const gchar* path);
 
 #endif
 

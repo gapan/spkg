@@ -6,7 +6,7 @@
 \*----------------------------------------------------------------------*/
 #include <stdlib.h>
 #include <stdio.h>
-#include "pkgname.h"
+#include "misc.h"
 
 void test_parser(gchar* sn, gchar* sd)
 {
