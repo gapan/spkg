@@ -13,7 +13,7 @@
 #include <string.h>
 
 #include "sys.h"
-#include "misc.h"
+#include "path.h"
 
 #define e_set(e, n, fmt, args...) e_add(e, "filedb", __func__, n, fmt, ##args)
 
@@ -70,63 +70,47 @@ gint sys_rm_rf(const gchar* path)
 
 gint sys_mkdir_p(const gchar* path)
 {
-  char *working;
-  char *dir_start;
-  char *dir_proc;
-  char *dir_end;
-  char cwd[256];
-  int cwd_saved = 0;
+  g_assert(path != 0);
+  gchar* simple_path = path_simplify(path);
+  gchar** pathv = path_get_elements(simple_path);
+  gint i, j, retval = 1, pathv_len = g_strv_length(pathv);
+  gchar* tmp = g_malloc0(strlen(path)+10/* just a reserve */);
+  gchar* tmp_end = tmp;
+  gboolean backref = 0;
 
-  if (path == NULL)
-    return 1;
-
-  dir_start = working = strdup(path);
-
-  /*
-   * strip leading slashes
-   */
-  if (*dir_start == '/')
+  for (i=0; i<pathv_len; i++)
   {
-    getcwd(cwd, 256);
-    cwd_saved = 1;
-    chdir("/");
-  }
+    /* build path */
+    if (i > 0) /* absolute path or not first element */
+      *(tmp_end++) = '/';
+    if (i == 0 && **pathv == 0)
+      continue;
+    for (j=0; j<strlen(pathv[i]); j++)
+      *(tmp_end++) = pathv[i][j];
+    
+    /* skip backreferences */
+    if (!strcmp(pathv[i], ".."))
+      continue;
 
-  while (*dir_start == '/')
-    dir_start++;
-
-  /*
-   * strip trailing slashes
-   */
-  while ((dir_end = strrchr(dir_start, '/')) != NULL)
-  {
-    if (strcmp(dir_end, "/") == 0)
-      *dir_end = 0;
-    else
-      break;
-  }
-
-  /*
-   * make directory
-   */
-  dir_proc = dir_start;
-  while (1)
-  {
-    dir_end = strchr(dir_proc, '/');
-    if (dir_end == NULL)
-    {                         /* we are done */
-      mkdir(dir_start, 0755);
-      break;
+    /* check dir */
+    sys_ftype type = sys_file_type(tmp,0);
+    if (type == SYS_DIR)
+      continue;
+    if (type == SYS_NONE)
+    {
+      if (mkdir(tmp, 0755) == -1)
+        goto out;
     }
-    *dir_end = 0;
-    mkdir(dir_start, 0755);
-    *dir_end = '/';
-    dir_proc = dir_end + 1;
+    else
+      goto out;
   }
-  if (cwd_saved)
-    chdir(cwd);
-  free(working);
-  return 0;
+
+  retval = 0;
+out:
+  g_free(tmp);
+  g_free(simple_path);
+  g_strfreev(pathv);
+  return retval;
 }
 
 gchar* sys_setcwd(const gchar* path)

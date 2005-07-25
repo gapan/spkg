@@ -16,7 +16,8 @@ compiled-tests = \
   test-sql \
   test-untgz \
   test-parsers \
-  test-path
+  test-path \
+  test-mkdir
 
 test-filedb-speed test-sql-speed: test-files.so
 
