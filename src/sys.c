@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <sys/file.h>
 #include <errno.h>
+#include <dirent.h>
 #include <unistd.h>
 #include <string.h>
 
@@ -55,17 +56,45 @@ time_t sys_file_mtime(const gchar* path, gboolean deref)
   return (time_t)-1;
 }
 
-/*XXX: implement this in C */
+/* ripped off busybox and modified */
 gint sys_rm_rf(const gchar* path)
 {
-  g_assert(path != 0);
-  gint rval;
-  gchar* s = g_strdup_printf("/bin/rm -rf %s", path);
-  rval = system(s);
-  g_free(s);
-  if (rval == 0)
+  struct stat path_stat;
+
+  /* if dir not exist return with error */
+  if (lstat(path, &path_stat) < 0)
+    return 1;
+
+  /* dir */
+  if (S_ISDIR(path_stat.st_mode))
+  {
+    DIR *dp;
+    struct dirent *d;
+    int status = 0;
+
+    if ((dp = opendir(path)) == NULL)
+      return 1;
+    while ((d = readdir(dp)) != NULL)
+    {
+      if (!strcmp(d->d_name, ".") || !strcmp(d->d_name, ".."))
+        continue;
+      gchar *new_path = g_strdup_printf("%s/%s", path, d->d_name);
+      if (sys_rm_rf(new_path))
+        status = 1;
+      g_free(new_path);
+    }
+    if (closedir(dp) < 0)
+      return 1;
+    if (rmdir(path) < 0)
+      return 1;
+    return status;
+  }
+  else /* nondir */
+  {
+    if (unlink(path) < 0)
+      return 1;
     return 0;
-  return 1;
+  }
 }
 
 gint sys_mkdir_p(const gchar* path)
@@ -76,7 +105,6 @@ gint sys_mkdir_p(const gchar* path)
   gint i, j, retval = 1, pathv_len = g_strv_length(pathv);
   gchar* tmp = g_malloc0(strlen(path)+10/* just a reserve */);
   gchar* tmp_end = tmp;
-  gboolean backref = 0;
 
   for (i=0; i<pathv_len; i++)
   {
