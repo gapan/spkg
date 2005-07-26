@@ -394,7 +394,9 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
         _notice("running doinst.sh");
         if (system(". install/doinst.sh"))
           _warning("doinst.sh failed");
+        unlink("install/doinst.sh");
       }
+      rmdir("install");
       sys_setcwd(old_cwd);
     }
   }

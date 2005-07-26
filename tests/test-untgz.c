@@ -23,8 +23,8 @@ int main(int ac, char* av[])
   for (i=1;i<ac;i++)
   {
     // Open tgz file.
-    struct untgz_state* tgz = untgz_open(av[i], status, err);
-//    struct untgz_state* tgz = untgz_open(av[i], 0, err);
+//    struct untgz_state* tgz = untgz_open(av[i], status, err);
+    struct untgz_state* tgz = untgz_open(av[i], 0, err);
     if (tgz == 0)
     {
       e_print(err);

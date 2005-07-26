@@ -104,7 +104,7 @@ struct tar_header {            /* byte offset */
 
 union tar_block {
   struct tar_header h;
-  gchar b[BLOCKSIZE];
+  guchar b[BLOCKSIZE];
 };
 
 #define e_set(n, fmt, args...) e_add(s->i->err, "untgz", __func__, n, fmt, ##args)
@@ -150,9 +150,9 @@ static void validate_header_csum(struct untgz_state* s)
   union tar_block* b = (union tar_block*)i->bpos;
 
   head_csum = getoct(s, b->h.chksum, 6);
-  memcpy(b->h.chksum, "        ", sizeof(b->h.chksum));
+  memcpy(b->h.chksum, "        ", 8);
   for (n=0; G_LIKELY(n<BLOCKSIZE); n+=2)
-    real_csum += b->b[n] + b->b[n+1];
+    real_csum += (guchar)b->b[n] + (guchar)b->b[n+1];
   if (G_UNLIKELY(real_csum != head_csum))
     e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] corrupted tgz archive (invalid header checksum)", i->blockid);
 }

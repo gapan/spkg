@@ -26,8 +26,8 @@ mandir = $(prefix)/man
 docdir = $(prefix)/doc/spkg-$(VERSION)
 
 #CC := /opt/gcc-4.0.1/bin/gcc-4.0.1
-#CC := gcc-3.4.4
-CC := gcc
+CC := gcc-3.4.4
+#CC := gcc
 AR := ar
 CFLAGS := -pipe -Wall
 CPPFLAGS := -Iinclude -Ilibs/zlib -Ilibs/sqlite -Ilibs/glib -Ilibs/popt -D_GNU_SOURCE -DSPKG_VERSION=$(VERSION)
@@ -40,8 +40,8 @@ ifeq ($(DEBUG),yes)
 CFLAGS +=  -ggdb3 -O0
 CPPFLAGS += -D__DEBUG=1
 else
-#CFLAGS += -ggdb1 -O2 -march=i486 -mtune=i686 # -fomit-frame-pointer
-CFLAGS += -ggdb1 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer
+CFLAGS += -ggdb1 -O2 -march=i486 -mtune=i686 # -fomit-frame-pointer
+#CFLAGS += -ggdb1 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer
 endif
 ifeq ($(BENCH),yes)
 CPPFLAGS += -D__BENCH=1
