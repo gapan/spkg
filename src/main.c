@@ -311,7 +311,7 @@ int main(const int ac, const char* av[])
     case CMD_INSTALL:
       if (poptPeekArg(optCon) == 0)
         goto err_nopackages;
-      while ((arg = poptGetArg(optCon)) != 0)
+      while ((arg = poptGetArg(optCon)) != 0 && !sig_break)
       {
         if (pkg_install(arg, &pkg_opts, err))
         {
@@ -324,7 +324,7 @@ int main(const int ac, const char* av[])
     case CMD_UPGRADE:
       if (poptPeekArg(optCon) == 0)
         goto err_nopackages;
-      while ((arg = poptGetArg(optCon)) != 0)
+      while ((arg = poptGetArg(optCon)) != 0 && !sig_break)
       {
         if (pkg_upgrade(arg, &pkg_opts, err))
         {
@@ -337,7 +337,7 @@ int main(const int ac, const char* av[])
     case CMD_REMOVE:
       if (poptPeekArg(optCon) == 0)
         goto err_nopackages;
-      while ((arg = poptGetArg(optCon)) != 0)
+      while ((arg = poptGetArg(optCon)) != 0 && !sig_break)
       {
         if (pkg_remove(arg, &pkg_opts, err))
         {

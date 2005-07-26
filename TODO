@@ -4,8 +4,6 @@ before alpha1 |
 
 [pkgtools] implement installation modes
 
-[main] new options: --no-postinst --no-preinst --no-ldconfig
-
 [sql,pkgdb,filedb] check assertions (are they really used for catching programmer's bugs?)
 
 [doc] finish manpage 
