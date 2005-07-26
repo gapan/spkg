@@ -300,9 +300,6 @@ int main(const int ac, const char* av[])
   if (quiet)
     pkg_opts.verbosity = 0;
 
-  printf("v = %d\n", pkg_opts.verbosity);
-  goto out;
-
   /* init signal trap */
   if (sig_trap(err))
     goto err_2;
