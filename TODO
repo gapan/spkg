@@ -3,7 +3,6 @@ before alpha1 |
 --------------/
 
 [pkgtools] remove install dir after installation
-
 [pkgtools] implement installation modes
 
 [sql,pkgdb,filedb] check assertions (are they really used for catching programmer's bugs?)

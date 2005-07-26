@@ -23,6 +23,22 @@
 /* private 
  ************************************************************************/
 
+/* these packages can't be optimized */
+static gchar* blacklist[] = {
+  "aaa_base",
+  "bin",
+  "glibc-solibs",
+};
+
+static gint blacklisted(gchar* shortname)
+{
+  gint i;
+  for (i=0; i<sizeof(blacklist)/sizeof(blacklist[0]); i++)
+    if (!strcmp(blacklist[i], shortname))
+      return 1;
+  return 0;
+}
+
 #define e_set(n, fmt, args...) e_add(e, "pkgtools", __func__, n, fmt, ##args)
 
 #define _safe_breaking_point(label) \
@@ -164,7 +180,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
       }
 
       gchar* fullpath = g_strdup_printf("%s/%s", opts->root, tgz->f_name);
-      if (opts->noptsym) /* optimization disabled, just extract */
+      if (opts->noptsym || blacklisted(shortname)) /* optimization disabled, just extract */
       {
         if (untgz_write_file(tgz, fullpath))
         {
