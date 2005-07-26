@@ -25,10 +25,14 @@
 #define PKG_DB      E(5) /**< package database error */
 
 typedef enum {
-  PKG_PARANOID=0, /**<  */
-  PKG_CAUTIOUS,   /**<  */
-  PKG_NORMAL,     /**< revert only on serious errors */
-  PKG_BRUTAL,     /**<  */
+  PKG_MODE_PARANOID=0, /**<  */
+  PKG_MODE_CAUTIOUS,   /**<  */
+  PKG_MODE_NORMAL,     /**<  */
+  PKG_MODE_BRUTAL,     /**<  */
+  PKG_MODE_GLOB,     /**<  */
+  PKG_MODE_ALL,     /**<  */
+  PKG_MODE_FROMLEGACY,     /**<  */
+  PKG_MODE_TOLEGACY,     /**<  */
 } pkg_mode;
 
 /** Common package command options structure. */
@@ -67,6 +71,14 @@ extern gint pkg_upgrade(const gchar* pkgfile, const struct pkg_options* opts, st
  * @return 0 on success, 1 on error
  */
 extern gint pkg_remove(const gchar* pkgname, const struct pkg_options* opts, struct error* e);
+
+/** Synchronize package databases.
+ * 
+ * @param opts Options.
+ * @param e Error object.
+ * @return 0 on success, 1 on error
+ */
+extern gint pkg_sync(const struct pkg_options* opts, struct error* e);
 
 #endif
 

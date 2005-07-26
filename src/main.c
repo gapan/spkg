@@ -23,25 +23,72 @@ static guint command = 0;
 #define CMD_UPGRADE (1<<1)
 #define CMD_REMOVE  (1<<2)
 #define CMD_SYNC    (1<<3)
+#define CMD_LIST    (1<<4)
 
 static struct poptOption optsCommands[] = {
 {
   "install", 'i', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_INSTALL, 
-  "Install packages", NULL
+  "Install packages. ([p]aranoid|[c]autious|[n]ormal|[b]rutal)", NULL
 },
+#if 0
 {
   "upgrade", 'u', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_UPGRADE,
-  "Upgrade packages", NULL
+  "Upgrade packages [unimplemented]", NULL
 },
 {
   "remove", 'd', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_REMOVE,
-  "Remove packages", NULL
+  "Remove packages [unimplemented]", NULL
 },
 {
-  "sync-cache", 's', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_SYNC,
-  "Synchronize cache", NULL
+  "list", 'l', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_LIST,
+  "List packages. ([a]ll|[g]lob)", NULL
+},
+#endif
+{
+  "sync", 's', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_SYNC,
+  "Synchronize databases. ([f]rom-legacy|[t]o-legacy)", NULL
 },
 POPT_TABLEEND
+};
+
+/* commands/modes definition
+ ************************************************************************/
+
+struct mode {
+  pkg_mode mode;
+  gchar* shortcut;
+  gchar* longname;
+};
+struct cmd {
+  gint cmd;
+  pkg_mode default_mode;
+  struct mode modes[16];
+};
+static struct cmd cmds[] = {
+{
+  CMD_INSTALL, PKG_MODE_NORMAL, {
+    { PKG_MODE_PARANOID, "p", "paranoid" },
+    { PKG_MODE_CAUTIOUS, "c", "cautious" },
+    { PKG_MODE_NORMAL, "n", "normal" },
+    { PKG_MODE_BRUTAL, "b", "brutal" },
+    { 0 },
+  }
+},
+{
+  CMD_LIST, PKG_MODE_ALL, {
+    { PKG_MODE_ALL, "a", "all" },
+    { PKG_MODE_GLOB, "g", "glob" },
+    { 0 },
+  }
+},
+{
+  CMD_SYNC, PKG_MODE_FROMLEGACY, {
+    { PKG_MODE_FROMLEGACY, "f", "from-legacy" },
+    { PKG_MODE_TOLEGACY, "t", "to-legacy" },
+    { 0 },
+  }
+},
+{ 0 }
 };
 
 /* options
@@ -53,18 +100,17 @@ static struct pkg_options pkg_opts = {
   .verbosity = 1,
   .noptsym = 0,
   .nodoinst = 0,
-  .mode = PKG_NORMAL
 };
 
-static gchar* mode = "normal";
+static gchar* mode = 0;
 static gint verbose = 0;
 static gint quiet = 0;
 
 static struct poptOption optsOptions[] = {
 {
-  "mode", 'm', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &mode, 0,
-  "Set command mode of operation. This can be: \"paranoid\" (p), "
-  "\"cautious\" (c), \"normal\" (n) or \"brutal\" (b).", "MODE"
+  "mode", 'm', POPT_ARG_STRING, &mode, 0,
+  "Set command mode of operation. See particular command for available "
+  "modes.", "MODE"
 },
 {
   "root", 'r', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &pkg_opts.root, 0,
@@ -76,7 +122,7 @@ static struct poptOption optsOptions[] = {
 },
 {
   "quiet", 'q', 0, &quiet, 0,
-  "Be quiet about what is going on. Only warnings will be shown.", NULL
+  "Don't print warnings.", NULL
 },
 {
   "dry-run", 'n', 0, &pkg_opts.dryrun, 0,
@@ -123,16 +169,10 @@ POPT_TABLEEND
  ************************************************************************/
 
 static struct poptOption opts[] = {
-{
-  NULL, '\0', POPT_ARG_INCLUDE_TABLE, &optsCommands, 0, "Commands:", NULL
-},
-{
-  NULL, '\0', POPT_ARG_INCLUDE_TABLE, &optsOptions, 0, "Options:", NULL
-},
-{
-  NULL, '\0', POPT_ARG_INCLUDE_TABLE, &optsHelp, 0, "Help options:", NULL
-},
-  POPT_TABLEEND
+{ NULL, '\0', POPT_ARG_INCLUDE_TABLE, &optsCommands, 0, "Commands:", NULL },
+{ NULL, '\0', POPT_ARG_INCLUDE_TABLE, &optsOptions, 0, "Options:", NULL },
+{ NULL, '\0', POPT_ARG_INCLUDE_TABLE, &optsHelp, 0, "Help options:", NULL },
+POPT_TABLEEND
 };
 
 /* main
@@ -165,8 +205,7 @@ int main(const int ac, const char* av[])
       fprintf(stderr, "error[main]: invalid argument: %s (%s)\n",
         poptStrerror(rc),
         poptBadOption(optCon, POPT_BADOPTION_NOALIAS));
-      status = 1;
-      goto out;
+      goto err_1;
     }
   }
 
@@ -209,131 +248,117 @@ int main(const int ac, const char* av[])
     goto out;
   }
 
-  if (!strcmp(mode, "normal") || !strcmp(mode, "n"))
-    pkg_opts.mode = PKG_NORMAL;
-  else if (!strcmp(mode, "cautious") || !strcmp(mode, "c"))
-    pkg_opts.mode = PKG_CAUTIOUS;
-  else if (!strcmp(mode, "paranoid") || !strcmp(mode, "p"))
-    pkg_opts.mode = PKG_PARANOID;
-  else if (!strcmp(mode, "brutal") || !strcmp(mode, "b"))
-    pkg_opts.mode = PKG_BRUTAL;
-  else
+  /* got command? */
+  if (command == 0)
   {
-    fprintf(stderr, "error[main]: invalid argument: unknown mode (%s)\n", mode);
-    status = 1;
-    goto out;
+    fprintf(stderr, "error[main]: invalid argument: no command given\n");
+    goto err_1;
   }
 
+  /* get mode for command */
+  struct cmd* c = cmds;
+  while (c->cmd) /* for each command */
+  {
+    if (c->cmd == command)
+    {
+      /* command found */
+      pkg_opts.mode = c->default_mode;
+      if (mode == 0) /* no mode specified on command line */
+        goto mode_ok;
+      struct mode* m = c->modes;
+      while (m->shortcut) /* for each mode */
+      {
+        if (!strcmp(m->shortcut, mode) || !strcmp(m->longname, mode))
+        {
+          pkg_opts.mode = m->mode;
+          goto mode_ok;
+        }
+        m++;
+      }
+      goto no_mode;
+    }
+    c++;
+  }
+  /* command not found in a table (because it is incomplete!) */
+  g_assert_not_reached();
+ no_mode:
+  /* mode not found in a table */
+  fprintf(stderr, "error[main]: invalid argument: unknown mode (%s)\n", mode);
+  goto err_1;
+ mode_ok:
+
+  /* check verbosity options */
   if (verbose && quiet)
   {
     fprintf(stderr, "error[main]: invalid argument: verbose or quiet?\n");
-    status = 1;
-    goto out;
+    goto err_1;
   }
   if (verbose)
     pkg_opts.verbosity = 2;
   if (quiet)
     pkg_opts.verbosity = 0;
 
+  /* init signal trap */
   if (sig_trap(err))
-    goto err;
+    goto err_2;
+
+  /* open db */
+  if (db_open(pkg_opts.root, err))
+    goto err_2;
 
   switch (command)
   {
     case CMD_INSTALL:
       if (poptPeekArg(optCon) == 0)
-      {
-        fprintf(stderr, "error[main]: invalid argument: no packages given\n");
-        status = 1;
-        goto out;
-      }
-      db_open(pkg_opts.root, err);
-      if (!e_ok(err))
-        goto err;
+        goto err_nopackages;
       while ((arg = poptGetArg(optCon)) != 0)
       {
-        pkg_install(arg, &pkg_opts, err);
-        if (!e_ok(err))
+        if (pkg_install(arg, &pkg_opts, err))
         {
           e_print(err);
           e_clean(err);
           status = 2;
         }
       }
-      db_close();
     break;
     case CMD_UPGRADE:
       if (poptPeekArg(optCon) == 0)
-      {
-        fprintf(stderr, "error[main]: invalid argument: no packages given\n");
-        status = 1;
-        goto out;
-      }
-      db_open(pkg_opts.root, err);
-      if (!e_ok(err))
-        goto err;
+        goto err_nopackages;
       while ((arg = poptGetArg(optCon)) != 0)
       {
-        pkg_upgrade(arg, &pkg_opts, err);
-        if (!e_ok(err))
+        if (pkg_upgrade(arg, &pkg_opts, err))
         {
           e_print(err);
           e_clean(err);
           status = 2;
         }
       }
-      db_close();
     break;
     case CMD_REMOVE:
       if (poptPeekArg(optCon) == 0)
-      {
-        fprintf(stderr, "error[main]: invalid argument: no packages given\n");
-        status = 1;
-        goto out;
-      }
-      db_open(pkg_opts.root, err);
-      if (!e_ok(err))
-        goto err;
+        goto err_nopackages;
       while ((arg = poptGetArg(optCon)) != 0)
       {
-        pkg_remove(arg, &pkg_opts, err);
-        if (!e_ok(err))
+        if (pkg_remove(arg, &pkg_opts, err))
         {
           e_print(err);
           e_clean(err);
           status = 2;
         }
       }
-      db_close();
     break;
     case CMD_SYNC:
       if (poptPeekArg(optCon) != 0)
-      {
-        fprintf(stderr, "error[main]: invalid argument: garbage on command line (%s...)\n", poptPeekArg(optCon));
-        status = 1;
-        goto out;
-      }
-      db_open(pkg_opts.root, err);
-      if (!e_ok(err))
-        goto err;
-      db_sync_from_legacydb();
-      if (!e_ok(err))
-      {
-        e_print(err);
-        e_clean(err);
-        status = 2;
-      }
-      db_close();
+        goto err_garbage;
+      if (pkg_sync(&pkg_opts, err))
+        goto err_2;
     break;
-    case 0:
-      fprintf(stderr, "error[main]: invalid argument: no command given\n");
-      status = 1;
-      goto out;
     default:
       fprintf(stderr, "error[main]: invalid argument: schizofrenic command usage\n");
-      status = 1;
-      goto out;
+      goto err_1;
   }
+
+  db_close();
 
  out:
   optCon = poptFreeContext(optCon);
@@ -343,8 +368,17 @@ int main(const int ac, const char* av[])
    * 2 = package manager error
    */
   return status;
- err:
+ err_1:
+  status = 1;
+  goto out;
+ err_2:
   status = 2;
   e_print(err);
   goto out;
+ err_nopackages:
+  fprintf(stderr, "error[main]: invalid argument: no packages given\n");
+  goto err_1;
+ err_garbage:
+  fprintf(stderr, "error[main]: invalid argument: garbage on command line (%s...)\n", poptPeekArg(optCon));
+  goto err_1;
 }

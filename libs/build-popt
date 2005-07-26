@@ -6,6 +6,7 @@ OFLAGS="-ggdb1 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer"
 
 test -d popt-$VER || \
 tar xzf popt-$VER.tar.gz || exit 1
+patch -p0 < popt-$VER-linebreak.patch
 rm -rf popt-build
 mkdir popt-build
 

@@ -45,6 +45,8 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
 
   msg_setup("install", opts->verbosity);
 
+  _message("installing package %s", pkgfile);
+
   /* check if file exist and is regular file */
   if (sys_file_type(pkgfile,1) != SYS_REG)
   {
@@ -437,4 +439,36 @@ gint pkg_remove(const gchar* pkgname, const struct pkg_options* opts, struct err
   g_assert(e != 0);
   e_set(E_FATAL,"command is not yet implemented");
   return 1;
+}
+
+gint pkg_sync(const struct pkg_options* opts, struct error* e)
+{
+  g_assert(opts != 0);
+  g_assert(e != 0);
+
+  msg_setup("sync", opts->verbosity);
+
+  if (opts->mode == PKG_MODE_FROMLEGACY)
+  {
+    _message("synchronizing legacydb -> spkgdb");
+    if (!opts->dryrun)
+      db_sync_from_legacydb();
+  }
+  else if (opts->mode == PKG_MODE_TOLEGACY)
+  {
+    _message("synchronizing spkgdb -> legacydb");
+    if (!opts->dryrun)
+      db_sync_to_legacydb();
+  }
+  else
+  {
+    e_set(E_FATAL,"invalid mode");
+    return 1;
+  }
+  if (!e_ok(e))
+  {
+    e_set(E_FATAL,"sync failed");
+    return 1;
+  }
+  return 0;
 }
