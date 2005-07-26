@@ -836,7 +836,7 @@ GSList* db_query(db_selector cb, void* data)
   sql_query *q = sql_prep("SELECT name FROM packages;");
   while(sql_step(q))
   {
-    gchar* name = sql_get_text(q, 1);
+    gchar* name = sql_get_text(q, 0);
     if (cb == 0)
     {
       pkgs = g_slist_prepend(pkgs, g_strdup(name));

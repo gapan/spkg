@@ -187,6 +187,7 @@ int main(const int ac, const char* av[])
   struct error* err = e_new();
 
   /* check if we have enough privileges */
+  unsetenv("LD_LIBRARY_PATH");
   if (getuid() != 0)
   {
     fprintf(stderr, "You need root privileges to run this program. Sorry.\n");

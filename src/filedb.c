@@ -202,6 +202,7 @@ static __inline__ void _build_pld_data(const struct fdb_file* file, void** data,
     gint l = strlen(file->link);
     *data = file->link;
     *dlen = l+1;
+    return;
   }
   *data = 0;
   *dlen = 0;
