@@ -45,7 +45,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
 
   msg_setup("install", opts->verbosity);
 
-  _message("installing package %s", pkgfile);
+  _inform("installing package %s", pkgfile);
 
   /* check if file exist and is regular file */
   if (sys_file_type(pkgfile,1) != SYS_REG)
@@ -92,7 +92,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
     goto err1;
   }
 
-  _message("package file opened: %s", pkgfile);
+  _notice("package file opened: %s", pkgfile);
 
   /* init transaction */
   if (ta_initialize(opts->dryrun, e))
@@ -150,7 +150,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
       gint i;
       for (i=0;i<11;i++)
       {
-        _message("%s", desc[i]);
+        _notice("%s", desc[i]);
         g_free(desc[i]);
       }  
       continue;
@@ -196,7 +196,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
           gchar* path = g_strdup_printf("%s/%s", dir, link);
           g_free(dir);
           g_free(link);
-          _message("symlink %s -> %s", path, target);
+          _notice("symlink %s -> %s", path, target);
           pkg->files = g_slist_prepend(pkg->files, db_alloc_file(path, target));
           gchar* fullpath = g_strdup_printf("%s/%s", opts->root, path);
           ta_symlink_nothing(fullpath, g_strdup(target));
@@ -258,14 +258,14 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
       case UNTGZ_DIR: /* we have directory */
         if (existing == SYS_DIR)
         {
-          _message("#mkdir %s", tgz->f_name);
+          _notice("#mkdir %s", tgz->f_name);
           /* installed directory already exist */
 //          struct stat st;
 //          lstat(fullpath,st);          
         }
         else if (existing == SYS_NONE)
         {
-          _message("mkdir %s", tgz->f_name);
+          _notice("mkdir %s", tgz->f_name);
           if (!opts->dryrun)
             if (untgz_write_file(tgz, fullpath))
               goto extract_failed;
@@ -291,7 +291,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
         postpone hardlink creation into transaction finalization phase */
       {
         gchar* linkpath = g_strdup_printf("%s/%s", opts->root, tgz->f_link);
-        _message("hardlink found %s -> %s (postponed)", tgz->f_name, tgz->f_link);
+        _notice("hardlink found %s -> %s (postponed)", tgz->f_name, tgz->f_link);
         ta_link_nothing(fullpath, linkpath);
         fullpath = 0;
       }
@@ -307,7 +307,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
         }
         else if (existing == SYS_NONE)
         {
-          _message("extracting %s", tgz->f_name);
+          _notice("extracting %s", tgz->f_name);
           if (!opts->dryrun)
             if (untgz_write_file(tgz, fullpath))
               goto extract_failed;
@@ -353,14 +353,14 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
   /* add package to the database */
   if (!opts->dryrun)
   {
-    _message("updating legacy database");
+    _notice("updating legacy database");
     if (db_legacy_add_pkg(pkg))
     {
       e_set(E_ERROR|PKG_DB,"can't add package to the legacy database");
       goto err3;
     }
     _safe_breaking_point(err4);
-    _message("updating spkg database");
+    _notice("updating spkg database");
     if (db_add_pkg(pkg))
     {
       e_set(E_ERROR|PKG_DB,"can't add package to the database");
@@ -369,11 +369,11 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
   }
 
   /* finalize transaction */
-  _message("finalizing transaction");
+  _notice("finalizing transaction");
   ta_finalize();
 
   /* close tgz */
-  _message("closing package");
+  _notice("closing package");
   untgz_close(tgz);
   tgz = 0;
 
@@ -384,14 +384,14 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
     {
 #if 0
       /* run ldconfig */
-      _message("running ldconfig");
+      _notice("running ldconfig");
       if (system("/sbin/ldconfig -r ."))
         _warning("ldconfig failed");
 #endif
       /* run doinst sh */
       if (sys_file_type("install/doinst.sh",0) == SYS_REG)
       {
-        _message("running doinst.sh");
+        _notice("running doinst.sh");
         if (system(". install/doinst.sh"))
           _warning("doinst.sh failed");
       }
@@ -399,7 +399,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
     }
   }
 
-  _message("finished");
+  _notice("finished");
 
   db_free_pkg(pkg);
   g_free(name);
@@ -409,17 +409,17 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
  err4:
   db_legacy_rem_pkg(name);
  err3:
-  _message("rolling back");
+  _notice("rolling back");
   ta_rollback();
   db_free_pkg(pkg);
  err2:
-  _message("closing package");
+  _notice("closing package");
   untgz_close(tgz);
  err1:
   g_free(name);
   g_free(shortname);
  err0:
-  _message("installation terminated");
+  _notice("installation terminated");
   return 1;
 }
 
@@ -450,13 +450,13 @@ gint pkg_sync(const struct pkg_options* opts, struct error* e)
 
   if (opts->mode == PKG_MODE_FROMLEGACY)
   {
-    _message("synchronizing legacydb -> spkgdb");
+    _inform("synchronizing legacydb -> spkgdb");
     if (!opts->dryrun)
       db_sync_from_legacydb();
   }
   else if (opts->mode == PKG_MODE_TOLEGACY)
   {
-    _message("synchronizing spkgdb -> legacydb");
+    _inform("synchronizing spkgdb -> legacydb");
     if (!opts->dryrun)
       db_sync_to_legacydb();
   }

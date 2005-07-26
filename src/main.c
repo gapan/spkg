@@ -117,7 +117,7 @@ static struct poptOption optsOptions[] = {
   "Set altrernate root directory for package operations.", "ROOT"
 },
 {
-  "verbose", 'v', 0, &verbose, 0,
+  "verbose", 'v', 0, 0, 1,
   "Be verbose about what is going on.", NULL
 },
 {
@@ -200,6 +200,8 @@ int main(const int ac, const char* av[])
   /* parse options */
   while ((rc = poptGetNextOpt(optCon)) != -1)
   {
+    if (rc == 1)
+      verbose++;
     if (rc < -1)
     {
       fprintf(stderr, "error[main]: invalid argument: %s (%s)\n",
@@ -294,9 +296,12 @@ int main(const int ac, const char* av[])
     goto err_1;
   }
   if (verbose)
-    pkg_opts.verbosity = 2;
+    pkg_opts.verbosity = verbose+1;
   if (quiet)
     pkg_opts.verbosity = 0;
+
+  printf("v = %d\n", pkg_opts.verbosity);
+  goto out;
 
   /* init signal trap */
   if (sig_trap(err))

@@ -27,8 +27,11 @@ extern void msg_setup(const gchar* prefix, gint verbosity);
  */
 extern void msg(const gint type, const gchar* fmt, ...);
 
-/** Print a message. */
-#define _message(fmt, args...) msg(2, fmt, ##args)
+/** Print a notice. */
+#define _notice(fmt, args...) msg(3, fmt, ##args)
+
+/** Print an information. */
+#define _inform(fmt, args...) msg(2, fmt, ##args)
 
 /** Print a warning. */
 #define _warning(fmt, args...) msg(1, fmt, ##args)

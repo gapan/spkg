@@ -24,7 +24,7 @@
   <ul>
    <li><a href="http://www.sqlite.org">sqlite-3.2.2</a> - lightweight SQL database engine</li>
    <li><a href="http://www.gtk.org">glib-2.6.5</a> - general purpose C library</li>
-   <li><a href="ftp://ftp.rpm.org/pub/rpm/dist">popt-1.7</a> - command line parser</li>
+   <li><a href="ftp://ftp.rpm.org/pub/rpm/dist">popt-1.10.2</a> - command line parser</li>
    <li><a href="http://www.zlib.net">zlib-1.2.3</a> - zlib (de)compression library</li>
   </ul>
 

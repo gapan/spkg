@@ -140,7 +140,7 @@ gint ta_finalize()
           goto next_action;
         }
       }
-      _message("mv %s %s", a->path1, a->path2);
+      _notice("mv %s %s", a->path1, a->path2);
     }
     else if (a->on_finalize == LINK)
     {
@@ -152,7 +152,7 @@ gint ta_finalize()
           goto next_action;
         }
       }
-      _message("ln %s %s", a->path2, a->path1);
+      _notice("ln %s %s", a->path2, a->path1);
     }
     else if (a->on_finalize == SYMLINK)
     {
@@ -164,7 +164,7 @@ gint ta_finalize()
           goto next_action;
         }
       }
-      _message("ln -s %s %s", a->path2, a->path1);
+      _notice("ln -s %s %s", a->path2, a->path1);
     }
    next_action:
     _ta_free_action(a);
@@ -203,7 +203,7 @@ gint ta_rollback()
             goto next_action;
           }
         }
-        _message("rmdir %s", a->path1);
+        _notice("rmdir %s", a->path1);
       }
       else
       {
@@ -215,7 +215,7 @@ gint ta_rollback()
             goto next_action;
           }
         }
-        _message("rm %s", a->path1);
+        _notice("rm %s", a->path1);
       }
     }
     else if (a->on_rollback == NOTHING)

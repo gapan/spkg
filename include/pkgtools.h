@@ -25,7 +25,7 @@
 #define PKG_DB      E(5) /**< package database error */
 
 typedef enum {
-  PKG_MODE_PARANOID=0, /**<  */
+  PKG_MODE_PARANOID=1, /**<  */
   PKG_MODE_CAUTIOUS,   /**<  */
   PKG_MODE_NORMAL,     /**<  */
   PKG_MODE_BRUTAL,     /**<  */
