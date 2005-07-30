@@ -15,8 +15,10 @@ DEADLINE: 2005-07-24
 before alpha2 |
 --------------/
 
+[pkgdb] query should select whether to return lists of string or pkg obejcts
+[error] rework internals of the error handling (use gslist for error stacking)
 [pkgdb] implement database integrity checks and use them before syncs
-
+[sql] port sql error handling to a e_* (use only errjmp and errret)
 [pkgtools] implement remove
 
 ---------------------------------------------------------------------
