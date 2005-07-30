@@ -385,7 +385,7 @@ gint db_add_pkg(struct db_pkg* pkg)
   return 1;
 }
 
-struct db_pkg* db_get_pkg(gchar* name, gboolean files)
+struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
 {
   sql_query *q;
   struct db_pkg* p=0;
@@ -397,6 +397,16 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   if (name == 0)
   {
     e_set(E_BADARG, "package name missing");
+    goto err_0;
+  }
+  if (parse_pkgname(name, 6) != (gchar*)-1)
+  {
+    e_set(E_ERROR, "invalid package name: %s", name);
+    goto err_0;
+  }
+  if (type != DB_GET_WITHOUT_FILES && type != DB_GET_FULL)
+  {
+    e_set(E_BADARG, "invalid get type");
     goto err_0;
   }
 
@@ -434,7 +444,7 @@ struct db_pkg* db_get_pkg(gchar* name, gboolean files)
   p->doinst = g_strdup(sql_get_text(q, 11));
 
   /* caller don't want files list, so it's enough here */
-  if (files == 0)
+  if (type == DB_GET_WITHOUT_FILES)
     goto ok;
 
   guint fi_size = sql_get_size(q, 10)/sizeof(guint32);
@@ -598,7 +608,7 @@ gint db_legacy_add_pkg(struct db_pkg* pkg)
   return ret;
 }
 
-struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
+struct db_pkg* db_legacy_get_pkg(gchar* name, db_get_type type)
 {
   gint fp, fs;
   gchar *ap, *as=0;
@@ -607,11 +617,19 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
   gchar *tmpstr;
   gchar *eof;
   
-  g_assert(name != 0);
-
+  if (name == 0)
+  {
+    e_set(E_BADARG, "package name missing");
+    goto err_0;
+  }
   if (parse_pkgname(name, 6) != (gchar*)-1)
   {
     e_set(E_ERROR, "invalid package name: %s", name);
+    goto err_0;
+  }
+  if (type != DB_GET_WITHOUT_FILES && type != DB_GET_FULL)
+  {
+    e_set(E_BADARG, "invalid get type");
     goto err_0;
   }
 
@@ -733,7 +751,7 @@ struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files)
   goto err_1;
 
  parse_files:
-  if (!files)
+  if (type == DB_GET_WITHOUT_FILES)
     goto fini;
 
   while(iter_lines2(&b, &e, &n, eof, &ln))
@@ -817,70 +835,101 @@ gint db_legacy_rem_pkg(gchar* name)
 /* public - generic database package queries
  ************************************************************************/
 
-GSList* db_query(db_selector cb, void* data)
+GSList* db_query(db_selector cb, void* data, db_query_type type)
 {
   GSList *pkgs=0;
 
   _db_open_check(0)
-  
-  continue_timer(7);
+
+  if (type != DB_QUERY_PKGS_WITH_FILES &&
+      type != DB_QUERY_PKGS_WITHOUT_FILES &&
+      type != DB_QUERY_NAMES)
+  {
+    e_set(E_BADARG, "invalid query type");
+    goto err_0;
+  }
   
   /* sql error handler */
   sql_push_context(SQL_ERRJUMP,1);
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
     e_set(E_FATAL|DB_SQL, "%s", sql_error());
-    goto err;
+    goto err_1;
   }
 
+  /* for each package in database */
   sql_query *q = sql_prep("SELECT name FROM packages;");
   while(sql_step(q))
   {
+    struct db_pkg* p;
     gchar* name = sql_get_text(q, 0);
-    if (cb == 0)
+    /* if cb == 0, then package matches */
+    if (cb != 0)
     {
-      pkgs = g_slist_prepend(pkgs, g_strdup(name));
-      continue;
-    }
-    struct db_pkg* p = db_get_pkg(name, 0);
-    if (p == 0)
-    {
-      e_set(E_ERROR, "can't get package from database");
-      goto err;
-    }
-    switch (cb(p, data))
-    {
-      case 1:
-        pkgs = g_slist_prepend(pkgs, g_strdup(name));
-      break;
-      case 0:
-      break;
-      default:
-      case -1:
+      /* otherwise get package from database ask the selector if it 
+         likes this package */
+      p = db_get_pkg(name, DB_GET_WITHOUT_FILES);
+      if (p == 0)
+      {
+        e_set(E_ERROR, "can't get package from database");
+        goto err_1;
+      }
+      gint rs = cb(p, data);
+      if (rs != 0 && rs != 1)
+      {
         db_free_pkg(p);
         e_set(E_ERROR, "db_selector returned with error");
-        goto err;
+        goto err_1;
+      }
+      else if (rs == 0)
+      {
+        db_free_pkg(p);
+        continue;
+      }
+      db_free_pkg(p);
     }
-    db_free_pkg(p);
+    db_get_type get_type = DB_GET_WITHOUT_FILES;
+    switch (type)
+    {
+      case DB_QUERY_PKGS_WITH_FILES:
+        get_type = DB_GET_FULL;
+      case DB_QUERY_PKGS_WITHOUT_FILES:
+        p = db_get_pkg(name, get_type);
+        if (p == 0)
+        {
+          e_set(E_ERROR, "can't get package from database");
+          goto err_1;
+        }
+        pkgs = g_slist_prepend(pkgs, p);
+        break;
+      case DB_QUERY_NAMES:
+        pkgs = g_slist_prepend(pkgs, g_strdup(name));
+        break;
+    }
   }
 
   sql_pop_context(0);
-  stop_timer(7);
   return pkgs;
- err:
+ err_1:
   sql_pop_context(0);
-  db_free_query(pkgs);
-  stop_timer(7);
+  db_free_query(pkgs, type);
+ err_0:
   return 0;
 }
 
-GSList* db_legacy_query(db_selector cb, void* data)
+GSList* db_legacy_query(db_selector cb, void* data, db_query_type type)
 {
   GSList *pkgs=0;
 
   _db_open_check(0)
 
-  continue_timer(8);
+  if (type != DB_QUERY_PKGS_WITH_FILES &&
+      type != DB_QUERY_PKGS_WITHOUT_FILES &&
+      type != DB_QUERY_NAMES)
+  {
+    e_set(E_BADARG, "invalid query type");
+    goto err_0;
+  }
 
   DIR* d = opendir(_db.pkgdir);
   if (d == NULL)
@@ -894,63 +943,83 @@ GSList* db_legacy_query(db_selector cb, void* data)
   {
     if (!strcmp(de->d_name,".") || !strcmp(de->d_name,".."))
       continue;
-    if (cb == 0)
+    struct db_pkg* p;
+    gchar* name = de->d_name;
+    /* if cb == 0, then package matches */
+    if (cb != 0)
     {
-      pkgs = g_slist_prepend(pkgs, g_strdup(de->d_name));
-      continue;
-    }
-    struct db_pkg* p = db_legacy_get_pkg(de->d_name, 0);
-    if (p == 0)
-    {
-      e_set(E_ERROR, "can't get package from database");
-      goto err_1;
-    }
-    switch (cb(p, data))
-    {
-      case 1:
-        pkgs = g_slist_prepend(pkgs, g_strdup(de->d_name));
-      break;
-      case 0:
-      break;
-      default:
-      case -1:
+      /* otherwise get package from database ask the selector if it 
+         likes this package */
+      p = db_legacy_get_pkg(name, DB_GET_WITHOUT_FILES);
+      if (p == 0)
+      {
+        e_set(E_ERROR, "can't get package from database");
+        goto err_1;
+      }
+      gint rs = cb(p, data);
+      if (rs != 0 && rs != 1)
+      {
         db_free_pkg(p);
         e_set(E_ERROR, "db_selector returned with error");
         goto err_1;
+      }
+      else if (rs == 0)
+      {
+        db_free_pkg(p);
+        continue;
+      }
+      db_free_pkg(p);
     }
-    db_free_pkg(p);
+    db_get_type get_type = DB_GET_WITHOUT_FILES;
+    switch (type)
+    {
+      case DB_QUERY_PKGS_WITH_FILES:
+        get_type = DB_GET_FULL;
+      case DB_QUERY_PKGS_WITHOUT_FILES:
+        p = db_legacy_get_pkg(name, get_type);
+        if (p == 0)
+        {
+          e_set(E_ERROR, "can't get package from database");
+          goto err_1;
+        }
+        pkgs = g_slist_prepend(pkgs, p);
+        break;
+      case DB_QUERY_NAMES:
+        pkgs = g_slist_prepend(pkgs, g_strdup(name));
+        break;
+    }
   }
-  closedir(d);
 
-  stop_timer(8);
+  closedir(d);
   return pkgs;
  err_1:
-  db_free_query(pkgs);
+  db_free_query(pkgs, type);
   closedir(d);
  err_0:
-  stop_timer(8);
   return 0;
 }
 
-void db_free_query(GSList* pkgs)
+void db_free_query(GSList* pkgs, db_query_type type)
 {
-  GSList* l;
-  continue_timer(9);
   if (pkgs == 0)
-  {
-    stop_timer(9);
     return;
-  }
+
+  void (*data_free_func)(void*) = g_free;
+  if (type == DB_QUERY_PKGS_WITH_FILES ||
+      type == DB_QUERY_PKGS_WITHOUT_FILES)
+    data_free_func = (void (*)(void*))db_free_pkg;
+  
+  GSList* l;
   for (l=pkgs; l!=0; l=l->next)
-    g_free(l->data);
+    data_free_func(l->data);
+
   g_slist_free(pkgs);
-  stop_timer(9);
 }
 
 /* public - specialized database package queries
  ************************************************************************/
 
-typedef GSList* (*query_func)(db_selector, void*);
+typedef GSList* (*query_func)(db_selector, void*, db_query_type);
 
 static gint _db_query_regexp_selector(struct db_pkg* p, void* d)
 {
@@ -962,10 +1031,10 @@ static gint _db_query_regexp_selector(struct db_pkg* p, void* d)
   return -1;
 }
 
-GSList* db_query_glob(gboolean legacy, gchar* pattern)
+GSList* db_query_glob(db_query_source source, gchar* pattern, db_query_type type)
 {
-  query_func query = legacy?db_legacy_query:db_query;
-  GSList* l = query(_db_query_regexp_selector, pattern);
+  query_func query = source==DB_SOURCE_LEGACY?db_legacy_query:db_query;
+  GSList* l = query(_db_query_regexp_selector, pattern, type);
   if (l == 0)
   {
     e_set(E_ERROR, "globing failed");
@@ -983,7 +1052,7 @@ gint db_sync_to_legacydb()
 
   /* first, clean legacy database packages */
   GSList *pkgs, *l;
-  pkgs = db_legacy_query(0,0);
+  pkgs = db_legacy_query(0,0,DB_QUERY_NAMES);
   if (!e_ok(_db.err))
   {
     e_set(E_FATAL, "can't get legacy database packages list for cleanup");
@@ -994,14 +1063,14 @@ gint db_sync_to_legacydb()
     if (db_legacy_rem_pkg(l->data))
     {
       e_set(E_FATAL, "can't remove package from legacy database");
-      db_free_query(pkgs);
+      db_free_query(pkgs,DB_QUERY_NAMES);
       return 1;
     }
   }
-  db_free_query(pkgs);
+  db_free_query(pkgs,DB_QUERY_NAMES);
 
   /* synchronize with package database */
-  pkgs = db_query(0,0);
+  pkgs = db_query(0,0,DB_QUERY_NAMES);
   if (!e_ok(_db.err))
   {
     e_set(E_FATAL, "can't get package list for sync");
@@ -1009,7 +1078,7 @@ gint db_sync_to_legacydb()
   }
   for (l=pkgs; l!=0; l=l->next)
   { /* for each package */
-    struct db_pkg* p = db_get_pkg(l->data, 1);
+    struct db_pkg* p = db_get_pkg(l->data, DB_GET_FULL);
     if (p == 0)
     {
       e_set(E_FATAL, "can't get package from database");
@@ -1024,10 +1093,10 @@ gint db_sync_to_legacydb()
     db_free_pkg(p);
   }
 
-  db_free_query(pkgs);
+  db_free_query(pkgs,DB_QUERY_NAMES);
   return 0;
  err:
-  db_free_query(pkgs);
+  db_free_query(pkgs,DB_QUERY_NAMES);
   return 1;
 }
 
@@ -1048,7 +1117,7 @@ gint db_sync_from_legacydb()
 
   /* get legacy database packages list */
   GSList *pkgs, *l;
-  pkgs = db_legacy_query(0,0);
+  pkgs = db_legacy_query(0,0,DB_QUERY_NAMES);
   if (!e_ok(_db.err))
   {
     e_set(E_FATAL, "can't get legacy database packages list for sync");
@@ -1057,7 +1126,7 @@ gint db_sync_from_legacydb()
   /* and sync each package */
   for (l=pkgs; l!=0; l=l->next)
   {
-    struct db_pkg* p = db_legacy_get_pkg(l->data,1);
+    struct db_pkg* p = db_legacy_get_pkg(l->data, DB_GET_FULL);
     if (p == 0)
     {
       e_set(E_FATAL, "can't get legacy package");
@@ -1072,9 +1141,9 @@ gint db_sync_from_legacydb()
     db_free_pkg(p);
   }
 
-  db_free_query(pkgs);
+  db_free_query(pkgs,DB_QUERY_NAMES);
   return 0;
  err:
-  db_free_query(pkgs);
+  db_free_query(pkgs,DB_QUERY_NAMES);
   return 1;
 }

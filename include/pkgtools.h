@@ -24,15 +24,16 @@
 #define PKG_BADIO   E(4) /**< failed filesystem operation */
 #define PKG_DB      E(5) /**< package database error */
 
+/** mode of operation of command */
 typedef enum {
   PKG_MODE_PARANOID=1, /**<  */
   PKG_MODE_CAUTIOUS,   /**<  */
   PKG_MODE_NORMAL,     /**<  */
   PKG_MODE_BRUTAL,     /**<  */
-  PKG_MODE_GLOB,     /**<  */
-  PKG_MODE_ALL,     /**<  */
-  PKG_MODE_FROMLEGACY,     /**<  */
-  PKG_MODE_TOLEGACY,     /**<  */
+  PKG_MODE_GLOB,       /**<  */
+  PKG_MODE_ALL,        /**<  */
+  PKG_MODE_FROMLEGACY, /**<  */
+  PKG_MODE_TOLEGACY,   /**<  */
 } pkg_mode;
 
 /** Common package command options structure. */

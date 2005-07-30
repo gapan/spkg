@@ -5,8 +5,6 @@
 |*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
 #include "pyspkg.h"
-#include "pkgname.h"
-
 #include "pyspkg-priv.h"
 #include "pyspkg-doc.h"
 

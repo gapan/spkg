@@ -10,21 +10,21 @@
 /* File_Type
  ************************************************************************/
 
-File* newFile(struct db_file* file, PyObject* parent)
+File* newFile(struct db_file* file, Files* files)
 {
-  if (parent == NULL || file == NULL)
+  if (files == NULL || file == NULL)
     return NULL;
   File *self = PyObject_NEW(File, &File_Type);
   if (self == NULL)
     return NULL;
   self->file = file;
-  Py_XINCREF(self->parent = parent);
+  Py_XINCREF(self->files = files);
   return self;
 }
 
 static void File_dealloc(File* self)
 {
-  Py_XDECREF(self->parent);
+  Py_XDECREF(self->files);
   PyMem_DEL(self);
 }
 
@@ -92,22 +92,22 @@ PyTypeObject File_Type = {
 /* Files_Type
  ************************************************************************/
 
-Files* newFiles(GSList* files, PyObject* parent)
+Files* newFiles(GSList* files, Package* pkg)
 {
   Files *self;
-  if (parent == NULL || files == NULL)
+  if (pkg == NULL || files == NULL)
     return NULL;
   self = PyObject_NEW(Files, &Files_Type);
   if (self == NULL)
     return NULL;
   self->files = files;
-  Py_XINCREF(self->parent = parent);
+  Py_XINCREF(self->pkg = pkg);
   return self;
 }
 
 static void Files_dealloc(Files* self)
 {
-  Py_XDECREF(self->parent);
+  Py_XDECREF(self->pkg);
   PyMem_DEL(self);
 }
 
@@ -146,7 +146,7 @@ static File* FilesIter_next(FilesIter *it)
 {
   if (it->cur)
   {
-    File* p = newFile(it->cur->data, it->files->parent);
+    File* p = newFile(it->cur->data, it->files);
     it->cur = it->cur->next;
     return p;
   }

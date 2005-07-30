@@ -20,13 +20,14 @@ typedef struct FilesIter_t FilesIter;
 typedef struct Untgz_t Untgz;
 
 /* note that these objects are just refereneces to real data.
-   object duplication is not supported. */
+   object duplication is not supported. Beacause of this,
+   we need to do rather complicated reference counting. */
 
 struct Package_t
 {
   PyObject_HEAD
   struct db_pkg* pkg; /* package entry */
-  Packages* pkgs;     /* if package is from Packages object */
+  Packages* pkgs; /* Packages object to which this package belongs */
 };
 
 struct Packages_t
@@ -39,28 +40,28 @@ struct PackagesIter_t
 {
   PyObject_HEAD
   GSList* cur; /* current package */
-  Packages* pkgs; /* Packages to which this PackagesIter belongs */
+  Packages* pkgs; /* Packages object to which this package iterator belongs */
 };
 
 struct File_t
 {
   PyObject_HEAD
   struct db_file* file; /* file entry */
-  PyObject* parent; /* Packages to which this PackagesIter belongs */
+  Files* files; /* Files object to which this file belongs */
 };
 
 struct Files_t
 {
   PyObject_HEAD
   GSList* files; /* files list */
-  PyObject* parent; /* Packages to which this PackagesIter belongs */
+  Package* pkg; /* Package object to which this file list belongs */
 };
 
 struct FilesIter_t
 {
   PyObject_HEAD
   GSList* cur;
-  Files* files; /* Files to which this FilesIter belongs */
+  Files* files; /* Files object to which this file iterator belongs */
 };
 
 struct Untgz_t
@@ -84,8 +85,8 @@ extern PyTypeObject Untgz_Type;
 extern Package* newPackage(struct db_pkg* pkg, Packages* pkgs);
 extern Packages* newPackages(GSList* pkgs);
 extern PackagesIter* newPackagesIter(Packages* pkgs);
-extern File* newFile(struct db_file* file, PyObject* parent);
-extern Files* newFiles(GSList* files, PyObject* parent);
+extern File* newFile(struct db_file* file, Files* files);
+extern Files* newFiles(GSList* files, Package* pkg);
 extern FilesIter* newFilesIter(Files* files);
 extern Untgz* newUntgz(struct untgz_state* s, PyObject* callback);
 

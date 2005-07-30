@@ -24,6 +24,7 @@ Package* newPackage(struct db_pkg* pkg, Packages* pkgs)
 
 static void Package_dealloc(Package* self)
 {
+  /* if we are not from the query, free package */
   if (!self->pkgs)
     db_free_pkg(self->pkg);
   Py_XDECREF(self->pkgs);
@@ -79,7 +80,7 @@ static PyObject* Package_get(Package *self, void *closure)
     GS_STR(doinst,9)
     GS_INT(id,10)
     case 11:
-      return (PyObject*)newFiles(self->pkg->files, self->pkgs?(PyObject*)self->pkgs:(PyObject*)self);
+      return (PyObject*)newFiles(self->pkg->files, self);
     default:
       Py_INCREF(Py_None);
       return (PyObject*)Py_None;
@@ -132,7 +133,7 @@ Packages* newPackages(GSList* pkgs)
 static void Packages_dealloc(Packages* self)
 {
   if (self->pkgs)
-    db_free_packages(self->pkgs);
+    db_free_query(self->pkgs, DB_QUERY_PKGS_WITH_FILES);
   PyMem_DEL(self);
 }
 

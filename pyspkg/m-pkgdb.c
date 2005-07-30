@@ -7,8 +7,6 @@
 #include "pyspkg.h"
 #include "pyspkg-priv.h"
 
-#include "pkgname.h"
-
 PySpkg_Method(db_open, "[root]", Null, "Open database.")
 {
   const char* root=0;
@@ -73,13 +71,14 @@ PySpkg_Method(db_legacy_get_pkg, "name, files", Package,
   return (PyObject*)newPackage(p,0);
 }
 
-PySpkg_Method(db_legacy_get_packages, "", Packages,
-"Get all packages from legacy database")
+# if 0
+//PySpkg_Method(db_query, "cb, data, type", Packages|Strings,
+"Query packages from the database")
 {
   char* name;
   if (!PyArg_ParseTuple(args, "", &name))
     return NULL;
-  GSList* l = db_legacy_get_packages();
+  GSList* l = db_query();
   if (!e_ok(spkg_error))
   {
     PyErr_SetString(PySpkgErrorObject, e_string(spkg_error));
@@ -87,62 +86,4 @@ PySpkg_Method(db_legacy_get_packages, "", Packages,
   }
   return (PyObject*)newPackages(l);
 }
-
-PySpkg_Method(db_get_packages, "", Packages,
-"Get all packages from database")
-{
-  char* name;
-  if (!PyArg_ParseTuple(args, "", &name))
-    return NULL;
-  GSList* l = db_get_packages();
-  if (!e_ok(spkg_error))
-  {
-    PyErr_SetString(PySpkgErrorObject, e_string(spkg_error));
-    return NULL;
-  }
-  return (PyObject*)newPackages(l);
-}
-
-/* package database modification from python is not supported */
-
-PySpkg_Method(db_add_pkg, "pkg", Null,
-"Add package to the database")
-{
-  PyErr_SetString(PySpkgErrorObject, "not binded");
-  return NULL;
-}
-
-PySpkg_Method(db_rem_pkg, "name", Null,
-"Remove package from the database")
-{
-  PyErr_SetString(PySpkgErrorObject, "not binded");
-  return NULL;
-}
-
-PySpkg_Method(db_legacy_add_pkg, "pkg", Null,
-"Add package to the legacy database")
-{
-  PyErr_SetString(PySpkgErrorObject, "not binded");
-  return NULL;
-}
-
-PySpkg_Method(db_legacy_rem_pkg, "name", Null,
-"Remove package from the legacy database")
-{
-  PyErr_SetString(PySpkgErrorObject, "not binded");
-  return NULL;
-}
-
-PySpkg_Method(db_sync_to_legacydb, "", Null,
-"Synchronize legacy database with spkg database")
-{
-  PyErr_SetString(PySpkgErrorObject, "not binded");
-  return NULL;
-}
-
-PySpkg_Method(db_sync_from_legacydb, "", Null,
-"Synchronize spkg database with legacy database")
-{
-  PyErr_SetString(PySpkgErrorObject, "not binded");
-  return NULL;
-}
+#endif

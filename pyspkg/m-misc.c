@@ -7,7 +7,7 @@
 #include "pyspkg.h"
 #include "pyspkg-priv.h"
 
-#include "pkgname.h"
+#include "misc.h"
 
 PySpkg_Method(parse_pkgname, "name, part", String, 
 "Parse part from package name.")

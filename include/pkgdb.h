@@ -42,11 +42,24 @@ These functions returns list of package names.
 #define DB_SQL     E(5) /**< sqlite error */
 #define DB_BLOCKED E(6) /**< db is open by another proccess */
 
+/** What to get when getting package from database. */
 typedef enum {
-  DB_GET_ALL=0, /**< get everything */
-  DB_GET_BASIC, /**< get basic info (everyhing except file list and doinst.sh) */
-  DB_GET_NAMES  /**< get only names of packages */
+  DB_GET_FULL,         /**< get everything */
+  DB_GET_WITHOUT_FILES /**< get basic info (everyhing except file list and doinst.sh) */
 } db_get_type;
+
+/** What to get when querying package list from database. */
+typedef enum {
+  DB_QUERY_PKGS_WITH_FILES,    /**< query list of actual packages with files */
+  DB_QUERY_PKGS_WITHOUT_FILES, /**< query list of actual packages without files */
+  DB_QUERY_NAMES               /**< query list of package names */
+} db_query_type;
+
+/** Source for the query. */
+typedef enum {
+  DB_SOURCE_LEGACY, /**< legacy database */
+  DB_SOURCE_SPKG    /**< spkg database */
+} db_query_source;
 
 /** File information structure. 
  *
@@ -130,10 +143,10 @@ extern gint db_add_pkg(struct db_pkg* pkg);
 /** Get package from the database.
  *
  * @param name Package name (something like: blah-1.0-i486-1)
- * @param files If files should be included. (this takes extra time)
+ * @param type What to get. See \ref db_get_type.
  * @return 0 if not found, \ref db_pkg object on success
  */
-extern struct db_pkg* db_get_pkg(gchar* name, gboolean files);
+extern struct db_pkg* db_get_pkg(gchar* name, db_get_type type);
 
 /** Remove package from the database.
  *
@@ -152,10 +165,10 @@ extern gint db_legacy_add_pkg(struct db_pkg* pkg);
 /** Get package from legacy database.
  *
  * @param name Package name (something like: blah-1.0-i486-1)
- * @param files If files should be included. (this takes extra time)
+ * @param type What to get. See \ref db_get_type.
  * @return 0 if not found, \ref db_pkg object on success
  */
-extern struct db_pkg* db_legacy_get_pkg(gchar* name, gboolean files);
+extern struct db_pkg* db_legacy_get_pkg(gchar* name, db_get_type type);
 
 /** Remove package from legacy database.
  *
@@ -176,31 +189,35 @@ typedef gint (*db_selector)(struct db_pkg* pkg, void* data);
  *
  * @param cb package selector callback function
  * @param data arbitrary data passed to the package selector function
+ * @param type format of result. see \ref db_query_type
  * @return list of package names, 0 if empty or error
  */
-extern GSList* db_query(db_selector cb, void* data);
+extern GSList* db_query(db_selector cb, void* data, db_query_type type);
 
 /** Get packages list from the legacy database.
  *
  * @param cb package selector callback function
  * @param data arbitrary data passed to the package selector function
+ * @param type format of result. see \ref db_query_type
  * @return list of package names, 0 if empty or error
  */
-extern GSList* db_legacy_query(db_selector cb, void* data);
+extern GSList* db_legacy_query(db_selector cb, void* data, db_query_type type);
 
 /** Free packages list returned by \ref db_query().
  *
  * @param pkgs list of package names returned by \ref db_query()
+ * @param type must be the same as when the query was called. see \ref db_query_type
  */
-extern void db_free_query(GSList* pkgs);
+extern void db_free_query(GSList* pkgs, db_query_type type);
 
 /** Get names of packages that match given pattern.
  *
- * @param legacy search in legacy database
+ * @param source what database to use
  * @param pattern matching pattern (shell like)
+ * @param type format of result. see \ref db_query_type
  * @return list of package names, 0 if empty or error
  */
-extern GSList* db_query_glob(gboolean legacy, gchar* pattern);
+extern GSList* db_query_glob(db_query_source source, gchar* pattern, db_query_type type);
 
 /** Synchronize legacy databse with spkg database.
  *

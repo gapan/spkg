@@ -23,7 +23,7 @@
 /* private 
  ************************************************************************/
 
-/* these packages can't be optimized */
+/* packages that can't be optimized, until they are fixed */
 static gchar* blacklist[] = {
   "aaa_base",
   "bin",
@@ -83,7 +83,7 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
 
   /* check if package is already in the database */  
   struct db_pkg* pkg=0;
-  pkg = db_get_pkg(name,0);
+  pkg = db_get_pkg(name,DB_GET_WITHOUT_FILES);
   if (pkg)
   {
     e_set(E_ERROR|PKG_EXIST,"package is already installed (%s)", name);

@@ -1,23 +1,20 @@
 /** @page index Main Page
 
-This is spkg internal (developers) documentation.
-
-If you are a Python fan you may try @ref pyspkg.
+This is internal documentation of spkg.
 
 Detailed implementation information for install, upgrade and 
-remove algorithms can be found on @ref internals page.
+remove commands can be found on the @ref cmds_impl page.
+
+Some info on package database can be found on the @ref db_impl
+page.
+
+If you are a Python fan you may want to look at @ref pyspkg page.
 
 */
 
-/** @page internals Internals
+/** @page cmds_impl Commands Implementation
 
-@section db Package database
-
-Database on-disk representation is the same as in original pkgtools.
-
-@section cmds Commands implementation
-
-Common requirements for following commands are:
+Common requirements for a command implementation are:
 @li only one pass of extracting tgz package is allowed,
 @li every command must implement rollback of filesystem changes 
     up to the point when tgz archive is fully extracted,
@@ -25,7 +22,7 @@ Common requirements for following commands are:
 @li allow for pre/post inst/upgr/remove scripts (pre script
     failure may break command execution).
 
-@subsection ins Install
+@section ins Install
 
 For each file in archive do:
 @li test file path validity
@@ -37,8 +34,12 @@ For each file in archive do:
 @li
 @li
 
-@subsection upg Upgrade
+@section upg Upgrade
 
-@subsection rem Remove
+@section rem Remove
+
+*/
+
+/** @page db_impl Package Database Implementation
 
 */
