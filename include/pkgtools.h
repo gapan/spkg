@@ -27,7 +27,6 @@
 /** mode of operation of command */
 typedef enum {
   PKG_MODE_PARANOID=1, /**<  */
-  PKG_MODE_CAUTIOUS,   /**<  */
   PKG_MODE_NORMAL,     /**<  */
   PKG_MODE_BRUTAL,     /**<  */
   PKG_MODE_GLOB,       /**<  */

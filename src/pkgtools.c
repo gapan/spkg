@@ -254,8 +254,8 @@ gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct er
     /* add file to db */
     pkg->files = g_slist_append(pkg->files, db_alloc_file(g_strdup(tgz->f_name), 0));
 
-    /* following strings can be freed by the ta code, if so you must zero these
-       variables after passing them to a ta_* */
+    /* following strings can be freed by the ta_* code, if so, you must zero
+       variables after passing them to a ta_* function */
     gchar* fullpath = g_strdup_printf("%s/%s", opts->root, tgz->f_name);
     gchar* temppath = g_strdup_printf("%s--###install###", fullpath);
     sys_ftype existing = sys_file_type(fullpath, 0);

@@ -26,8 +26,13 @@ void msg(const gint type, const gchar* fmt, ...)
   if (_msg_verbosity < type)
     return;
   printf("%s: ", _msg_prefix);
-  if (type == 1)
-    printf("WARN: ");
+  switch (type)
+  {
+    case 1: printf("WARN: "); break;
+    case 2: printf("INFO: "); break;
+    case 3: printf("NOTICE: "); break;
+    case 4: printf("DEBUG: "); break;
+  }
   va_list ap;
   va_start(ap, fmt);
   vprintf(fmt, ap);

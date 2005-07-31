@@ -24,15 +24,21 @@ Common requirements for a command implementation are:
 
 @section ins Install
 
-For each file in archive do:
-@li test file path validity
-@li test if it is package metainformation file
-@li 
-@li
-@li
-@li
-@li
-@li
+Here is description of what will install commnad do in specific situations,
+for each mode of operation:
+<table>
+  <tr><th>situation</th><th>paranoid</th><th>normal</th><th>brutal</th></tr>
+  <tr><td>installed file exist and is not in db</td><td></td><td></td><td></td></tr>
+  <tr><td>installed file exist and is in db</td><td></td><td></td><td></td></tr>
+  <tr><td>installed file not exist</td><td></td><td></td><td></td></tr>
+  <tr><td>installed dir exist and is not in db</td><td></td><td></td><td></td></tr>
+  <tr><td>installed dir exist and is in db</td><td></td><td></td><td></td></tr>
+  <tr><td>installed dir not exist</td><td></td><td></td><td></td></tr>
+  <tr><td>installed symlink exist and is in db</td><td></td><td></td><td></td></tr>
+  <tr><td>installed symlink exist and is not in db</td><td></td><td></td><td></td></tr>
+  <tr><td>installed symlink not exist</td><td></td><td></td><td></td></tr>
+</table>
+
 
 @section upg Upgrade
 

@@ -28,25 +28,25 @@ static guint command = 0;
 static struct poptOption optsCommands[] = {
 {
   "install", 'i', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_INSTALL, 
-  "Install packages. ([p]aranoid|[c]autious|[n]ormal|[b]rutal)", NULL
+  "Install packages. ([p]aranoid|<n>ormal|[b]rutal)", NULL
 },
 #if 0
 {
   "upgrade", 'u', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_UPGRADE,
-  "Upgrade packages [unimplemented]", NULL
+  "Upgrade packages", NULL
 },
 {
   "remove", 'd', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_REMOVE,
-  "Remove packages [unimplemented]", NULL
+  "Remove packages", NULL
 },
 {
   "list", 'l', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_LIST,
-  "List packages. ([a]ll|[g]lob)", NULL
+  "List packages. (<a>ll|[g]lob)", NULL
 },
 #endif
 {
   "sync", 's', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_SYNC,
-  "Synchronize databases. ([f]rom-legacy|[t]o-legacy)", NULL
+  "Synchronize databases. (<f>rom-legacy|[t]o-legacy)", NULL
 },
 POPT_TABLEEND
 };
@@ -68,7 +68,6 @@ static struct cmd cmds[] = {
 {
   CMD_INSTALL, PKG_MODE_NORMAL, {
     { PKG_MODE_PARANOID, "p", "paranoid" },
-    { PKG_MODE_CAUTIOUS, "c", "cautious" },
     { PKG_MODE_NORMAL, "n", "normal" },
     { PKG_MODE_BRUTAL, "b", "brutal" },
     { 0 },
@@ -118,16 +117,19 @@ static struct poptOption optsOptions[] = {
 },
 {
   "verbose", 'v', 0, 0, 1,
-  "Be verbose about what is going on.", NULL
+  "Increase verbosity level. You may use this option multiple times to get "
+  "even more verbose output.", NULL
 },
 {
   "quiet", 'q', 0, &quiet, 0,
-  "Don't print warnings.", NULL
+  "Set verbosity level to zero. Default verbosity level is 1 (show only "
+  "warnings). This option disables warnings. Please note, that error "
+  "messages can't be disabled.", NULL
 },
 {
   "dry-run", 'n', 0, &pkg_opts.dryrun, 0,
-  "Don't modify filesystem or database. Good to use this option with -v option "
-  "to show what will be done.", NULL
+  "Don't modify filesystem or database. This may be useful when used along "
+  "with -v option to check what exactly will given command do.", NULL
 },
 {
   "no-fast-symlinks", '\0', 0, &pkg_opts.noptsym, 0,
@@ -136,7 +138,7 @@ static struct poptOption optsOptions[] = {
   "this option to disable such optimizations.", NULL
 },
 {
-  "no-postinst", '\0', 0, &pkg_opts.nodoinst, 0,
+  "no-doinst", '\0', 0, &pkg_opts.nodoinst, 0,
   "Disable postinstallation script.", NULL
 },
 POPT_TABLEEND
@@ -152,15 +154,15 @@ static gint version = 0;
 static struct poptOption optsHelp[] = {
 {
   "usage", '\0', POPT_ARG_NONE, &usage, 0,
-  "Display brief usage message", NULL
+  "Display brief usage message.", NULL
 },
 {
   "help", 'h', POPT_ARG_NONE, &help, 0,
-  "Show this help message", NULL
+  "Show this help message.", NULL
 },
 {
   "version", 'V', POPT_ARG_NONE, &version, 0,
-  "Display spkg version", NULL
+  "Display spkg version.", NULL
 },
 POPT_TABLEEND
 };
@@ -220,7 +222,7 @@ int main(const int ac, const char* av[])
       "\n"
       "Written by Ondrej Jirman, 2005\n"
       "\n"
-      "This is free software. Not like beer or like in \"freedom\",\n"
+      "This is free software. Not like a beer or like in a \"freedom\",\n"
       "but like in \"I don't care what are you going to do with it.\"\n"
       "\n"
     );
@@ -230,9 +232,9 @@ int main(const int ac, const char* av[])
       "Examples:\n"
       "  spkg -imb <packages>   [--install --mode=brutal]\n"
       "  spkg -ump <packages>   [--upgrade --mode=paranoid]\n"
-      "  spkg -vr <packages>    [--verbose --remove]\n"
-      "  spkg -vnumb <packages> [--upgrade --verbose --dry-run --mode=cautious]\n"
-      "  spkg -s                [--sync-cache]\n"
+      "  spkg -vr <packages>    [--verbose --remove --mode=normal]\n"
+      "  spkg -vnumb <packages> [--upgrade --verbose --dry-run --mode=brutal]\n"
+      "  spkg -s                [--sync --mode=from-legacy]\n"
       "\n"
       "Official website: http://spkg.megous.com\n"
       "Bug reports can be sent to <megous@megous.com>.\n"
@@ -241,8 +243,10 @@ int main(const int ac, const char* av[])
   }
   if (usage)
   {
-    poptSetOtherOptionHelp(optCon, "");
-    poptPrintUsage(optCon, stdout, 0);
+    printf(
+      "Usage: spkg [-i|--install] [-s|--sync] [-m|--mode MODE] [-r|--root ROOT]\n"
+      "            [-n|--dry-run] [-q|--quiet] [-v|--verbose] [packages...]\n"
+    );
     goto out;
   }
   if (version)
