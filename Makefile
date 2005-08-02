@@ -108,6 +108,10 @@ install: install-spkg install-docs
 install-spkg: spkg
 	install -d -o root -g root -m 0755 $(DESTDIR)$(sbindir)
 	install -o root -g bin -m 0755 spkg $(DESTDIR)$(sbindir)/
+	ln -sf spkg $(DESTDIR)$(sbindir)/ipkg
+	ln -sf spkg $(DESTDIR)$(sbindir)/rpkg
+	ln -sf spkg $(DESTDIR)$(sbindir)/upkg
+	ln -sf spkg $(DESTDIR)$(sbindir)/lpkg
 	strip $(DESTDIR)$(sbindir)/spkg
 
 install-docs: docs

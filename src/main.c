@@ -258,9 +258,26 @@ int main(const int ac, const char* av[])
   /* got command? */
   if (command == 0)
   {
+    /* check if we are run as Xpkg */
+    if (av[0] != 0)
+    {
+      gchar* b = g_path_get_basename(av[0]);
+      if (!strcmp(b, "ipkg"))
+        command |= CMD_INSTALL;
+      else if (!strcmp(b, "rpkg"))
+        command |= CMD_REMOVE;
+      else if (!strcmp(b, "upkg"))
+        command |= CMD_UPGRADE;
+      else if (!strcmp(b, "lpkg"))
+        command |= CMD_LIST;
+      g_free(b);
+      if (command)
+        goto got_command;
+    }
     fprintf(stderr, "error[main]: invalid argument: no command given\n");
     goto err_1;
   }
+ got_command:;
 
   /* get mode for command */
   struct cmd* c = cmds;
