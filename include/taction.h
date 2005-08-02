@@ -7,8 +7,8 @@
 /** @addtogroup other_api */
 /*! @{ */
 
-#ifndef __TRANSACTION_H
-#define __TRANSACTION_H
+#ifndef SPKG__TRANSACTION_H
+#define SPKG__TRANSACTION_H
 
 #include <glib.h>
 #include "error.h"

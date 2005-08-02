@@ -11,7 +11,7 @@
 
 #include <popt.h>
 
-#include "pkgtools.h"
+#include "commands.h"
 #include "pkgdb.h"
 #include "sigtrap.h"
 
@@ -55,35 +55,35 @@ POPT_TABLEEND
  ************************************************************************/
 
 struct mode {
-  pkg_mode mode;
+  cmd_mode mode;
   gchar* shortcut;
   gchar* longname;
 };
 struct cmd {
   gint cmd;
-  pkg_mode default_mode;
+  cmd_mode default_mode;
   struct mode modes[16];
 };
 static struct cmd cmds[] = {
 {
-  CMD_INSTALL, PKG_MODE_NORMAL, {
-    { PKG_MODE_PARANOID, "p", "paranoid" },
-    { PKG_MODE_NORMAL, "n", "normal" },
-    { PKG_MODE_BRUTAL, "b", "brutal" },
+  CMD_INSTALL, CMD_MODE_NORMAL, {
+    { CMD_MODE_PARANOID, "p", "paranoid" },
+    { CMD_MODE_NORMAL, "n", "normal" },
+    { CMD_MODE_BRUTAL, "b", "brutal" },
     { 0 },
   }
 },
 {
-  CMD_LIST, PKG_MODE_ALL, {
-    { PKG_MODE_ALL, "a", "all" },
-    { PKG_MODE_GLOB, "g", "glob" },
+  CMD_LIST, CMD_MODE_ALL, {
+    { CMD_MODE_ALL, "a", "all" },
+    { CMD_MODE_GLOB, "g", "glob" },
     { 0 },
   }
 },
 {
-  CMD_SYNC, PKG_MODE_FROMLEGACY, {
-    { PKG_MODE_FROMLEGACY, "f", "from-legacy" },
-    { PKG_MODE_TOLEGACY, "t", "to-legacy" },
+  CMD_SYNC, CMD_MODE_FROMLEGACY, {
+    { CMD_MODE_FROMLEGACY, "f", "from-legacy" },
+    { CMD_MODE_TOLEGACY, "t", "to-legacy" },
     { 0 },
   }
 },
@@ -93,7 +93,7 @@ static struct cmd cmds[] = {
 /* options
  ************************************************************************/
 
-static struct pkg_options pkg_opts = {
+static struct cmd_options cmd_opts = {
   .root = "/",
   .dryrun = 0,
   .verbosity = 1,
@@ -112,7 +112,7 @@ static struct poptOption optsOptions[] = {
   "modes.", "MODE"
 },
 {
-  "root", 'r', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &pkg_opts.root, 0,
+  "root", 'r', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &cmd_opts.root, 0,
   "Set altrernate root directory for package operations.", "ROOT"
 },
 {
@@ -127,18 +127,18 @@ static struct poptOption optsOptions[] = {
   "messages can't be disabled.", NULL
 },
 {
-  "dry-run", 'n', 0, &pkg_opts.dryrun, 0,
+  "dry-run", 'n', 0, &cmd_opts.dryrun, 0,
   "Don't modify filesystem or database. This may be useful when used along "
   "with -v option to check what exactly will given command do.", NULL
 },
 {
-  "no-fast-symlinks", '\0', 0, &pkg_opts.noptsym, 0,
+  "no-fast-symlinks", '\0', 0, &cmd_opts.noptsym, 0,
   "Spkg by default parses doinst.sh for symlink creation code and removes "
   "it from the script. This improves execution times of doinst.sh. Use "
   "this option to disable such optimizations.", NULL
 },
 {
-  "no-doinst", '\0', 0, &pkg_opts.nodoinst, 0,
+  "no-doinst", '\0', 0, &cmd_opts.nodoinst, 0,
   "Disable postinstallation script.", NULL
 },
 POPT_TABLEEND
@@ -269,7 +269,7 @@ int main(const int ac, const char* av[])
     if (c->cmd == command)
     {
       /* command found */
-      pkg_opts.mode = c->default_mode;
+      cmd_opts.mode = c->default_mode;
       if (mode == 0) /* no mode specified on command line */
         goto mode_ok;
       struct mode* m = c->modes;
@@ -277,7 +277,7 @@ int main(const int ac, const char* av[])
       {
         if (!strcmp(m->shortcut, mode) || !strcmp(m->longname, mode))
         {
-          pkg_opts.mode = m->mode;
+          cmd_opts.mode = m->mode;
           goto mode_ok;
         }
         m++;
@@ -301,16 +301,16 @@ int main(const int ac, const char* av[])
     goto err_1;
   }
   if (verbose)
-    pkg_opts.verbosity = verbose+1;
+    cmd_opts.verbosity = verbose+1;
   if (quiet)
-    pkg_opts.verbosity = 0;
+    cmd_opts.verbosity = 0;
 
   /* init signal trap */
   if (sig_trap(err))
     goto err_2;
 
   /* open db */
-  if (db_open(pkg_opts.root, err))
+  if (db_open(cmd_opts.root, err))
     goto err_2;
 
   switch (command)
@@ -320,7 +320,7 @@ int main(const int ac, const char* av[])
         goto err_nopackages;
       while ((arg = poptGetArg(optCon)) != 0 && !sig_break)
       {
-        if (pkg_install(arg, &pkg_opts, err))
+        if (cmd_install(arg, &cmd_opts, err))
         {
           e_print(err);
           e_clean(err);
@@ -333,7 +333,7 @@ int main(const int ac, const char* av[])
         goto err_nopackages;
       while ((arg = poptGetArg(optCon)) != 0 && !sig_break)
       {
-        if (pkg_upgrade(arg, &pkg_opts, err))
+        if (cmd_upgrade(arg, &cmd_opts, err))
         {
           e_print(err);
           e_clean(err);
@@ -346,7 +346,7 @@ int main(const int ac, const char* av[])
         goto err_nopackages;
       while ((arg = poptGetArg(optCon)) != 0 && !sig_break)
       {
-        if (pkg_remove(arg, &pkg_opts, err))
+        if (cmd_remove(arg, &cmd_opts, err))
         {
           e_print(err);
           e_clean(err);
@@ -357,7 +357,7 @@ int main(const int ac, const char* av[])
     case CMD_SYNC:
       if (poptPeekArg(optCon) != 0)
         goto err_garbage;
-      if (pkg_sync(&pkg_opts, err))
+      if (cmd_sync(&cmd_opts, err))
         goto err_2;
     break;
     default:

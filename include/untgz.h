@@ -71,10 +71,13 @@ int main(int ac, char* av[])
 /** @addtogroup untgz_api */
 /*! @{ */
 
-#ifndef __UNTGZ_H
-#define __UNTGZ_H
+#ifndef SPKG__UNTGZ_H
+#define SPKG__UNTGZ_H
 
 #include <glib.h>
+#include <time.h>
+#include <sys/stat.h>
+
 #include "error.h"
 
 #define UNTGZ_CORRUPT E(0) /**< archive is corrupt */

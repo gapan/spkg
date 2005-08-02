@@ -24,8 +24,8 @@ These functions returns list of package names.
 /** @addtogroup pkgdb_api */
 /*! @{ */
 
-#ifndef __PKGDB_H
-#define __PKGDB_H
+#ifndef SPKG__PKGDB_H
+#define SPKG__PKGDB_H
 
 #include <glib.h>
 #include <time.h>

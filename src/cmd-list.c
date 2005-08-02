@@ -4,26 +4,16 @@
 |*----------------------------------------------------------------------*|
 |*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
-/** @addtogroup other_api */
-/*! @{ */
 
-#ifndef SPKG__SIGTRAP_H
-#define SPKG__SIGTRAP_H
+#include "cmd-private.h"
 
-#include <glib.h>
-#include "error.h"
+/* public 
+ ************************************************************************/
 
-/** Will be true if process received breaking signal. */
-extern gboolean sig_break;
-
-/** Trap signals.
- *
- * @param e Error object.
- * @return 0 on success, 1 on error
- */
-extern gint sig_trap(struct error* e);
-
-#endif
-
-/*! @} */
-
+gint cmd_list(const gchar* regexp, const struct cmd_options* opts, struct error* e)
+{
+  g_assert(opts != 0);
+  g_assert(e != 0);
+  e_set(E_FATAL,"command is not yet implemented");
+  return 1;
+}

@@ -141,8 +141,8 @@ int main(int ac, char* av[])
 /** @addtogroup sql_api */
 /*! @{ */
 
-#ifndef __SQL_H
-#define __SQL_H
+#ifndef SPKG__SQL_H
+#define SPKG__SQL_H
 
 #include <glib.h>
 #include <sqlite3.h>

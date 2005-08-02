@@ -11,8 +11,8 @@
 /** @addtogroup other_api */
 /*! @{ */
 
-#ifndef __SYS_H
-#define __SYS_H
+#ifndef SPKG__SYS_H
+#define SPKG__SYS_H
 
 #include <glib.h>
 #include <signal.h>

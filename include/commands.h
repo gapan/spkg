@@ -11,38 +11,38 @@
 /** @addtogroup pt_api */
 /*! @{ */
 
-#ifndef __PKGTOOLS_H
-#define __PKGTOOLS_H
+#ifndef SPKG__COMMANDS_H
+#define SPKG__COMMANDS_H
 
 #include <glib.h>
 #include "error.h"
 
-#define PKG_EXIST   E(0) /**< package exist */
-#define PKG_NOTEX   E(1) /**< package not exist */
-#define PKG_BADNAME E(2) /**< package has invalid name */
-#define PKG_CORRUPT E(3) /**< package is corrupted */
-#define PKG_BADIO   E(4) /**< failed filesystem operation */
-#define PKG_DB      E(5) /**< package database error */
+#define CMD_EXIST   E(0) /**< package exist */
+#define CMD_NOTEX   E(1) /**< package not exist */
+#define CMD_BADNAME E(2) /**< package has invalid name */
+#define CMD_CORRUPT E(3) /**< package is corrupted */
+#define CMD_BADIO   E(4) /**< failed filesystem operation */
+#define CMD_DB      E(5) /**< package database error */
 
 /** mode of operation of command */
 typedef enum {
-  PKG_MODE_PARANOID=1, /**<  */
-  PKG_MODE_NORMAL,     /**<  */
-  PKG_MODE_BRUTAL,     /**<  */
-  PKG_MODE_GLOB,       /**<  */
-  PKG_MODE_ALL,        /**<  */
-  PKG_MODE_FROMLEGACY, /**<  */
-  PKG_MODE_TOLEGACY,   /**<  */
-} pkg_mode;
+  CMD_MODE_PARANOID=1, /**<  */
+  CMD_MODE_NORMAL,     /**<  */
+  CMD_MODE_BRUTAL,     /**<  */
+  CMD_MODE_GLOB,       /**<  */
+  CMD_MODE_ALL,        /**<  */
+  CMD_MODE_FROMLEGACY, /**<  */
+  CMD_MODE_TOLEGACY,   /**<  */
+} cmd_mode;
 
 /** Common package command options structure. */
-struct pkg_options {
+struct cmd_options {
   gchar* root;       /**< Root directory. */
   gboolean dryrun;   /**< Don't touch filesystem or database. */
   gint verbosity;    /**< Verbosity level 0=errors only, 1=warnings only, 2=all messages. */
   gboolean noptsym;  /**< Turn off symlinks optimization. */
   gboolean nodoinst; /**< Turn off doinst.sh execution. */
-  pkg_mode mode;     /**< Mode of operation of command. */
+  cmd_mode mode;     /**< Mode of operation of command. */
 };
 
 /** Install package.
@@ -52,7 +52,7 @@ struct pkg_options {
  * @param e Error object.
  * @return 0 on success, 1 on error
  */
-extern gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, struct error* e);
+extern gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct error* e);
 
 /** Upgrade package <b>[not implemented]</b>.
  * 
@@ -61,7 +61,7 @@ extern gint pkg_install(const gchar* pkgfile, const struct pkg_options* opts, st
  * @param e Error object.
  * @return 0 on success, 1 on error
  */
-extern gint pkg_upgrade(const gchar* pkgfile, const struct pkg_options* opts, struct error* e);
+extern gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct error* e);
 
 /** Remove package <b>[not implemented]</b>.
  * 
@@ -70,7 +70,7 @@ extern gint pkg_upgrade(const gchar* pkgfile, const struct pkg_options* opts, st
  * @param e Error object.
  * @return 0 on success, 1 on error
  */
-extern gint pkg_remove(const gchar* pkgname, const struct pkg_options* opts, struct error* e);
+extern gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct error* e);
 
 /** Synchronize package databases.
  * 
@@ -78,7 +78,16 @@ extern gint pkg_remove(const gchar* pkgname, const struct pkg_options* opts, str
  * @param e Error object.
  * @return 0 on success, 1 on error
  */
-extern gint pkg_sync(const struct pkg_options* opts, struct error* e);
+extern gint cmd_sync(const struct cmd_options* opts, struct error* e);
+
+/** List packages <b>[not implemented]</b>.
+ * 
+ * @param regexp Regular expression.
+ * @param opts Options.
+ * @param e Error object.
+ * @return 0 on success, 1 on error
+ */
+extern gint cmd_list(const gchar* regexp, const struct cmd_options* opts, struct error* e);
 
 #endif
 

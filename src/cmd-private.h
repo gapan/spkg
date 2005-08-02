@@ -4,26 +4,23 @@
 |*----------------------------------------------------------------------*|
 |*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
-/** @addtogroup other_api */
-/*! @{ */
+#ifndef SPKG__CMD_PRIVATE_H
+#define SPKG__CMD_PRIVATE_H
 
-#ifndef SPKG__SIGTRAP_H
-#define SPKG__SIGTRAP_H
+#include "pkgdb.h"
+#include "sigtrap.h"
+#include "message.h"
+#include "commands.h"
 
-#include <glib.h>
-#include "error.h"
+#define e_set(n, fmt, args...) e_add(e, "command", __func__, n, fmt, ##args)
 
-/** Will be true if process received breaking signal. */
-extern gboolean sig_break;
-
-/** Trap signals.
- *
- * @param e Error object.
- * @return 0 on success, 1 on error
- */
-extern gint sig_trap(struct error* e);
+#define _safe_breaking_point(label) \
+  do { \
+    if (sig_break) \
+    { \
+      e_set(E_BREAK, "terminated by signal"); \
+      goto label; \
+    } \
+  } while(0)
 
 #endif
-
-/*! @} */
-

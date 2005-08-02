@@ -7,8 +7,8 @@
 /** @addtogroup other_api */
 /*! @{ */
 
-#ifndef __PATH_H
-#define __PATH_H
+#ifndef SPKG__PATH_H
+#define SPKG__PATH_H
 
 #include <glib.h>
 

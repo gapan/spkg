@@ -7,8 +7,8 @@
 /** @addtogroup other_api */
 /*! @{ */
 
-#ifndef __MESSAGE_H
-#define __MESSAGE_H
+#ifndef SPKG__MESSAGE_H
+#define SPKG__MESSAGE_H
 
 #include <glib.h>
 #include "error.h"

@@ -9,12 +9,16 @@
 #include <string.h>
 
 #include "path.h"
+#include "bench.h"
 
 static gint retval = 0;
 
 void simplify_test(gchar* in, gchar* ok)
 {
+  start_timer(0);
   gchar* out = path_simplify(in);
+  stop_timer(0);
+  print_timer(0, "time");
   if (strcmp(out, ok))
   {
     printf("FAILED: \"%s\" -> \"%s\" (should be \"%s\")\n", in, out, ok);
@@ -28,6 +32,11 @@ void simplify_test(gchar* in, gchar* ok)
 int main(int ac, char* av[])
 {
   simplify_test("//a/b/.//c/.", "/a/b/c");
+
+  start_timer(0);
+  path_sanitize_slashes("//a/b/.//c/.");
+  stop_timer(0);
+  print_timer(0, "sl");
 
   simplify_test("/a/b/../c", "/a/c");
   simplify_test("/a/b/../../../c", "/c");

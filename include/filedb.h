@@ -14,8 +14,8 @@ rem)
 /** @addtogroup filedb_api */
 /*! @{ */
 
-#ifndef __FILEDB_H
-#define __FILEDB_H
+#ifndef SPKG__FILEDB_H
+#define SPKG__FILEDB_H
 
 #include <glib.h>
 #include "error.h"

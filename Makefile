@@ -6,7 +6,7 @@
 #\----------------------------------------------------------------------/#
 DESTDIR :=
 prefix := /usr/local
-DEBUG := no
+DEBUG := yes
 ASSERTS := yes
 BENCH := no
 MUDFLAP := no
@@ -15,7 +15,7 @@ RELEASE := no
 
 ifeq ($(RELEASE),yes)
 DEBUG := no
-ASSERTS := yes
+ASSERTS := yes # for alpha releases, this is good to be turned on
 BENCH := no
 MUDFLAP := no
 prefix := /usr
@@ -50,8 +50,9 @@ ifeq ($(ASSERTS),no)
 CPPFLAGS += -DG_DISABLE_ASSERT
 endif
 
-objs-spkg := main.o pkgtools.o untgz.o sys.o sql.o filedb.o pkgdb.o \
-  misc.o error.o taction.o sigtrap.o message.o path.o
+objs-spkg := misc.o error.o sys.o path.o untgz.o sql.o filedb.o pkgdb.o \
+  taction.o sigtrap.o message.o cmd-sync.o cmd-install.o cmd-remove.o \
+  cmd-upgrade.o cmd-list.o main.o
 
 export MAKEFLAGS += --no-print-directory -r
 

@@ -7,8 +7,8 @@
 /** @addtogroup other_api */
 /*! @{ */
 
-#ifndef __MISC_H
-#define __MISC_H
+#ifndef SPKG__MISC_H
+#define SPKG__MISC_H
 
 #include <glib.h>
 

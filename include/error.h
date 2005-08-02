@@ -12,8 +12,8 @@ This is common error handling API for all parts of spkg.
 /** @addtogroup err_api */
 /*! @{ */
 
-#ifndef __ERROR_H
-#define __ERROR_H
+#ifndef SPKG__ERROR_H
+#define SPKG__ERROR_H
 
 #include <glib.h>
 
