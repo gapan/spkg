@@ -183,7 +183,7 @@ extern gint db_legacy_rem_pkg(gchar* name);
  * @param data arbitrary data passed from the \ref db_query function.
  * @return 1 if package should be selected, 0 otherwise, -1 on error.
  */
-typedef gint (*db_selector)(struct db_pkg* pkg, void* data);
+typedef gint (*db_selector)(const struct db_pkg* pkg, const void* data);
 
 /** Get packages list from the database.
  *
@@ -192,7 +192,7 @@ typedef gint (*db_selector)(struct db_pkg* pkg, void* data);
  * @param type format of result. see \ref db_query_type
  * @return list of package names, 0 if empty or error
  */
-extern GSList* db_query(db_selector cb, void* data, db_query_type type);
+extern GSList* db_query(db_selector cb, const void* data, db_query_type type);
 
 /** Get packages list from the legacy database.
  *
@@ -201,7 +201,7 @@ extern GSList* db_query(db_selector cb, void* data, db_query_type type);
  * @param type format of result. see \ref db_query_type
  * @return list of package names, 0 if empty or error
  */
-extern GSList* db_legacy_query(db_selector cb, void* data, db_query_type type);
+extern GSList* db_legacy_query(db_selector cb, const void* data, db_query_type type);
 
 /** Free packages list returned by \ref db_query().
  *
@@ -217,7 +217,7 @@ extern void db_free_query(GSList* pkgs, db_query_type type);
  * @param type format of result. see \ref db_query_type
  * @return list of package names, 0 if empty or error
  */
-extern GSList* db_query_glob(db_query_source source, gchar* pattern, db_query_type type);
+extern GSList* db_query_glob(db_query_source source, const gchar* pattern, db_query_type type);
 
 /** Synchronize legacy databse with spkg database.
  *

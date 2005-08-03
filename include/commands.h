@@ -24,35 +24,49 @@
 #define CMD_BADIO   E(4) /**< failed filesystem operation */
 #define CMD_DB      E(5) /**< package database error */
 
-/** mode of operation of command */
+/** Mode of operation of the install command. */
 typedef enum {
-  CMD_MODE_PARANOID=1, /**<  */
-  CMD_MODE_NORMAL,     /**<  */
-  CMD_MODE_BRUTAL,     /**<  */
-  CMD_MODE_GLOB,       /**<  */
+  CMD_MODE_PARANOID=1, /**< paranoid mode */
+  CMD_MODE_NORMAL,     /**< normal mode */
+  CMD_MODE_BRUTAL,     /**< brutal mode */
+} cmd_install_mode;
+
+/** Mode of operation of the list command. */
+typedef enum {
   CMD_MODE_ALL,        /**<  */
+  CMD_MODE_GLOB,       /**<  */
+} cmd_list_mode;
+
+/** Mode of operation of the sync command. */
+typedef enum {
   CMD_MODE_FROMLEGACY, /**<  */
   CMD_MODE_TOLEGACY,   /**<  */
-} cmd_mode;
+} cmd_sync_mode;
 
 /** Common package command options structure. */
 struct cmd_options {
-  gchar* root;       /**< Root directory. */
-  gboolean dryrun;   /**< Don't touch filesystem or database. */
-  gint verbosity;    /**< Verbosity level 0=errors only, 1=warnings only, 2=all messages. */
-  gboolean noptsym;  /**< Turn off symlinks optimization. */
-  gboolean nodoinst; /**< Turn off doinst.sh execution. */
-  cmd_mode mode;     /**< Mode of operation of command. */
+  gchar* root;        /**< Root directory. */
+  gboolean dryrun;    /**< Don't touch filesystem. */
+  gint verbosity;     /**< Verbosity level. */
+  gboolean noscripts; /**< Turn off scripts (doinst.sh) execution. */
 };
 
 /** Install package.
  * 
  * @param pkgfile Package file.
+ * @param mode Installation mode.
+ * @param optsyms Optimize symlinks.
  * @param opts Options.
  * @param e Error object.
  * @return 0 on success, 1 on error
  */
-extern gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct error* e);
+extern gint cmd_install(
+  const gchar* pkgfile,
+  cmd_install_mode mode,
+  gboolean optsyms,
+  const struct cmd_options* opts,
+  struct error* e
+);
 
 /** Upgrade package <b>[not implemented]</b>.
  * 
@@ -74,20 +88,34 @@ extern gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, str
 
 /** Synchronize package databases.
  * 
+ * @param mode Sync mode.
  * @param opts Options.
  * @param e Error object.
  * @return 0 on success, 1 on error
  */
-extern gint cmd_sync(const struct cmd_options* opts, struct error* e);
+extern gint cmd_sync(
+  cmd_sync_mode mode,
+  const struct cmd_options* opts,
+  struct error* e
+);
 
-/** List packages <b>[not implemented]</b>.
+/** List packages.
  * 
  * @param regexp Regular expression.
+ * @param mode List mode.
+ * @param legacydb If list operation should be performed 
+ *        on the legacy database.
  * @param opts Options.
  * @param e Error object.
  * @return 0 on success, 1 on error
  */
-extern gint cmd_list(const gchar* regexp, const struct cmd_options* opts, struct error* e);
+extern gint cmd_list(
+  const gchar* regexp,
+  cmd_list_mode mode,
+  gboolean legacydb,
+  const struct cmd_options* opts,
+  struct error* e
+);
 
 #endif
 

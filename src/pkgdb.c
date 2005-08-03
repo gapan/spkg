@@ -835,7 +835,7 @@ gint db_legacy_rem_pkg(gchar* name)
 /* public - generic database package queries
  ************************************************************************/
 
-GSList* db_query(db_selector cb, void* data, db_query_type type)
+GSList* db_query(db_selector cb, const void* data, db_query_type type)
 {
   GSList *pkgs=0;
 
@@ -917,7 +917,7 @@ GSList* db_query(db_selector cb, void* data, db_query_type type)
   return 0;
 }
 
-GSList* db_legacy_query(db_selector cb, void* data, db_query_type type)
+GSList* db_legacy_query(db_selector cb, const void* data, db_query_type type)
 {
   GSList *pkgs=0;
 
@@ -1019,9 +1019,9 @@ void db_free_query(GSList* pkgs, db_query_type type)
 /* public - specialized database package queries
  ************************************************************************/
 
-typedef GSList* (*query_func)(db_selector, void*, db_query_type);
+typedef GSList* (*query_func)(db_selector, const void*, db_query_type);
 
-static gint _db_query_regexp_selector(struct db_pkg* p, void* d)
+static gint _db_query_glob_selector(const struct db_pkg* p, const void* d)
 {
   gint s = fnmatch(d, p->name, 0);
   if (s == FNM_NOMATCH)
@@ -1031,10 +1031,10 @@ static gint _db_query_regexp_selector(struct db_pkg* p, void* d)
   return -1;
 }
 
-GSList* db_query_glob(db_query_source source, gchar* pattern, db_query_type type)
+GSList* db_query_glob(db_query_source source, const gchar* pattern, db_query_type type)
 {
   query_func query = source==DB_SOURCE_LEGACY?db_legacy_query:db_query;
-  GSList* l = query(_db_query_regexp_selector, pattern, type);
+  GSList* l = query(_db_query_glob_selector, pattern, type);
   if (l == 0)
   {
     e_set(E_ERROR, "globing failed");

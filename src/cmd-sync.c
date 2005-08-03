@@ -10,20 +10,24 @@
 /* public 
  ************************************************************************/
 
-gint cmd_sync(const struct cmd_options* opts, struct error* e)
+gint cmd_sync(
+  cmd_sync_mode mode,
+  const struct cmd_options* opts,
+  struct error* e
+)
 {
   g_assert(opts != 0);
   g_assert(e != 0);
 
   msg_setup("sync", opts->verbosity);
 
-  if (opts->mode == CMD_MODE_FROMLEGACY)
+  if (mode == CMD_MODE_FROMLEGACY)
   {
     _inform("synchronizing legacydb -> spkgdb");
     if (!opts->dryrun)
       db_sync_from_legacydb();
   }
-  else if (opts->mode == CMD_MODE_TOLEGACY)
+  else if (mode == CMD_MODE_TOLEGACY)
   {
     _inform("synchronizing spkgdb -> legacydb");
     if (!opts->dryrun)

@@ -38,7 +38,13 @@ static gint blacklisted(gchar* shortname)
 /* public 
  ************************************************************************/
 
-gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct error* e)
+gint cmd_install(
+  const gchar* pkgfile,
+  cmd_install_mode mode,
+  gboolean optsyms,
+  const struct cmd_options* opts,
+  struct error* e
+)
 {
   g_assert(pkgfile != 0);
   g_assert(opts != 0);
@@ -158,7 +164,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
       }
 
       gchar* fullpath = g_strdup_printf("%s/%s", opts->root, sane_path);
-      if (opts->noptsym || blacklisted(shortname)) /* optimization disabled, just extract */
+      if (!optsyms || blacklisted(shortname)) /* optimization disabled, just extract */
       {
         if (untgz_write_file(tgz, fullpath))
         {

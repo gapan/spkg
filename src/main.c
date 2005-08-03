@@ -39,11 +39,11 @@ static struct poptOption optsCommands[] = {
   "remove", 'd', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_REMOVE,
   "Remove packages", NULL
 },
+#endif
 {
   "list", 'l', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_LIST,
   "List packages. (<a>ll|[g]lob)", NULL
 },
-#endif
 {
   "sync", 's', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_SYNC,
   "Synchronize databases. (<f>rom-legacy|[t]o-legacy)", NULL
@@ -55,13 +55,13 @@ POPT_TABLEEND
  ************************************************************************/
 
 struct mode {
-  cmd_mode mode;
+  gint mode;
   gchar* shortcut;
   gchar* longname;
 };
 struct cmd {
   gint cmd;
-  cmd_mode default_mode;
+  gint default_mode;
   struct mode modes[16];
 };
 static struct cmd cmds[] = {
@@ -97,13 +97,14 @@ static struct cmd_options cmd_opts = {
   .root = "/",
   .dryrun = 0,
   .verbosity = 1,
-  .noptsym = 0,
-  .nodoinst = 0,
 };
 
 static gchar* mode = 0;
 static gint verbose = 0;
 static gint quiet = 0;
+static gint no_optsyms = 0;
+static gint no_scripts = 0;
+static gint list_legacy = 0;
 
 static struct poptOption optsOptions[] = {
 {
@@ -132,13 +133,18 @@ static struct poptOption optsOptions[] = {
   "with -v option to check what exactly will given command do.", NULL
 },
 {
-  "no-fast-symlinks", '\0', 0, &cmd_opts.noptsym, 0,
+  "list-legacy", '\0', 0, &list_legacy, 0,
+  "Default database for list command is spkgdb. This command will make legacy "
+  "database the source for list command.", NULL
+},
+{
+  "no-fast-symlinks", '\0', 0, &no_optsyms, 0,
   "Spkg by default parses doinst.sh for symlink creation code and removes "
   "it from the script. This improves execution times of doinst.sh. Use "
   "this option to disable such optimizations.", NULL
 },
 {
-  "no-doinst", '\0', 0, &cmd_opts.nodoinst, 0,
+  "no-scripts", '\0', 0, &no_scripts, 0,
   "Disable postinstallation script.", NULL
 },
 POPT_TABLEEND
@@ -281,12 +287,13 @@ int main(const int ac, const char* av[])
 
   /* get mode for command */
   struct cmd* c = cmds;
+  gint cmd_mode;
   while (c->cmd) /* for each command */
   {
     if (c->cmd == command)
     {
       /* command found */
-      cmd_opts.mode = c->default_mode;
+      cmd_mode = c->default_mode;
       if (mode == 0) /* no mode specified on command line */
         goto mode_ok;
       struct mode* m = c->modes;
@@ -294,7 +301,7 @@ int main(const int ac, const char* av[])
       {
         if (!strcmp(m->shortcut, mode) || !strcmp(m->longname, mode))
         {
-          cmd_opts.mode = m->mode;
+          cmd_mode = m->mode;
           goto mode_ok;
         }
         m++;
@@ -322,6 +329,34 @@ int main(const int ac, const char* av[])
   if (quiet)
     cmd_opts.verbosity = 0;
 
+  /* check command options */
+  switch (command)
+  {
+    case CMD_INSTALL:
+      if (poptPeekArg(optCon) == 0)
+        goto err_nopackages;
+    break;
+    case CMD_UPGRADE:
+      if (poptPeekArg(optCon) == 0)
+        goto err_nopackages;
+    break;
+    case CMD_REMOVE:
+      if (poptPeekArg(optCon) == 0)
+        goto err_nopackages;
+    break;
+    case CMD_LIST:
+      if (poptPeekArg(optCon) == 0)
+        goto err_nopackages;
+    break;
+    case CMD_SYNC:
+      if (poptPeekArg(optCon) != 0)
+        goto err_garbage;
+    break;
+    default:
+      fprintf(stderr, "error[main]: invalid argument: schizofrenic command usage\n");
+      goto err_1;
+  }
+
   /* init signal trap */
   if (sig_trap(err))
     goto err_2;
@@ -333,11 +368,9 @@ int main(const int ac, const char* av[])
   switch (command)
   {
     case CMD_INSTALL:
-      if (poptPeekArg(optCon) == 0)
-        goto err_nopackages;
       while ((arg = poptGetArg(optCon)) != 0 && !sig_break)
       {
-        if (cmd_install(arg, &cmd_opts, err))
+        if (cmd_install(arg, cmd_mode, no_optsyms, &cmd_opts, err))
         {
           e_print(err);
           e_clean(err);
@@ -346,8 +379,6 @@ int main(const int ac, const char* av[])
       }
     break;
     case CMD_UPGRADE:
-      if (poptPeekArg(optCon) == 0)
-        goto err_nopackages;
       while ((arg = poptGetArg(optCon)) != 0 && !sig_break)
       {
         if (cmd_upgrade(arg, &cmd_opts, err))
@@ -359,8 +390,6 @@ int main(const int ac, const char* av[])
       }
     break;
     case CMD_REMOVE:
-      if (poptPeekArg(optCon) == 0)
-        goto err_nopackages;
       while ((arg = poptGetArg(optCon)) != 0 && !sig_break)
       {
         if (cmd_remove(arg, &cmd_opts, err))
@@ -371,15 +400,24 @@ int main(const int ac, const char* av[])
         }
       }
     break;
-    case CMD_SYNC:
-      if (poptPeekArg(optCon) != 0)
-        goto err_garbage;
-      if (cmd_sync(&cmd_opts, err))
-        goto err_2;
+    case CMD_LIST:
+      while ((arg = poptGetArg(optCon)) != 0 && !sig_break)
+      {
+        if (cmd_list(arg, cmd_mode, list_legacy, &cmd_opts, err))
+        {
+          e_print(err);
+          e_clean(err);
+          status = 2;
+        }
+      }
     break;
-    default:
-      fprintf(stderr, "error[main]: invalid argument: schizofrenic command usage\n");
-      goto err_1;
+    case CMD_SYNC:
+      if (cmd_sync(cmd_mode, &cmd_opts, err))
+      {
+        db_close();
+        goto err_2;        
+      }
+    break;
   }
 
   db_close();
