@@ -199,7 +199,9 @@ void sql_transaction_begin()
   trace();  
   
   g_assert(_sql_db != 0);
-  g_assert(!_sql_transaction);
+  /* ignore transaction start if one is already started */
+  if (_sql_transaction)
+    return;
 
 #ifndef G_DISABLE_ASSERT
   gint rs = 
@@ -217,6 +219,10 @@ void sql_transaction_end(gboolean commit)
 
   g_assert(_sql_db != 0);
   g_assert(_sql_transaction);
+
+  /* don't end transaction if it was not started in the current context */
+  if (!_sql_context_transact)
+    return;
 
 #ifndef G_DISABLE_ASSERT
   gint rs;

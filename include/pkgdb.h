@@ -55,12 +55,6 @@ typedef enum {
   DB_QUERY_NAMES               /**< query list of package names */
 } db_query_type;
 
-/** Source for the query. */
-typedef enum {
-  DB_SOURCE_LEGACY, /**< legacy database */
-  DB_SOURCE_SPKG    /**< spkg database */
-} db_query_source;
-
 /** File information structure. 
  *
  * @li N - no touch: user should not modify such variable
@@ -209,15 +203,6 @@ extern GSList* db_legacy_query(db_selector cb, const void* data, db_query_type t
  * @param type must be the same as when the query was called. see \ref db_query_type
  */
 extern void db_free_query(GSList* pkgs, db_query_type type);
-
-/** Get names of packages that match given pattern.
- *
- * @param source what database to use
- * @param pattern matching pattern (shell like)
- * @param type format of result. see \ref db_query_type
- * @return list of package names, 0 if empty or error
- */
-extern GSList* db_query_glob(db_query_source source, const gchar* pattern, db_query_type type);
 
 /** Synchronize legacy databse with spkg database.
  *

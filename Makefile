@@ -6,7 +6,7 @@
 #\----------------------------------------------------------------------/#
 DESTDIR :=
 prefix := /usr/local
-DEBUG := yes
+DEBUG := no
 ASSERTS := yes
 BENCH := no
 MUDFLAP := no

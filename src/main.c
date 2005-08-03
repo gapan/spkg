@@ -345,8 +345,16 @@ int main(const int ac, const char* av[])
         goto err_nopackages;
     break;
     case CMD_LIST:
-      if (poptPeekArg(optCon) == 0)
-        goto err_nopackages;
+      if (cmd_mode == CMD_MODE_ALL)
+      {
+        if (poptPeekArg(optCon) != 0)
+          goto err_garbage;
+      }
+      else
+      {
+        if (poptPeekArg(optCon) == 0)
+          goto err_nopackages;
+      }
     break;
     case CMD_SYNC:
       if (poptPeekArg(optCon) != 0)
@@ -401,9 +409,21 @@ int main(const int ac, const char* av[])
       }
     break;
     case CMD_LIST:
-      while ((arg = poptGetArg(optCon)) != 0 && !sig_break)
+      if (cmd_mode != CMD_MODE_ALL)
       {
-        if (cmd_list(arg, cmd_mode, list_legacy, &cmd_opts, err))
+        while ((arg = poptGetArg(optCon)) != 0 && !sig_break)
+        {
+          if (cmd_list(arg, cmd_mode, list_legacy, &cmd_opts, err))
+          {
+            e_print(err);
+            e_clean(err);
+            status = 2;
+          }
+        }
+      }
+      else
+      {
+        if (cmd_list(0, cmd_mode, list_legacy, &cmd_opts, err))
         {
           e_print(err);
           e_clean(err);

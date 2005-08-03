@@ -14,7 +14,6 @@
 #include <sys/mman.h>
 #include <utime.h>
 #include <errno.h>
-#include <fnmatch.h>
 
 #include "sql.h"
 #include "sys.h"
@@ -850,7 +849,7 @@ GSList* db_query(db_selector cb, const void* data, db_query_type type)
   }
   
   /* sql error handler */
-  sql_push_context(SQL_ERRJUMP,1);
+  sql_push_context(SQL_ERRJUMP, 1);
   if (setjmp(sql_errjmp) == 1)
   { /* sql exception occured */
     e_set(E_FATAL|DB_SQL, "%s", sql_error());
@@ -1014,33 +1013,6 @@ void db_free_query(GSList* pkgs, db_query_type type)
     data_free_func(l->data);
 
   g_slist_free(pkgs);
-}
-
-/* public - specialized database package queries
- ************************************************************************/
-
-typedef GSList* (*query_func)(db_selector, const void*, db_query_type);
-
-static gint _db_query_glob_selector(const struct db_pkg* p, const void* d)
-{
-  gint s = fnmatch(d, p->name, 0);
-  if (s == FNM_NOMATCH)
-    return 0;
-  if (s == 0)
-    return 1;
-  return -1;
-}
-
-GSList* db_query_glob(db_query_source source, const gchar* pattern, db_query_type type)
-{
-  query_func query = source==DB_SOURCE_LEGACY?db_legacy_query:db_query;
-  GSList* l = query(_db_query_glob_selector, pattern, type);
-  if (l == 0)
-  {
-    e_set(E_ERROR, "globing failed");
-    return 0;
-  }
-  return l;
 }
 
 /* public - database synchronization
