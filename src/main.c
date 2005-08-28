@@ -443,7 +443,7 @@ int main(const int ac, const char* av[])
   db_close();
 
  out:
-  optCon = poptFreeContext(optCon);
+  poptFreeContext(optCon);
   e_free(err);
   /* 0 = all ok
    * 1 = command line error

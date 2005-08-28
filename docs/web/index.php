@@ -36,20 +36,20 @@
   and the roadmap of the @SPKG@ development.</p>
 
   <dl>
-   <dt>2005-07-20</dt>
+   <dt>2005-08-26</dt>
     <dd>Firtst alpha version released! This version implements install
-    command with four modes of operation: brutal, normal, cautious and
-    paranoid. See manpage for more information. Other new features
-    include fully functional command line interface with corresponding
-    manpage and implementation of safe break points. You can safely break
-    installation using some reasonable signal like SIGINT and all changes
-    made so far during installation will be automatically rolled back. 
-    From developer's point of view: new locking code, better makefile,
-    implemented generic data query functions for both legacy and spkg
-    databases, spkg no longer depends on rm and mkdir programs, implemented
-    very robust path simplification functions, assertions usage audit,
-    better signal handling, reimplemented db sync functions, better
-    verbosity selection. Enjoy it!</dd>
+    command with three modes of operation: brutal, normal and paranoid.
+    See manpage for more information. Other new features include fully
+    functional command line interface with corresponding manpage and
+    implementation of safe break points. You can safely break
+    installation using some reasonable signal like SIGINT and all
+    changes made so far during installation will be automatically rolled
+    back.  From developer's point of view: new locking code, better
+    makefile, implemented generic data query functions for both legacy
+    and spkg databases, spkg no longer depends on rm and mkdir programs,
+    implemented very robust path simplification functions, assertions
+    usage audit, better signal handling, reimplemented db sync
+    functions, better verbosity selection. Enjoy it!</dd>
 
    <dt><a href="/history.php">older news</a>...</dt>
   </dl>

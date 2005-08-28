@@ -248,16 +248,24 @@ gint cmd_install(
 
     /* error handling in file installation code
      * ----------------------------------------
-     *              dir     file     link
-     *             E   N    E   N    E   N
-     * paranoid -   
-     * normal   -  
-     * brutal   -
+     *              dir     file     slink    link
+     *             D S N P  D S N P  D S N P  D S N P    D=differ S=same N=not exist P=differ
+     * paranoid :  X - - -  X - -    X - -    X - -
+     * normal   :  W - - -  W - -    W - -    W - -
+     * brutal   :  CP- - -  - - -    - - -    - - -
      */
 
 //  CMD_MODE_PARANOID,
   //CMD_MODE_NORMAL,
 //  CMD_MODE_BRUTAL,
+
+    /* determine relation between installed and target objects, this may be:
+     * INCOMPATIBLE (one is file other is dir)
+     * EQUAL (equal type and perms - owner,group,mode)
+     * NOTEXIST (target object not exist)
+     * METADIFFER (metadata differs - owner,group,mode)
+     * NOTDIR (parent is not directory)
+     */
 
     /* preinstall file (installation will be finished by ta_finalize) */
     switch(tgz->f_type)
