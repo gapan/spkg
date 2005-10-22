@@ -1,4 +1,4 @@
-# Doxyfile 1.4.0
+# Doxyfile 1.4.4
 
 #---------------------------------------------------------------------------
 # Project related configuration options
@@ -23,6 +23,7 @@ MULTILINE_CPP_IS_BRIEF = NO
 DETAILS_AT_TOP         = NO
 INHERIT_DOCS           = YES
 DISTRIBUTE_GROUP_DOC   = NO
+SEPARATE_MEMBER_PAGES  = YES
 TAB_SIZE               = 4
 ALIASES                = 
 OPTIMIZE_OUTPUT_FOR_C  = YES
@@ -75,7 +76,7 @@ INPUT                  = include \
 FILE_PATTERNS          = *.h \
                          *.doc
 RECURSIVE              = NO
-EXCLUDE                =
+EXCLUDE                = 
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = 
 EXAMPLE_PATH           = 
@@ -93,6 +94,7 @@ INLINE_SOURCES         = NO
 STRIP_CODE_COMMENTS    = YES
 REFERENCED_BY_RELATION = YES
 REFERENCES_RELATION    = YES
+USE_HTAGS              = NO
 VERBATIM_HEADERS       = YES
 #---------------------------------------------------------------------------
 # configuration options related to the alphabetical class index
@@ -108,7 +110,7 @@ HTML_OUTPUT            = html
 HTML_FILE_EXTENSION    = .html
 HTML_HEADER            = docs/header.html
 HTML_FOOTER            = docs/footer.html
-HTML_STYLESHEET        = docs/style.css
+HTML_STYLESHEET        =
 HTML_ALIGN_MEMBERS     = YES
 GENERATE_HTMLHELP      = NO
 CHM_FILE               = 
@@ -118,7 +120,7 @@ BINARY_TOC             = NO
 TOC_EXPAND             = NO
 DISABLE_INDEX          = NO
 ENUM_VALUES_PER_LINE   = 4
-GENERATE_TREEVIEW      = NO 
+GENERATE_TREEVIEW      = NO
 TREEVIEW_WIDTH         = 250
 #---------------------------------------------------------------------------
 # configuration options related to the LaTeX output
