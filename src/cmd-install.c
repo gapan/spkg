@@ -412,9 +412,15 @@ gint cmd_install(
           _warning("doinst.sh failed");
         unlink("install/doinst.sh");
       }
-      rmdir("install");
       sys_setcwd(old_cwd);
     }
+  }
+
+  if (!opts->dryrun)
+  {
+    gchar* install_path = g_strdup_printf("%s/install", opts->root);
+    rmdir(install_path);
+    g_free(install_path);
   }
 
   _notice("finished");
