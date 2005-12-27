@@ -109,8 +109,8 @@ gint db_open(const gchar* root, struct error* e)
   }
 
   /* check spkg db file */
-  if (sys_file_type(_db.dbfile,0) != SYS_REG && 
-      sys_file_type(_db.dbfile,0) != SYS_NONE)
+  if (sys_file_type(_db.dbfile,1) != SYS_REG && 
+      sys_file_type(_db.dbfile,1) != SYS_NONE)
   {
     e_set(E_FATAL, "file %s is not accessible", _db.dbfile);
     goto err_1;
@@ -1118,4 +1118,9 @@ gint db_sync_from_legacydb()
  err:
   db_free_query(pkgs,DB_QUERY_NAMES);
   return 1;
+}
+
+struct fdb* db_get_fdb()
+{
+  return _db.fdb;
 }

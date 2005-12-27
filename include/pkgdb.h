@@ -30,6 +30,7 @@ These functions returns list of package names.
 #include <glib.h>
 #include <time.h>
 #include "error.h"
+#include "filedb.h"
 
 /** Directory where the package database is stored. */
 #define PKGDB_DIR "var/log"
@@ -216,6 +217,11 @@ extern gint db_sync_to_legacydb();
  */
 extern gint db_sync_from_legacydb();
  
+/** Get fdb object.
+ *
+ * @return fdb object, 0 on error
+ */
+extern struct fdb* db_get_fdb();
 
 #endif
 
