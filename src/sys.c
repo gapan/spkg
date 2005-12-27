@@ -6,7 +6,6 @@
 \*----------------------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
 #include <sys/file.h>
 #include <errno.h>
 #include <dirent.h>
@@ -18,28 +17,33 @@
 
 #define e_set(e, n, fmt, args...) e_add(e, "filedb", __func__, n, fmt, ##args)
 
-sys_ftype sys_file_type(const gchar* path, gboolean deref)
+sys_ftype sys_file_type_stat(const gchar* path, gboolean deref, struct stat* s)
 {
   g_assert(path != 0);
-  struct stat s;
   gint rs;
   if (deref)
-    rs = stat(path, &s);
+    rs = stat(path, s);
   else
-    rs = lstat(path, &s);
+    rs = lstat(path, s);
   if (rs == 0)
   {
-    if (S_ISREG(s.st_mode)) return SYS_REG;
-    if (S_ISDIR(s.st_mode)) return SYS_DIR;
-    if (S_ISLNK(s.st_mode)) return SYS_SYM;
-    if (S_ISBLK(s.st_mode)) return SYS_BLK;
-    if (S_ISCHR(s.st_mode)) return SYS_CHR;
-    if (S_ISFIFO(s.st_mode)) return SYS_FIFO;
-    if (S_ISSOCK(s.st_mode)) return SYS_SOCK;
+    if (S_ISREG(s->st_mode)) return SYS_REG;
+    if (S_ISDIR(s->st_mode)) return SYS_DIR;
+    if (S_ISLNK(s->st_mode)) return SYS_SYM;
+    if (S_ISBLK(s->st_mode)) return SYS_BLK;
+    if (S_ISCHR(s->st_mode)) return SYS_CHR;
+    if (S_ISFIFO(s->st_mode)) return SYS_FIFO;
+    if (S_ISSOCK(s->st_mode)) return SYS_SOCK;
   }
   if (errno == ENOENT || errno == ENOTDIR)
     return SYS_NONE;
   return SYS_ERR;
+}
+
+sys_ftype sys_file_type(const gchar* path, gboolean deref)
+{
+  struct stat s;
+  return sys_file_type_stat(path, deref, &s);
 }
 
 time_t sys_file_mtime(const gchar* path, gboolean deref)

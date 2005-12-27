@@ -17,6 +17,7 @@
 #include <glib.h>
 #include <signal.h>
 #include <time.h>
+#include <sys/stat.h>
 
 #include "error.h"
 
@@ -40,6 +41,15 @@ typedef enum {
  * @return \ref sys_ftype
  */
 extern sys_ftype sys_file_type(const gchar* path, gboolean deref);
+
+/** Get type of the file and fill stat structure.
+ *
+ * @param path File path.
+ * @param deref Dereference symlinks.
+ * @param s Stat structure pointer.
+ * @return \ref sys_ftype
+ */
+extern sys_ftype sys_file_type_stat(const gchar* path, gboolean deref, struct stat* s);
 
 /** Get mtime of the file.
  *
