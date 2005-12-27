@@ -224,12 +224,12 @@ int main(const int ac, const char* av[])
   if (help)
   {
     printf(
-      "spkg-" G_STRINGIFY(SPKG_VERSION) "\n"
+      "spkg " G_STRINGIFY(SPKG_VERSION) "\n"
       "\n"
       "Written by Ondrej Jirman, 2005\n"
       "\n"
       "This is free software. Not like a beer or like in a \"freedom\",\n"
-      "but like in \"I don't care what are you going to do with it.\"\n"
+      "but like in \"I don't care what you are going to do with it.\"\n"
       "\n"
     );
     poptPrintHelp(optCon, stdout, 0);
