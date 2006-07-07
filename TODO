@@ -2,6 +2,7 @@
 before alpha1 |
 --------------/
 
+[paths] handle ./ path in tar and in db
 [pkgtools] remove install dir after installation
 [pkgtools] implement installation modes
 
@@ -10,7 +11,7 @@ before alpha1 |
 
 [doc] finish manpage 
 
-DEADLINE: 2005-07-24
+DEADLINE: 2005-01-30
 
 ---------------------------------------------------------------------
 before alpha2 |
