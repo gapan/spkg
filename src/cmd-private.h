@@ -11,6 +11,7 @@
 #include "sigtrap.h"
 #include "message.h"
 #include "commands.h"
+#include "untgz.h"
 
 #define e_set(n, fmt, args...) e_add(e, "command", __func__, n, fmt, ##args)
 
@@ -24,3 +25,29 @@
   } while(0)
 
 #endif
+
+static __inline__ gint _mode_differ(struct untgz_state* u, struct stat* st)
+{
+  return ((u->f_mode ^ st->st_mode) & 0x03ff);
+}
+
+static __inline__ gint _guid_differ(struct untgz_state* u, struct stat* st)
+{
+  return (u->f_uid != st->st_uid || u->f_gid != st->st_gid);
+}
+
+static __inline__ gint _size_differ(struct untgz_state* u, struct stat* st)
+{
+  return (u->f_size != st->st_size);
+}
+
+static __inline__ gint _rdev_differ(struct untgz_state* u, struct stat* st)
+{
+  if (S_ISCHR(st->st_mode) && u->f_type == UNTGZ_CHR && 
+     (dev_t)(((u->f_devmaj << 8) & 0xFF00) | (u->f_devmin & 0xFF)) == st->st_rdev)
+    return 0;
+  if (S_ISBLK(st->st_mode) && u->f_type == UNTGZ_BLK &&
+     (dev_t)(((u->f_devmaj << 8) & 0xFF00) | (u->f_devmin & 0xFF)) == st->st_rdev)
+    return 0;
+  return 1;
+}

@@ -10,7 +10,6 @@
 
 #include "misc.h"
 #include "path.h"
-#include "untgz.h"
 #include "sys.h"
 #include "taction.h"
 
@@ -112,11 +111,10 @@ gint cmd_install(
   pkg = db_alloc_pkg(name);
   pkg->location = g_strdup(pkgfile);
 
-  _safe_breaking_point(err3);
-
-  /* for each file in package */
   gboolean has_doinst = 0;
   gchar* sane_path = 0;
+  struct fdb* filedb = db_get_fdb();
+  /* for each file in package */
   while (untgz_get_header(tgz) == 0)
   {
     _safe_breaking_point(err3);
@@ -124,17 +122,26 @@ gint cmd_install(
     /* check file path */
     g_free(sane_path);
     sane_path = path_simplify(tgz->f_name);
-    if (sane_path[0] == '/' || !strncmp(sane_path, "../", 3))
+    if (sane_path == 0 || sane_path[0] == '/' || !strncmp(sane_path, "../", 3))
     {
       /* some damned fucker created this package to mess our system */
       e_set(E_ERROR|CMD_CORRUPT,"package contains file with unsecure path: %s", tgz->f_name);
       goto err3;
     }
 
+    /* add ./ */
+    if (sane_path[0] == '\0')
+    {
+      pkg->files = g_slist_append(pkg->files, db_alloc_file(g_strdup("./"), 0));
+      g_free(sane_path);
+      sane_path = 0;
+      continue;
+    }
+
     /* check for metadata files */
     if (!strcmp(sane_path, "install/slack-desc"))
     {
-      if (tgz->f_size > 1024*16) /* 16K is enough */
+      if (tgz->f_size > 1024*4) /* 4K is enough */
       {
         e_set(E_ERROR|CMD_CORRUPT, "slack-desc file is too big (%d kB)", tgz->f_size/1024);
         goto err3;
@@ -205,7 +212,7 @@ gint cmd_install(
         else if (!parse_cleanuplink(ln))
         {
           /* ...append it to doinst buffer */
-          /*XXX: this is stupid braindead hack */
+          /*XXX: this is a stupid braindead hack */
           gchar* nd;
           if (doinst)
             nd = g_strdup_printf("%s%s\n", doinst, ln);
@@ -237,46 +244,57 @@ gint cmd_install(
     else if (!strncmp(sane_path, "install/", 8))
       continue;
 
-    /* add file to db */
-    pkg->files = g_slist_append(pkg->files, db_alloc_file(g_strdup(sane_path), 0));
-
     /* following strings can be freed by the ta_* code, if so, you must zero
        variables after passing them to a ta_* function */
     gchar* fullpath = g_strdup_printf("%s/%s", opts->root, sane_path);
     gchar* temppath = g_strdup_printf("%s--###install###", fullpath);
-    sys_ftype existing = sys_file_type(fullpath, 0);
 
-    /* error handling in file installation code
-     * ----------------------------------------
-     *              dir     file     slink    link
-     *             D S N P  D S N P  D S N P  D S N P    D=differ S=same N=not exist P=differ
-     * paranoid :  X - - -  X - -    X - -    X - -
-     * normal   :  W - - -  W - -    W - -    W - -
-     * brutal   :  CP- - -  - - -    - - -    - - -
+    /* add file to db */
+    if (tgz->f_type == UNTGZ_DIR)
+      pkg->files = g_slist_append(pkg->files, db_alloc_file(g_strdup_printf("%s/", sane_path), 0));
+    else
+      pkg->files = g_slist_append(pkg->files, db_alloc_file(g_strdup(sane_path), 0));
+
+    /* get information about installed file from filesystem and filedb */
+    struct stat s;
+    sys_ftype existing = sys_file_type_stat(fullpath, 0, &s);
+    guint32 fileid = fdb_get_file_id(filedb, sane_path);
+    struct fdb_file file;
+    if (fileid)
+      fdb_get_file(filedb, fileid, &file);
+    e_clean(e);
+
+    /* preinstall file (installation will be finished by ta_finalize) */
+
+    /* here we must check interaction of following conditions:
+     *   - type of the file we are installing (tgz->f_type)
+     *   - type of the file on the filesystem (existing)
+     *   - difference between these two files
+     *   - presence of the file in the file database
+     *   - installation mode
+     * and decide what to do based on what mode we are in:
+     *   - install new file
+     *   - overwrite existing file
+     *   - leave existing file alone
+     *   - issue error and rollback installation
+     *   - issue notice or warning
+     *   - ...
      */
 
 //  CMD_MODE_PARANOID,
-  //CMD_MODE_NORMAL,
+//  CMD_MODE_NORMAL,
 //  CMD_MODE_BRUTAL,
 
-    /* determine relation between installed and target objects, this may be:
-     * INCOMPATIBLE (one is file other is dir)
-     * EQUAL (equal type and perms - owner,group,mode)
-     * NOTEXIST (target object not exist)
-     * METADIFFER (metadata differs - owner,group,mode)
-     * NOTDIR (parent is not directory)
-     */
-
-    /* preinstall file (installation will be finished by ta_finalize) */
+    // installed file type
     switch(tgz->f_type)
     {
       case UNTGZ_DIR: /* we have directory */
         if (existing == SYS_DIR)
         {
-          _notice("#mkdir %s", sane_path);
           /* installed directory already exist */
+          _notice("installed direcory already exists %s", sane_path);
 //          struct stat st;
-//          lstat(fullpath,st);          
+//          lstat(fullpath,st);
         }
         else if (existing == SYS_NONE)
         {
@@ -355,6 +373,7 @@ gint cmd_install(
     g_free(fullpath);
   }
   g_free(sane_path);
+  sane_path = 0;
   
   /* error occured during extraction */
   if (!e_ok(e))
