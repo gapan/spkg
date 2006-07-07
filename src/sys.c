@@ -15,7 +15,7 @@
 #include "sys.h"
 #include "path.h"
 
-#define e_set(e, n, fmt, args...) e_add(e, "filedb", __func__, n, fmt, ##args)
+#define e_set(e, n, fmt, args...) e_add(e, "sys", __func__, n, fmt, ##args)
 
 sys_ftype sys_file_type_stat(const gchar* path, gboolean deref, struct stat* s)
 {
