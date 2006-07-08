@@ -2,24 +2,17 @@
 before alpha1 |
 --------------/
 
-[paths] handle ./ path in tar and in db
-[pkgtools] remove install dir after installation
-[pkgtools] implement installation modes
-
-[sql,filedb] check assertions (are they really used for catching 
-    programmer's bugs?)
-
+[paths] handle ./ path in tar and in db ???
+[pkgtools] implement basic installation
 [doc] finish manpage 
 
-DEADLINE: 2005-01-30
+DEADLINE: 2006-08-01
 
 ---------------------------------------------------------------------
 before alpha2 |
 --------------/
 
 [error] rework internals of the error handling (use gslist for error stacking)
-[pkgdb] implement database integrity checks and use them before syncs
-[sql] port sql error handling to a e_* (use only errjmp and errret)
 [pkgtools] implement remove
 
 ---------------------------------------------------------------------
@@ -29,16 +22,19 @@ before alpha3 |
 [pkgtools] implement upgrade
 
 ---------------------------------------------------------------------
-before beta1 |
--------------/
+before beta |
+------------/
 
-[pkgdb] implement missing py bindings for queries
+[pkgtools] implement command modes (other than normal)
+[pkgdb] update py bindings
 
 [untgz] using blockbuf as writebuf can speedup things slightly on the 
     user side (approx. by some 5%)
 
 [doc] finish readmes
 
-[tests] automatic testsuite
+---------------------------------------------------------------------
+before rc1 |
+-----------/
 
-[*] get rid of G_UNLIKELY G_LIKELY macros (and check speed effect!)
+[tests] automatic testsuite
