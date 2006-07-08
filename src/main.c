@@ -34,11 +34,11 @@ static struct poptOption optsCommands[] = {
   "upgrade", 'u', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_UPGRADE,
   "Upgrade packages", NULL
 },
+#endif
 {
   "remove", 'd', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_REMOVE,
-  "Remove packages", NULL
+  "Remove packages. ([p]aranoid|<n>ormal|[b]rutal)", NULL
 },
-#endif
 {
   "list", 'l', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_LIST,
   "List packages. (<a>ll|[g]lob)", NULL
@@ -62,6 +62,14 @@ struct cmd {
 static struct cmd cmds[] = {
 {
   CMD_INSTALL, CMD_MODE_NORMAL, {
+    { CMD_MODE_PARANOID, "p", "paranoid" },
+    { CMD_MODE_NORMAL, "n", "normal" },
+    { CMD_MODE_BRUTAL, "b", "brutal" },
+    { 0 },
+  }
+},
+{
+  CMD_REMOVE, CMD_MODE_NORMAL, {
     { CMD_MODE_PARANOID, "p", "paranoid" },
     { CMD_MODE_NORMAL, "n", "normal" },
     { CMD_MODE_BRUTAL, "b", "brutal" },
