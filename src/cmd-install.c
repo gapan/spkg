@@ -131,7 +131,7 @@ gint cmd_install(
     /* add ./ */
     if (sane_path[0] == '\0')
     {
-	  db_add_file(pkg, "./", 0);
+      db_add_file(pkg, "./", 0);
       g_free(sane_path);
       sane_path = 0;
       continue;
@@ -203,7 +203,7 @@ gint cmd_install(
           g_free(dir);
           g_free(link);
           _notice("symlink %s -> %s", path, target);
-		  db_add_file(pkg, path, target);
+          db_add_file(pkg, path, target);
           gchar* fullpath = g_strdup_printf("%s/%s", opts->root, path);
           ta_symlink_nothing(fullpath, g_strdup(target));
         }
@@ -250,11 +250,11 @@ gint cmd_install(
 
     /* add file to db */
     if (tgz->f_type == UNTGZ_DIR)
-	{
-	  gchar* path = g_strdup_printf("%s/", sane_path);
+    {
+      gchar* path = g_strdup_printf("%s/", sane_path);
       db_add_file(pkg, path, 0);
-	  g_free(path);
-	}
+      g_free(path);
+    }
     else
       db_add_file(pkg, sane_path, 0);
 

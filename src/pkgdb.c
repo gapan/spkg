@@ -200,14 +200,14 @@ static gint _db_load_cached_files()
     stop_timer(9);
     continue_timer(8);
     path = strchr(buf, ' ');
-	if (!path)
-	  goto err_1;
-	{
-	  *path = '\0';
-	  path++;
+    if (!path)
+      goto err_1;
+    {
+      *path = '\0';
+      path++;
       JSLI(ptr, _db.files, path);
       *ptr = (void*)atoi(buf);
-	}
+    }
     stop_timer(8);
     continue_timer(9);
   }
@@ -243,7 +243,7 @@ gint db_cache_files()
   if (f == NULL)
   {
     e_set(E_ERROR, "can't open cache file");
-	return 1;
+    return 1;
   }
   g_free(cfile);
 
@@ -557,7 +557,7 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
   {
     void** ptr;
     JSLI(ptr, p->files, ln);
-	*ptr = 0;
+    *ptr = 0;
   }
 
   if (fs == -1)
@@ -577,8 +577,8 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
       g_free(link);
       void** ptr;
       JSLI(ptr, p->files, path);
-	  *ptr = target;
-	  g_free(path);
+      *ptr = target;
+      g_free(path);
     }
     g_free(ln);
   }
@@ -668,8 +668,8 @@ GSList* db_query(db_selector cb, void* data, db_query_type type)
       continue;
     struct db_pkg* p;
     gchar* name = de->d_name;
-	if (parse_pkgname(name, 6) == 0)
-	  continue;
+    if (parse_pkgname(name, 6) == 0)
+      continue;
     /* if cb == 0, then package matches */
     if (cb != 0)
     {
@@ -772,8 +772,8 @@ gint db_foreach_package(db_selector cb, void* data, db_get_type type)
       continue;
     struct db_pkg* p;
     gchar* name = de->d_name;
-	if (parse_pkgname(name, 6) == 0)
-	  continue;
+    if (parse_pkgname(name, 6) == 0)
+      continue;
     /* if cb == 0, then package matches */
     /* otherwise get package from database ask the selector if it 
        likes this package */
