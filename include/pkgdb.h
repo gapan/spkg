@@ -157,6 +157,7 @@ extern void db_free_query(GSList* pkgs, db_query_type type);
 extern gint db_load_files(gint cached);
 extern void db_free_files();
 extern gint db_cache_files();
+extern guint db_get_file(const gchar* path);
 
 extern gint db_foreach_package(db_selector cb, void* data, db_get_type type);
 

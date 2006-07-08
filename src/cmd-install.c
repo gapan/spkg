@@ -248,7 +248,7 @@ gint cmd_install(
     gchar* fullpath = g_strdup_printf("%s/%s", opts->root, sane_path);
     gchar* temppath = g_strdup_printf("%s--###install###", fullpath);
 
-    /* add file to db */
+    /* add file to the package */
     if (tgz->f_type == UNTGZ_DIR)
     {
       gchar* path = g_strdup_printf("%s/", sane_path);
@@ -258,35 +258,33 @@ gint cmd_install(
     else
       db_add_file(pkg, sane_path, 0);
 
+    /* Here we must check interaction of following conditions:
+     *
+     * - type of the file we are installing (tgz->f_type)
+     * - type of the file on the filesystem (existing)
+     * - presence of the file in the file database
+     *
+     * And decide what to do based on what mode we are in:
+     *
+     * - install new file
+     * - overwrite existing file
+     * - leave existing file alone
+     * - issue error and rollback installation
+     * - issue notice or warning
+     */
+
     /* get information about installed file from filesystem and filedb */
     struct stat s;
     sys_ftype existing = sys_file_type_stat(fullpath, 0, &s);
-//    guint file = db_get_file(sane_path);
+    guint file = db_get_file(sane_path);
     e_clean(e);
-
-    /* preinstall file (installation will be finished by ta_finalize) */
-
-    /* here we must check interaction of following conditions:
-     *   - type of the file we are installing (tgz->f_type)
-     *   - type of the file on the filesystem (existing)
-     *   - difference between these two files
-     *   - presence of the file in the file database
-     *   - installation mode
-     * and decide what to do based on what mode we are in:
-     *   - install new file
-     *   - overwrite existing file
-     *   - leave existing file alone
-     *   - issue error and rollback installation
-     *   - issue notice or warning
-     *   - ...
-     */
 
 //  CMD_MODE_PARANOID,
 //  CMD_MODE_NORMAL,
 //  CMD_MODE_BRUTAL,
 
     // installed file type
-    switch(tgz->f_type)
+    switch (tgz->f_type)
     {
       case UNTGZ_DIR: /* we have directory */
         if (existing == SYS_DIR)

@@ -236,6 +236,15 @@ gint db_load_files(gint cached)
   return 0;
 }
 
+guint db_get_file(const gchar* path)
+{
+  void **ptr;
+  JSLG(ptr, _db.files, path);
+  if (ptr == NULL)
+    return 0;
+  return (guint)*ptr;
+}
+
 gint db_cache_files()
 {
   gchar* cfile = g_strdup_printf("%s/.files.cache", _db.pkgdir);
