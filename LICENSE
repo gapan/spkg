@@ -5,16 +5,6 @@ but like in "I don't care what are you going to do with it."
 
 This work statically links following libraries:
 
-sqlite3 : a totally free library 
--------
-  
-The original author of SQLite has dedicated the code to the public domain.
-Anyone is free to copy, modify, publish, use, compile, sell, or distribute
-the original SQLite code, either in source code form or as a compiled binary,
-for any purpose, commerical or non-commerical, and by any means.
-
-(see www/copyright.tcl in the source package of the library)
-
 popt : a totally free library
 ----
 
