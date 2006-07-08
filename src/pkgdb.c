@@ -233,6 +233,9 @@ gint _db_load_package_files()
     goto err_0;
   }
   gchar sbuf[1024*128];
+
+  gchar* line = 0;
+  gint size = 0;
   
   struct dirent* de;
   while ((de = readdir(d)) != NULL)
@@ -251,17 +254,15 @@ gint _db_load_package_files()
     }
     setvbuf(f, sbuf, _IOFBF, sizeof(sbuf));
     
-    gchar* line = 0;
-    gint size = 0;
     gint linelen;
     gint files = 0;
-    void** ptr;
     while ((linelen = getline(&line, &size, f)) >= 0)
     {
       if (linelen > 0 && line[linelen-1] == '\n')
         line[linelen-1] = '\0', linelen--;
       if (files)
       {
+        void** ptr;
         JSLI(ptr, _db.files, line);
         (*ptr)++;
       }
@@ -273,6 +274,9 @@ gint _db_load_package_files()
     
     fclose(f);
   }
+
+  if (line)
+    free(line);
 
   closedir(d);
   return 0;
