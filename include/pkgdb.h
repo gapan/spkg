@@ -136,7 +136,7 @@ extern gint db_rem_pkg(gchar* name);
  * @param data arbitrary data passed from the \ref db_query function.
  * @return 1 if package should be selected, 0 otherwise, -1 on error.
  */
-typedef gint (*db_selector)(const struct db_pkg* pkg, const void* data);
+typedef gint (*db_selector)(const struct db_pkg* pkg, void* data);
 
 /** Get packages list from the database.
  *
@@ -145,7 +145,7 @@ typedef gint (*db_selector)(const struct db_pkg* pkg, const void* data);
  * @param type format of result. see \ref db_query_type
  * @return list of package names, 0 if empty or error
  */
-extern GSList* db_query(db_selector cb, const void* data, db_query_type type);
+extern GSList* db_query(db_selector cb, void* data, db_query_type type);
 
 /** Free packages list returned by \ref db_query().
  *
@@ -153,6 +153,12 @@ extern GSList* db_query(db_selector cb, const void* data, db_query_type type);
  * @param type must be the same as when the query was called. see \ref db_query_type
  */
 extern void db_free_query(GSList* pkgs, db_query_type type);
+
+extern gint db_load_files(gint cached);
+extern void db_free_files();
+extern gint db_cache_files();
+
+extern gint db_foreach_package(db_selector cb, void* data, db_get_type type);
 
 #endif
 

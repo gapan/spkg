@@ -157,9 +157,8 @@ void db_close()
   print_timer(1, "[pkgdb] db_close");
   print_timer(2, "[pkgdb] db_get_pkg");
   print_timer(3, "[pkgdb] db_add_pkg");
-  print_timer(6, "[pkgdb] db_free_pkg");
-  print_timer(7, "[pkgdb] db_query");
-  print_timer(9, "[pkgdb] db_free_query");
+  print_timer(8, "[pkgdb] files: judy");
+  print_timer(9, "[pkgdb] files: read");
 }
 
 static gint _db_load_files_selector(const struct db_pkg* p, void* d)
@@ -183,17 +182,23 @@ static gint _db_load_files_selector(const struct db_pkg* p, void* d)
 static gint _db_load_cached_files()
 {
   gchar* cfile = g_strdup_printf("%s/.files.cache", _db.pkgdir);
-  gzFile f = gzopen(cfile, "r");
+  FILE* f = fopen(cfile, "r");
   if (f == NULL)
     goto err_0;
   g_free(cfile);
+
+  gchar sbuf[1024*512];
+  setvbuf(f, sbuf, _IOFBF, sizeof(sbuf));
 
   gchar buf[4096];
   void** ptr;
   gchar* path;
   
-  while (gzgets(f, buf, 4096) != NULL && *buf != '\0')
+  continue_timer(9);
+  while (fgets(buf, 4096, f) != NULL && *buf != '\0')
   {
+    stop_timer(9);
+    continue_timer(8);
     path = strchr(buf, ' ');
 	if (!path)
 	  goto err_1;
@@ -203,13 +208,15 @@ static gint _db_load_cached_files()
       JSLI(ptr, _db.files, path);
       *ptr = (void*)atoi(buf);
 	}
+    stop_timer(8);
+    continue_timer(9);
   }
   
-  gzclose(f);
+  fclose(f);
   return 0;
  err_1:
   db_free_files();
-  gzclose(f);
+  fclose(f);
  err_0:
   return 1;
 }
@@ -232,7 +239,7 @@ gint db_load_files(gint cached)
 gint db_cache_files()
 {
   gchar* cfile = g_strdup_printf("%s/.files.cache", _db.pkgdir);
-  gzFile f = gzopen(cfile, "w");
+  FILE* f = fopen(cfile, "w");
   if (f == NULL)
   {
     e_set(E_ERROR, "can't open cache file");
@@ -246,11 +253,11 @@ gint db_cache_files()
   JSLF(p, _db.files, path);
   while (p != NULL)
   {
-    gzprintf(f, "%u %s\n", (guint)*p, path);
+    fprintf(f, "%u %s\n", (guint)*p, path);
     JSLN(p, _db.files, path);
   }
   
-  gzclose(f);
+  fclose(f);
   return 0;
 }
 
