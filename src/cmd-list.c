@@ -12,9 +12,9 @@
 /* private
  ************************************************************************/
 
-typedef GSList* (*query_func)(db_selector, const void*, db_query_type);
+typedef GSList* (*query_func)(db_selector, void*, db_query_type);
 
-static gint _glob_selector(const struct db_pkg* p, const void* d)
+static gint _glob_selector(const struct db_pkg* p, void* d)
 {
   gint s = fnmatch(d, p->name, 0);
   if (s == FNM_NOMATCH)

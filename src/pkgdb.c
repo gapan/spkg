@@ -14,6 +14,7 @@
 #include <sys/mman.h>
 #include <utime.h>
 #include <errno.h>
+#include <zlib.h>
 
 #include <Judy.h>
 
@@ -31,6 +32,7 @@ struct db_state {
   gchar* pkgdir; /* /var/log/packages/ */
   gchar* scrdir; /* /var/log/scripts/ */
   struct error* err;
+  void* files;
   gint fd_lock;
 };
 
@@ -158,6 +160,105 @@ void db_close()
   print_timer(6, "[pkgdb] db_free_pkg");
   print_timer(7, "[pkgdb] db_query");
   print_timer(9, "[pkgdb] db_free_query");
+}
+
+static gint _db_load_files_selector(const struct db_pkg* p, void* d)
+{
+  gchar path[4096];
+  void **p1, **p2;
+  strcpy(path, "");
+  JSLF(p1, p->files, path);
+  while (p1 != NULL)
+  {
+    if (*p1 == 0)
+    {
+      JSLI(p2, _db.files, path);
+      (*p2)++;
+    }
+    JSLN(p1, p->files, path);
+  }
+  return 0;
+}
+
+static gint _db_load_cached_files()
+{
+  gchar* cfile = g_strdup_printf("%s/.files.cache", _db.pkgdir);
+  gzFile f = gzopen(cfile, "r");
+  if (f == NULL)
+    goto err_0;
+  g_free(cfile);
+
+  gchar buf[4096];
+  void** ptr;
+  gchar* path;
+  
+  while (gzgets(f, buf, 4096) != NULL && *buf != '\0')
+  {
+    path = strchr(buf, ' ');
+	if (!path)
+	  goto err_1;
+	{
+	  *path = '\0';
+	  path++;
+      JSLI(ptr, _db.files, path);
+      *ptr = (void*)atoi(buf);
+	}
+  }
+  
+  gzclose(f);
+  return 0;
+ err_1:
+  db_free_files();
+  gzclose(f);
+ err_0:
+  return 1;
+}
+
+gint db_load_files(gint cached)
+{
+  db_free_files();
+
+  if (cached)
+  {
+    _db_load_cached_files();
+  }
+  else
+  {
+    db_foreach_package(_db_load_files_selector, 0, DB_GET_FULL);
+  }
+  return 0;
+}
+
+gint db_cache_files()
+{
+  gchar* cfile = g_strdup_printf("%s/.files.cache", _db.pkgdir);
+  gzFile f = gzopen(cfile, "w");
+  if (f == NULL)
+  {
+    e_set(E_ERROR, "can't open cache file");
+	return 1;
+  }
+  g_free(cfile);
+
+  gchar path[4096];
+  void **p;
+  strcpy(path, "");
+  JSLF(p, _db.files, path);
+  while (p != NULL)
+  {
+    gzprintf(f, "%u %s\n", (guint)*p, path);
+    JSLN(p, _db.files, path);
+  }
+  
+  gzclose(f);
+  return 0;
+}
+
+void db_free_files()
+{
+  guint used;
+  JSLFA(used, _db.files);
+  printf("used %d\n", used);
 }
 
 /* public - memmory management
@@ -532,7 +633,7 @@ gint db_rem_pkg(gchar* name)
 /* public - generic database package queries
  ************************************************************************/
 
-GSList* db_query(db_selector cb, const void* data, db_query_type type)
+GSList* db_query(db_selector cb, void* data, db_query_type type)
 {
   GSList *pkgs=0;
 
@@ -560,6 +661,8 @@ GSList* db_query(db_selector cb, const void* data, db_query_type type)
       continue;
     struct db_pkg* p;
     gchar* name = de->d_name;
+	if (parse_pkgname(name, 6) == 0)
+	  continue;
     /* if cb == 0, then package matches */
     if (cb != 0)
     {
@@ -629,4 +732,64 @@ void db_free_query(GSList* pkgs, db_query_type type)
     data_free_func(l->data);
 
   g_slist_free(pkgs);
+}
+
+gint db_foreach_package(db_selector cb, void* data, db_get_type type)
+{
+  _db_open_check(0)
+
+  if (type != DB_GET_WITHOUT_FILES &&
+      type != DB_GET_FULL)
+  {
+    e_set(E_BADARG, "invalid query type");
+    goto err_0;
+  }
+  
+  if (cb == 0)
+  {
+    e_set(E_BADARG, "callback not set");
+    goto err_0;
+  }
+
+  DIR* d = opendir(_db.pkgdir);
+  if (d == NULL)
+  {
+    e_set(E_FATAL, "can't open legacy db directory");
+    goto err_0;
+  }
+  
+  struct dirent* de;
+  while ((de = readdir(d)) != NULL)
+  {
+    if (!strcmp(de->d_name,".") || !strcmp(de->d_name,".."))
+      continue;
+    struct db_pkg* p;
+    gchar* name = de->d_name;
+	if (parse_pkgname(name, 6) == 0)
+	  continue;
+    /* if cb == 0, then package matches */
+    /* otherwise get package from database ask the selector if it 
+       likes this package */
+    p = db_get_pkg(name, type);
+    if (p == 0)
+    {
+      e_set(E_ERROR, "can't get package from database");
+      goto err_1;
+    }
+    gint rs = cb(p, data);
+    db_free_pkg(p);
+    if (rs < 0)
+    {
+      e_set(E_ERROR, "callback returned error");
+      goto err_1;
+    }
+  }
+
+  closedir(d);
+  return 0;
+
+ err_1:
+  closedir(d);
+ err_0:
+  return 1;
 }
