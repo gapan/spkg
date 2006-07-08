@@ -274,9 +274,9 @@ gint cmd_install(
      */
 
     /* get information about installed file from filesystem and filedb */
-    struct stat s;
-    sys_ftype existing = sys_file_type_stat(fullpath, 0, &s);
-    gint file = db_filelist_get_file(sane_path);
+    struct stat ex_stat;
+    sys_ftype ex_type = sys_file_type_stat(fullpath, 0, &ex_stat);
+    gint in_fileref = db_filelist_get_file(sane_path);
     e_clean(e);
 
 //  CMD_MODE_PARANOID,
@@ -287,14 +287,12 @@ gint cmd_install(
     switch (tgz->f_type)
     {
       case UNTGZ_DIR: /* we have directory */
-        if (existing == SYS_DIR)
+        if (ex_type == SYS_DIR)
         {
           /* installed directory already exist */
           _notice("installed direcory already exists %s", sane_path);
-//          struct stat st;
-//          lstat(fullpath,st);
         }
-        else if (existing == SYS_NONE)
+        else if (ex_type == SYS_NONE)
         {
           _notice("mkdir %s", sane_path);
           if (!opts->dryrun)
@@ -303,7 +301,7 @@ gint cmd_install(
           ta_keep_remove(fullpath, 1);
           fullpath = 0;
         }
-        else if (existing == SYS_ERR)
+        else if (ex_type == SYS_ERR)
         {
           _warning("stat failed %s", sane_path);
           /*XXX: bug */
@@ -331,12 +329,12 @@ gint cmd_install(
         /*XXX: bug */
       break;
       default: /* ordinary file */
-        if (existing == SYS_DIR)
+        if (ex_type == SYS_DIR)
         {
           _warning("can't extract file over dir %s", sane_path);
           /* target path is a directory, bad! */
         }
-        else if (existing == SYS_NONE)
+        else if (ex_type == SYS_NONE)
         {
           _notice("extracting %s", sane_path);
           if (!opts->dryrun)
@@ -345,7 +343,7 @@ gint cmd_install(
           ta_keep_remove(fullpath, 0);
           fullpath = temppath = 0;
         }
-        else if (existing == SYS_ERR)
+        else if (ex_type == SYS_ERR)
         {
           _warning("stat failed %s", sane_path);
           /*XXX: bug */
@@ -360,6 +358,7 @@ gint cmd_install(
           ta_move_remove(temppath, fullpath);
           fullpath = temppath = 0;
         }
+      break;
     }
     if (0) /* common error handling */
     {
@@ -416,7 +415,7 @@ gint cmd_install(
         _warning("ldconfig failed");
 #endif
       /* run doinst sh */
-      if (sys_file_type("install/doinst.sh",0) == SYS_REG)
+      if (sys_file_type("install/doinst.sh", 0) == SYS_REG)
       {
         _notice("running doinst.sh");
         if (system(". install/doinst.sh"))
