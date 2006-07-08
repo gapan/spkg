@@ -47,6 +47,9 @@ static struct db_state _db = {0};
     return v; \
   }
 
+#define LINEMATCH(s) (strncmp(line, s, sizeof(s)-1) == 0)
+#define LINESIZE(s) (sizeof(s)-1)
+
 /* public - open/close
  ************************************************************************/
 
@@ -221,6 +224,64 @@ static gint _db_load_cached_files()
   return 1;
 }
 
+gint _db_load_package_files()
+{
+  DIR* d = opendir(_db.pkgdir);
+  if (d == NULL)
+  {
+    e_set(E_FATAL, "can't open legacy db directory");
+    goto err_0;
+  }
+  gchar sbuf[1024*128];
+  
+  struct dirent* de;
+  while ((de = readdir(d)) != NULL)
+  {
+    gchar* name = de->d_name;
+    if (parse_pkgname(name, 6) == 0)
+      continue;
+
+    gchar* tmpstr = g_strdup_printf("%s/%s", _db.pkgdir, name);
+    FILE* f = fopen(tmpstr, "r");
+    g_free(tmpstr);
+    if (f == NULL) /* main package entry can't be open */
+    {
+      e_set(E_ERROR, "can't open package entry file: %s: %s", name, strerror(errno));
+      goto err_1;
+    }
+    setvbuf(f, sbuf, _IOFBF, sizeof(sbuf));
+    
+    gchar* line = 0;
+    gint size = 0;
+    gint linelen;
+    gint files = 0;
+    void** ptr;
+    while ((linelen = getline(&line, &size, f)) >= 0)
+    {
+      if (linelen > 0 && line[linelen-1] == '\n')
+        line[linelen-1] = '\0', linelen--;
+      if (files)
+      {
+        JSLI(ptr, _db.files, line);
+        (*ptr)++;
+      }
+      else if (LINEMATCH("FILE LIST:"))
+      {
+        files++;
+      }
+	}
+    
+    fclose(f);
+  }
+
+  closedir(d);
+  return 0;
+ err_1:
+  closedir(d);
+ err_0:
+  return 1;
+}
+
 gint db_load_files(gint cached)
 {
   db_free_files();
@@ -231,7 +292,8 @@ gint db_load_files(gint cached)
   }
   else
   {
-    db_foreach_package(_db_load_files_selector, 0, DB_GET_FULL);
+    _db_load_package_files();
+//    db_foreach_package(_db_load_files_selector, 0, DB_GET_FULL);
   }
   return 0;
 }
@@ -255,6 +317,9 @@ gint db_cache_files()
     return 1;
   }
   g_free(cfile);
+
+  gchar sbuf[1024*512];
+  setvbuf(f, sbuf, _IOFBF, sizeof(sbuf));
 
   gchar path[4096];
   void **p;
@@ -418,12 +483,11 @@ gint db_add_pkg(struct db_pkg* pkg)
 
 struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
 {
-  gint fp, fs;
-  gchar *ap, *as=0;
-  gsize sp, ss=0;
-  struct db_pkg* p=0;
+  FILE *fp, *fs;
   gchar *tmpstr;
-  gchar *eof;
+  gchar stream_buf1[1024*128];
+  gchar stream_buf2[1024*64];
+  struct db_pkg* p = 0;
   
   if (name == 0)
   {
@@ -447,10 +511,10 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
 
   /* open legacy package db entries */  
   tmpstr = g_strdup_printf("%s/%s", _db.pkgdir, name);
-  fp = open(tmpstr, O_RDONLY);
+  fp = fopen(tmpstr, "r");
   time_t mtime = sys_file_mtime(tmpstr,0);
   g_free(tmpstr);
-  if (fp == -1) /* main package entry can't be open */
+  if (fp == NULL) /* main package entry can't be open */
   {
     e_set(E_ERROR | (errno == ENOENT ? DB_NOTEX : 0), "can't open main package entry file: %s", strerror(errno));
     goto err_0;
@@ -460,29 +524,14 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
     e_set(E_ERROR, "can't get main package entry file mtime: %s", strerror(errno));
     goto err_0;
   }
-  sp = lseek(fp, 0, SEEK_END);
-  ap = mmap(0, sp, PROT_READ, MAP_SHARED, fp, 0);
-  if (ap == (void*)-1)
-  {
-    e_set(E_ERROR, "can't mmap main package entry file: %s", strerror(errno));
-    close(fp);
-    goto err_0;
-  }
+  setvbuf(fp, stream_buf1, _IOFBF, sizeof(stream_buf1));
 
   /*XXX: better checks here (if NOTEX, or other error) */
   tmpstr = g_strdup_printf("%s/%s", _db.scrdir, name);
-  fs = open(tmpstr, O_RDONLY);
+  fs = fopen(tmpstr, "r");
   g_free(tmpstr);
-  if (fs != -1) /* script entry can't be open */
-  {
-    ss = lseek(fs, 0, SEEK_END);
-    as = mmap(0, ss, PROT_READ, MAP_SHARED, fs, 0);
-    if (as == (void*)-1)
-    {
-      close(fs);
-      fs = -1;
-    }
-  }
+  if (fs)
+    setvbuf(fs, stream_buf2, _IOFBF, sizeof(stream_buf2));
 
   p = g_new0(struct db_pkg, 1);
   p->name = g_strdup(name);
@@ -494,26 +543,34 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
 
   /* parse main package file */
   gint snl = strlen(p->shortname);
-  gint m[5] = {0}; /* if particular line was matched it can't 
+  gint m[5] = { 0 }; /* if particular line was matched it can't 
   occur anymore, so we cache info about already matched lines */
 
-  gchar *b, *e, *ln, *n=ap;
-  eof = ap+sp;
-  while(iter_lines2(&b, &e, &n, eof, 0))
+  gchar* line = 0;
+  gint size = 0;
+  gint linelen;
+  continue_timer(9);
+  while ((linelen = getline(&line, &size, fp)) >= 0)
   {
-#define LINEMATCH(s) (strncmp(b, s, sizeof(s)-1) == 0)
-#define LINESIZE(s) (sizeof(s)-1)
+    if (linelen > 0 && line[linelen-1] == '\n')
+	{
+	  line[linelen-1] = '\0';
+	  linelen--;
+	}
     if (!m[0] && LINEMATCH("PACKAGE NAME:"))
     {
-      gchar* name = b+LINESIZE("PACKAGE NAME:");
-      name = g_strstrip(g_strndup(name, e-name+1));
-      g_free(name);
+      gchar* name = g_strstrip(line + LINESIZE("PACKAGE NAME:"));
+	  if (strcmp(name, p->name))
+      {
+        e_set(E_ERROR, "package names don't match: %s", p->name);
+        goto err_1;
+      }
       /* skip whitespace */
       m[0] = 1;
     }
     else if (!m[1] && LINEMATCH("COMPRESSED PACKAGE SIZE:"))
     {
-      gchar* size = b+LINESIZE("COMPRESSED PACKAGE SIZE:");
+      gchar* size = line + LINESIZE("COMPRESSED PACKAGE SIZE:");
       if (sscanf(size, " %u ", &p->csize) != 1)
       {
         e_set(E_ERROR, "can't read compressed package size");
@@ -523,7 +580,7 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
     }
     else if (!m[2] && LINEMATCH("UNCOMPRESSED PACKAGE SIZE:"))
     {
-      gchar* size = b+LINESIZE("UNCOMPRESSED PACKAGE SIZE:");
+      gchar* size = line + LINESIZE("UNCOMPRESSED PACKAGE SIZE:");
       if (sscanf(size, " %u ", &p->usize) != 1)
       {
         e_set(E_ERROR, "can't read compressed package size");
@@ -533,23 +590,23 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
     }
     else if (!m[3] && LINEMATCH("PACKAGE LOCATION:"))
     {
-      gchar* loc = b+LINESIZE("PACKAGE LOCATION:");
-      loc = g_strstrip(g_strndup(loc, e-loc+1));
-      p->location = loc;
+      p->location = g_strdup(g_strstrip(line + LINESIZE("PACKAGE LOCATION:")));
       m[3] = 1;
     }
     else if (!m[4] && LINEMATCH("PACKAGE DESCRIPTION:"))
+	{
       m[4] = 1;
-    else if (strncmp(b, p->shortname, snl) == 0)
+	}
+    else if (strncmp(line, p->shortname, snl) == 0)
     {
-      gchar* ln = g_strndup(b, e-b+1);
-      gchar* ndesc = g_strconcat(p->desc?p->desc:"", ln, "\n", 0);
-      g_free(ln);
+      gchar* desc = g_strconcat(p->desc ? p->desc : "", line, "\n", 0);
       g_free(p->desc);
-      p->desc = ndesc;
+      p->desc = desc;
     }
     else if (LINEMATCH("FILE LIST:"))
+	{
       goto parse_files;
+	}
     else
     {
       e_set(E_ERROR, "corrupt legacy package database");
@@ -562,24 +619,25 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
   if (type == DB_GET_WITHOUT_FILES)
     goto fini;
 
-  while(iter_lines2(&b, &e, &n, eof, &ln))
+  while ((linelen = getline(&line, &size, fp)) >= 0)
   {
+    if (linelen > 0 && line[linelen-1] == '\n')
+	  line[linelen-1] = '\0';
     void** ptr;
-    JSLI(ptr, p->files, ln);
+    JSLI(ptr, p->files, line);
     *ptr = 0;
   }
 
-  if (fs == -1)
+  if (fs == NULL)
     goto fini;
 
-  n = as;
-  eof = as+ss;
-  while(iter_lines2(&b, &e, &n, eof, &ln))
+  while ((linelen = getline(&line, &size, fs)) >= 0)
   {
-    gchar* dir;
-    gchar* link;
-    gchar* target;
-    if (parse_createlink(ln, &dir, &link, &target))
+    if (linelen > 0 && line[linelen-1] == '\n')
+	  line[linelen-1] = '\0';
+
+    gchar *dir, *link, *target;
+    if (parse_createlink(line, &dir, &link, &target))
     {
       gchar* path = g_strdup_printf("%s/%s", dir, link);
       g_free(dir);
@@ -589,10 +647,28 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
       *ptr = target;
       g_free(path);
     }
-    g_free(ln);
   }
+  
+  if (line)
+    free(line);
 
-  p->doinst = g_strndup(as,ss-1);
+  fseek(fs, 0, SEEK_END);
+  guint script_size = ftell(fs);
+  if (script_size > 512*1024)
+  {
+    e_set(E_ERROR, "too big script file");
+    goto err_1;
+  }
+  if (script_size)
+  {
+    p->doinst = g_malloc(script_size);
+    fseek(fs, 0, SEEK_SET);
+    if (fread(p->doinst, script_size, 1, fs) != 1)
+    {
+      e_set(E_ERROR, "can't read script file");
+      goto err_1;
+    }
+  }
 
  fini:
   goto no_err;
@@ -602,13 +678,9 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
   p=0;
 
  no_err:
-  if (fs != -1)
-  {
-    munmap(as, ss);
-    close(fs);
-  }
-  munmap(ap, sp);
-  close(fp);
+  if (fs)
+    fclose(fs);
+  fclose(fp);
  err_0:
   stop_timer(4);
   return p;
