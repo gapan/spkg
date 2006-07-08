@@ -30,7 +30,6 @@ static gint _glob_selector(const struct db_pkg* p, void* d)
 gint cmd_list(
   const gchar* regexp,
   cmd_list_mode mode,
-  gboolean legacydb,
   const struct cmd_options* opts,
   struct error* e
 )

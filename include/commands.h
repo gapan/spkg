@@ -84,8 +84,6 @@ extern gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, str
  * 
  * @param regexp Regular expression.
  * @param mode List mode.
- * @param legacydb If list operation should be performed 
- *        on the legacy database.
  * @param opts Options.
  * @param e Error object.
  * @return 0 on success, 1 on error
@@ -93,7 +91,6 @@ extern gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, str
 extern gint cmd_list(
   const gchar* regexp,
   cmd_list_mode mode,
-  gboolean legacydb,
   const struct cmd_options* opts,
   struct error* e
 );

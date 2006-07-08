@@ -92,7 +92,6 @@ static gint verbose = 0;
 static gint quiet = 0;
 static gint no_optsyms = 0;
 static gint no_scripts = 0;
-static gint list_legacy = 0;
 
 static struct poptOption optsOptions[] = {
 {
@@ -119,11 +118,6 @@ static struct poptOption optsOptions[] = {
   "dry-run", 'n', 0, &cmd_opts.dryrun, 0,
   "Don't modify filesystem or database. This may be useful when used along "
   "with -v option to check what exactly will given command do.", NULL
-},
-{
-  "list-legacy", '\0', 0, &list_legacy, 0,
-  "Default database for list command is spkgdb. This command will make legacy "
-  "database the source for list command.", NULL
 },
 {
   "no-fast-symlinks", '\0', 0, &no_optsyms, 0,
@@ -396,7 +390,7 @@ int main(const int ac, const char* av[])
       {
         while ((arg = poptGetArg(optCon)) != 0 && !sig_break)
         {
-          if (cmd_list(arg, cmd_mode, list_legacy, &cmd_opts, err))
+          if (cmd_list(arg, cmd_mode, &cmd_opts, err))
           {
             e_print(err);
             e_clean(err);
@@ -406,7 +400,7 @@ int main(const int ac, const char* av[])
       }
       else
       {
-        if (cmd_list(0, cmd_mode, list_legacy, &cmd_opts, err))
+        if (cmd_list(0, cmd_mode, &cmd_opts, err))
         {
           e_print(err);
           e_clean(err);
