@@ -158,8 +158,9 @@ extern gint db_foreach_package(db_selector cb, void* data, db_get_type type);
 
 extern void db_filelist_rem_pkg_files(const struct db_pkg* pkg);
 extern void db_filelist_add_pkg_files(const struct db_pkg* pkg);
-extern gint db_filelist_load();
+extern gint db_filelist_load(gboolean force_reload);
 extern gint db_filelist_get_file(const gchar* path);
+extern gint db_filelist_get_link(const gchar* path);
 extern void db_filelist_free();
 
 

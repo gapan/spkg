@@ -28,11 +28,13 @@
 
 struct db_state {
   gboolean is_open;
+  gboolean filelist_loaded;
   gchar* topdir;
   gchar* pkgdir; /* /var/log/packages/ */
   gchar* scrdir; /* /var/log/scripts/ */
   struct error* err;
   void* files;
+  void* links;
   gint fd_lock;
 };
 
@@ -183,6 +185,16 @@ void db_filelist_rem_pkg_files(const struct db_pkg* pkg)
       else
         (*p2)--;
     }
+    else
+    {
+      JSLG(p2, _db.links, path);
+      if (p2 && (gint)*p2 == 1)
+      {
+        JSLD(rc, _db.links, path);
+      }
+      else
+        (*p2)--;
+    }
     JSLN(p1, pkg->files, path);
   }
 }
@@ -195,17 +207,24 @@ void db_filelist_add_pkg_files(const struct db_pkg* pkg)
   JSLF(p1, pkg->files, path);
   while (p1 != NULL)
   {
-    if (*p1 == 0) // not link
+    if (*p1 == 0)
     {
       JSLI(p2, _db.files, path);
-      (*p2)++;
     }
+    else
+    {
+      JSLI(p2, _db.links, path);
+    }
+    (*p2)++;
     JSLN(p1, pkg->files, path);
   }
 }
 
-gint db_filelist_load()
+gint db_filelist_load(gboolean force_reload)
 {
+  if (_db.filelist_loaded && !force_reload)
+    return 0;
+
   DIR* d = opendir(_db.pkgdir);
   if (d == NULL)
   {
@@ -235,7 +254,6 @@ gint db_filelist_load()
       goto err_1;
     }
     setvbuf(f, sbuf, _IOFBF, sizeof(sbuf));
-    
     gint linelen;
     gint files = 0;
     while ((linelen = getline(&line, &size, f)) >= 0)
@@ -253,7 +271,34 @@ gint db_filelist_load()
         files++;
       }
 	}
-    
+    fclose(f);
+
+    tmpstr = g_strdup_printf("%s/%s", _db.scrdir, name);
+    f = fopen(tmpstr, "r");
+    g_free(tmpstr);
+    if (f == NULL) /* script package entry can't be open */
+      continue; /* ignore if can't be open (may not exist) XXX: check if errno is NOTEX */
+    setvbuf(f, sbuf, _IOFBF, sizeof(sbuf));
+    while ((linelen = getline(&line, &size, f)) >= 0)
+    {
+      if (linelen > 0 && line[linelen-1] == '\n')
+        line[linelen-1] = '\0', linelen--;
+
+      /* parse create link line */
+      gchar *dir, *link, *target;
+      if (parse_createlink(line, &dir, &link, &target))
+      {
+        gchar* path = g_strdup_printf("%s/%s", dir, link);
+        g_free(dir);
+        g_free(link);
+        g_free(target);
+        /* add */
+        void** ptr;
+        JSLI(ptr, _db.links, path);
+        (*ptr)++;
+        g_free(path);
+      }
+	}
     fclose(f);
   }
 
@@ -261,6 +306,7 @@ gint db_filelist_load()
     free(line);
 
   closedir(d);
+  _db.filelist_loaded = TRUE;
   return 0;
  err_1:
   db_filelist_free();
@@ -278,11 +324,21 @@ gint db_filelist_get_file(const gchar* path)
   return (gint)*ptr;
 }
 
+gint db_filelist_get_link(const gchar* path)
+{
+  void **ptr;
+  JSLG(ptr, _db.links, path);
+  if (ptr == NULL)
+    return 0;
+  return (gint)*ptr;
+}
+
 void db_filelist_free()
 {
   guint used;
   JSLFA(used, _db.files);
-  printf("used %d\n", used);
+  JSLFA(used, _db.links);
+  _db.filelist_loaded = FALSE;
 }
 
 /* public - memmory management
