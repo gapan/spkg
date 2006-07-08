@@ -54,25 +54,8 @@ PySpkg_Method(db_get_pkg, "name, files", Package,
   return (PyObject*)newPackage(p,0);
 }
 
-PySpkg_Method(db_legacy_get_pkg, "name, files", Package, 
-"Get package from legacy database. You may specify if "
-"you want to extract package's filelist")
-{
-  char* name;
-  int files;
-  if (!PyArg_ParseTuple(args, "si", &name, &files))
-    return NULL;
-  struct db_pkg* p = db_legacy_get_pkg(name,files);
-  if (p == 0)
-  {
-    PyErr_SetString(PySpkgErrorObject, e_string(spkg_error));
-    return NULL;
-  }
-  return (PyObject*)newPackage(p,0);
-}
-
 # if 0
-//PySpkg_Method(db_query, "cb, data, type", Packages|Strings,
+PySpkg_Method(db_query, "cb, data, type", Packages|Strings,
 "Query packages from the database")
 {
   char* name;
