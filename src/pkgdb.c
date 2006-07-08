@@ -164,67 +164,47 @@ void db_close()
   print_timer(9, "[pkgdb] files: read");
 }
 
-static gint _db_load_files_selector(const struct db_pkg* p, void* d)
+void db_filelist_rem_pkg_files(const struct db_pkg* pkg)
+{
+  gchar path[4096];
+  gint rc;
+  void **p1, **p2;
+  strcpy(path, "");
+  JSLF(p1, pkg->files, path);
+  while (p1 != NULL)
+  {
+    if (*p1 == 0) // not link
+    {
+      JSLG(p2, _db.files, path);
+      if (p2 && (gint)*p2 == 1)
+      {
+        JSLD(rc, _db.files, path);
+      }
+      else
+        (*p2)--;
+    }
+    JSLN(p1, pkg->files, path);
+  }
+}
+
+void db_filelist_add_pkg_files(const struct db_pkg* pkg)
 {
   gchar path[4096];
   void **p1, **p2;
   strcpy(path, "");
-  JSLF(p1, p->files, path);
+  JSLF(p1, pkg->files, path);
   while (p1 != NULL)
   {
-    if (*p1 == 0)
+    if (*p1 == 0) // not link
     {
       JSLI(p2, _db.files, path);
       (*p2)++;
     }
-    JSLN(p1, p->files, path);
+    JSLN(p1, pkg->files, path);
   }
-  return 0;
 }
 
-static gint _db_load_cached_files()
-{
-  gchar* cfile = g_strdup_printf("%s/.files.cache", _db.pkgdir);
-  FILE* f = fopen(cfile, "r");
-  if (f == NULL)
-    goto err_0;
-  g_free(cfile);
-
-  gchar sbuf[1024*512];
-  setvbuf(f, sbuf, _IOFBF, sizeof(sbuf));
-
-  gchar buf[4096];
-  void** ptr;
-  gchar* path;
-  
-  continue_timer(9);
-  while (fgets(buf, 4096, f) != NULL && *buf != '\0')
-  {
-    stop_timer(9);
-    continue_timer(8);
-    path = strchr(buf, ' ');
-    if (!path)
-      goto err_1;
-    {
-      *path = '\0';
-      path++;
-      JSLI(ptr, _db.files, path);
-      *ptr = (void*)atoi(buf);
-    }
-    stop_timer(8);
-    continue_timer(9);
-  }
-  
-  fclose(f);
-  return 0;
- err_1:
-  db_free_files();
-  fclose(f);
- err_0:
-  return 1;
-}
-
-gint _db_load_package_files()
+gint db_filelist_load()
 {
   DIR* d = opendir(_db.pkgdir);
   if (d == NULL)
@@ -233,6 +213,8 @@ gint _db_load_package_files()
     goto err_0;
   }
   gchar sbuf[1024*128];
+
+  db_filelist_free();
 
   gchar* line = 0;
   gint size = 0;
@@ -281,65 +263,22 @@ gint _db_load_package_files()
   closedir(d);
   return 0;
  err_1:
+  db_filelist_free();
   closedir(d);
  err_0:
   return 1;
 }
 
-gint db_load_files(gint cached)
-{
-  db_free_files();
-
-  if (cached)
-  {
-    _db_load_cached_files();
-  }
-  else
-  {
-    _db_load_package_files();
-//    db_foreach_package(_db_load_files_selector, 0, DB_GET_FULL);
-  }
-  return 0;
-}
-
-guint db_get_file(const gchar* path)
+gint db_filelist_get_file(const gchar* path)
 {
   void **ptr;
   JSLG(ptr, _db.files, path);
   if (ptr == NULL)
     return 0;
-  return (guint)*ptr;
+  return (gint)*ptr;
 }
 
-gint db_cache_files()
-{
-  gchar* cfile = g_strdup_printf("%s/.files.cache", _db.pkgdir);
-  FILE* f = fopen(cfile, "w");
-  if (f == NULL)
-  {
-    e_set(E_ERROR, "can't open cache file");
-    return 1;
-  }
-  g_free(cfile);
-
-  gchar sbuf[1024*512];
-  setvbuf(f, sbuf, _IOFBF, sizeof(sbuf));
-
-  gchar path[4096];
-  void **p;
-  strcpy(path, "");
-  JSLF(p, _db.files, path);
-  while (p != NULL)
-  {
-    fprintf(f, "%u %s\n", (guint)*p, path);
-    JSLN(p, _db.files, path);
-  }
-  
-  fclose(f);
-  return 0;
-}
-
-void db_free_files()
+void db_filelist_free()
 {
   guint used;
   JSLFA(used, _db.files);

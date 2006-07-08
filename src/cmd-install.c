@@ -276,7 +276,7 @@ gint cmd_install(
     /* get information about installed file from filesystem and filedb */
     struct stat s;
     sys_ftype existing = sys_file_type_stat(fullpath, 0, &s);
-    guint file = db_get_file(sane_path);
+    gint file = db_filelist_get_file(sane_path);
     e_clean(e);
 
 //  CMD_MODE_PARANOID,

@@ -154,12 +154,14 @@ extern GSList* db_query(db_selector cb, void* data, db_query_type type);
  */
 extern void db_free_query(GSList* pkgs, db_query_type type);
 
-extern gint db_load_files(gint cached);
-extern void db_free_files();
-extern gint db_cache_files();
-extern guint db_get_file(const gchar* path);
-
 extern gint db_foreach_package(db_selector cb, void* data, db_get_type type);
+
+extern void db_filelist_rem_pkg_files(const struct db_pkg* pkg);
+extern void db_filelist_add_pkg_files(const struct db_pkg* pkg);
+extern gint db_filelist_load();
+extern gint db_filelist_get_file(const gchar* path);
+extern void db_filelist_free();
+
 
 #endif
 
