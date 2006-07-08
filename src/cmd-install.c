@@ -240,7 +240,7 @@ gint cmd_install(
       g_free(fullpath);
       continue;
     }
-    else if (!strncmp(sane_path, "install/", 8))
+    else if (!strncmp(sane_path, "install/", 8) && strcmp(sane_path, "install"))
       continue;
 
     /* following strings can be freed by the ta_* code, if so, you must zero

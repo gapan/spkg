@@ -374,7 +374,7 @@ gint db_add_pkg(struct db_pkg* pkg)
   if (pkg->doinst)
     fprintf(sf, "%s", pkg->doinst);
 
-  /* construct filelist and script for links creation */
+  /* construct filelist */
   gchar path[4096];
   void** ptr;
   strcpy(path, "");
@@ -443,7 +443,7 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
   g_free(tmpstr);
   if (fp == -1) /* main package entry can't be open */
   {
-    e_set(E_ERROR, "can't open main package entry file: %s", strerror(errno));
+    e_set(E_ERROR | (errno == ENOENT ? DB_NOTEX : 0), "can't open main package entry file: %s", strerror(errno));
     goto err_0;
   }
   if (mtime == (time_t)-1) /* package time can't be retrieved */

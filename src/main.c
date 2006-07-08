@@ -355,7 +355,7 @@ int main(const int ac, const char* av[])
     case CMD_INSTALL:
       while ((arg = poptGetArg(optCon)) != 0 && !sig_break)
       {
-        if (cmd_install(arg, cmd_mode, no_optsyms, &cmd_opts, err))
+        if (cmd_install(arg, cmd_mode, !no_optsyms, &cmd_opts, err))
         {
           e_print(err);
           e_clean(err);
