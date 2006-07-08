@@ -9,7 +9,6 @@ prefix := /usr/local
 DEBUG := no
 ASSERTS := yes
 BENCH := no
-MUDFLAP := no
 VERSION := alpha1
 RELEASE := no
 
@@ -17,7 +16,6 @@ ifeq ($(RELEASE),yes)
 DEBUG := no
 ASSERTS := yes # for alpha releases, this is good to be turned on
 BENCH := no
-MUDFLAP := no
 prefix := /usr
 endif
 
@@ -25,16 +23,11 @@ sbindir = $(prefix)/sbin
 mandir = $(prefix)/man
 docdir = $(prefix)/doc/spkg-$(VERSION)
 
-#CC := /opt/gcc-4.0.2/bin/gcc-4.0.2
 CC := gcc
 AR := ar
 CFLAGS := -pipe -Wall
-CPPFLAGS := -Iinclude -Ilibs/zlib -Ilibs/sqlite -Ilibs/glib -Ilibs/popt -D_GNU_SOURCE -DSPKG_VERSION=$(VERSION)
-LDFLAGS := libs/zlib/libz.a libs/sqlite/libsqlite3.a libs/glib/libglib-2.0.a libs/popt/libpopt.a
-ifeq ($(MUDFLAP),yes)
-CFLAGS += -fmudflap
-LDFLAGS += -fmudflap -lmudflap
-endif
+CPPFLAGS := -Iinclude -Ilibs/zlib -Ilibs/glib -Ilibs/popt -Ilibs/judy -D_GNU_SOURCE -DSPKG_VERSION=$(VERSION)
+LDFLAGS := libs/zlib/libz.a libs/glib/libglib-2.0.a libs/popt/libpopt.a libs/judy/libJudy.a
 ifeq ($(DEBUG),yes)
 CFLAGS +=  -ggdb3 -O0
 CPPFLAGS += -D__DEBUG=1
@@ -48,8 +41,8 @@ ifeq ($(ASSERTS),no)
 CPPFLAGS += -DG_DISABLE_ASSERT
 endif
 
-objs-spkg := misc.o error.o sys.o path.o untgz.o sql.o filedb.o pkgdb.o \
-  taction.o sigtrap.o message.o cmd-sync.o cmd-install.o cmd-remove.o \
+objs-spkg := misc.o error.o sys.o path.o untgz.o pkgdb.o \
+  taction.o sigtrap.o message.o cmd-install.o cmd-remove.o \
   cmd-upgrade.o cmd-list.o main.o
 
 export MAKEFLAGS += --no-print-directory -r

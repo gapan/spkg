@@ -22,8 +22,7 @@ static guint command = 0;
 #define CMD_INSTALL (1<<0)
 #define CMD_UPGRADE (1<<1)
 #define CMD_REMOVE  (1<<2)
-#define CMD_SYNC    (1<<3)
-#define CMD_LIST    (1<<4)
+#define CMD_LIST    (1<<3)
 
 static struct poptOption optsCommands[] = {
 {
@@ -43,10 +42,6 @@ static struct poptOption optsCommands[] = {
 {
   "list", 'l', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_LIST,
   "List packages. (<a>ll|[g]lob)", NULL
-},
-{
-  "sync", 's', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_SYNC,
-  "Synchronize databases. (<f>rom-legacy|[t]o-legacy)", NULL
 },
 POPT_TABLEEND
 };
@@ -77,13 +72,6 @@ static struct cmd cmds[] = {
   CMD_LIST, CMD_MODE_ALL, {
     { CMD_MODE_ALL, "a", "all" },
     { CMD_MODE_GLOB, "g", "glob" },
-    { 0 },
-  }
-},
-{
-  CMD_SYNC, CMD_MODE_FROMLEGACY, {
-    { CMD_MODE_FROMLEGACY, "f", "from-legacy" },
-    { CMD_MODE_TOLEGACY, "t", "to-legacy" },
     { 0 },
   }
 },
@@ -240,7 +228,6 @@ int main(const int ac, const char* av[])
       "  spkg -ump <packages>   [--upgrade --mode=paranoid]\n"
       "  spkg -vr <packages>    [--verbose --remove --mode=normal]\n"
       "  spkg -vnumb <packages> [--upgrade --verbose --dry-run --mode=brutal]\n"
-      "  spkg -s                [--sync --mode=from-legacy]\n"
       "\n"
       "Official website: http://spkg.megous.com\n"
       "Bug reports can be sent to <megous@megous.com>.\n"
@@ -250,7 +237,7 @@ int main(const int ac, const char* av[])
   if (usage)
   {
     printf(
-      "Usage: spkg [-i|--install] [-s|--sync] [-m|--mode MODE] [-r|--root ROOT]\n"
+      "Usage: spkg [-i|--install] [-m|--mode MODE] [-r|--root ROOT]\n"
       "            [-n|--dry-run] [-q|--quiet] [-v|--verbose] [packages...]\n"
     );
     goto out;
@@ -356,10 +343,6 @@ int main(const int ac, const char* av[])
           goto err_nopackages;
       }
     break;
-    case CMD_SYNC:
-      if (poptPeekArg(optCon) != 0)
-        goto err_garbage;
-    break;
     default:
       fprintf(stderr, "error[main]: invalid argument: schizofrenic command usage\n");
       goto err_1;
@@ -429,13 +412,6 @@ int main(const int ac, const char* av[])
           e_clean(err);
           status = 2;
         }
-      }
-    break;
-    case CMD_SYNC:
-      if (cmd_sync(cmd_mode, &cmd_opts, err))
-      {
-        db_close();
-        goto err_2;        
       }
     break;
   }

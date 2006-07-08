@@ -113,7 +113,6 @@ gint cmd_install(
 
   gboolean has_doinst = 0;
   gchar* sane_path = 0;
-  struct fdb* filedb = db_get_fdb();
   /* for each file in package */
   while (untgz_get_header(tgz) == 0)
   {
@@ -132,7 +131,7 @@ gint cmd_install(
     /* add ./ */
     if (sane_path[0] == '\0')
     {
-      pkg->files = g_slist_append(pkg->files, db_alloc_file(g_strdup("./"), 0));
+	  db_add_file(pkg, "./", 0);
       g_free(sane_path);
       sane_path = 0;
       continue;
@@ -204,7 +203,7 @@ gint cmd_install(
           g_free(dir);
           g_free(link);
           _notice("symlink %s -> %s", path, target);
-          pkg->files = g_slist_prepend(pkg->files, db_alloc_file(path, target));
+		  db_add_file(pkg, path, target);
           gchar* fullpath = g_strdup_printf("%s/%s", opts->root, path);
           ta_symlink_nothing(fullpath, g_strdup(target));
         }
@@ -251,17 +250,18 @@ gint cmd_install(
 
     /* add file to db */
     if (tgz->f_type == UNTGZ_DIR)
-      pkg->files = g_slist_append(pkg->files, db_alloc_file(g_strdup_printf("%s/", sane_path), 0));
+	{
+	  gchar* path = g_strdup_printf("%s/", sane_path);
+      db_add_file(pkg, path, 0);
+	  g_free(path);
+	}
     else
-      pkg->files = g_slist_append(pkg->files, db_alloc_file(g_strdup(sane_path), 0));
+      db_add_file(pkg, sane_path, 0);
 
     /* get information about installed file from filesystem and filedb */
     struct stat s;
     sys_ftype existing = sys_file_type_stat(fullpath, 0, &s);
-    guint32 fileid = fdb_get_file_id(filedb, sane_path);
-    struct fdb_file file;
-    if (fileid)
-      fdb_get_file(filedb, fileid, &file);
+//    guint file = db_get_file(sane_path);
     e_clean(e);
 
     /* preinstall file (installation will be finished by ta_finalize) */
@@ -389,18 +389,12 @@ gint cmd_install(
   if (!opts->dryrun)
   {
     _notice("updating legacy database");
-    if (db_legacy_add_pkg(pkg))
-    {
-      e_set(E_ERROR|CMD_DB,"can't add package to the legacy database");
-      goto err3;
-    }
-    _safe_breaking_point(err4);
-    _notice("updating spkg database");
     if (db_add_pkg(pkg))
     {
       e_set(E_ERROR|CMD_DB,"can't add package to the database");
-      goto err4;
+      goto err3;
     }
+    _safe_breaking_point(err4);
   }
 
   /* finalize transaction */
@@ -450,7 +444,7 @@ gint cmd_install(
   return 0;
 
  err4:
-  db_legacy_rem_pkg(name);
+  db_rem_pkg(name);
  err3:
   _notice("rolling back");
   g_free(sane_path);

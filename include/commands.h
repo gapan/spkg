@@ -37,12 +37,6 @@ typedef enum {
   CMD_MODE_GLOB,       /**<  */
 } cmd_list_mode;
 
-/** Mode of operation of the sync command. */
-typedef enum {
-  CMD_MODE_FROMLEGACY, /**<  */
-  CMD_MODE_TOLEGACY,   /**<  */
-} cmd_sync_mode;
-
 /** Common package command options structure. */
 struct cmd_options {
   gchar* root;        /**< Root directory. */
@@ -85,19 +79,6 @@ extern gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, st
  * @return 0 on success, 1 on error
  */
 extern gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct error* e);
-
-/** Synchronize package databases.
- * 
- * @param mode Sync mode.
- * @param opts Options.
- * @param e Error object.
- * @return 0 on success, 1 on error
- */
-extern gint cmd_sync(
-  cmd_sync_mode mode,
-  const struct cmd_options* opts,
-  struct error* e
-);
 
 /** List packages.
  * 

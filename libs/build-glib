@@ -1,7 +1,7 @@
 #!/bin/sh -e
 # this script can be used to build static glib library
-VER=2.10.2
-OFLAGS="-ggdb1 -O2 -march=i486 -mcpu=i686 -fomit-frame-pointer"
+VER=2.10.3
+OFLAGS="-ggdb1 -O2 -march=i486 -mtune=i686 -fomit-frame-pointer"
 #OFLAGS="-ggdb3 -O0 -DDISABLE_MEM_POOLS"
 
 test -d glib-$VER || \

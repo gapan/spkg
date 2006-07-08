@@ -1,0 +1,23 @@
+#!/bin/sh -e
+# this script can be used to build static glib library
+VER=1.0.3
+OFLAGS="-ggdb1 -O2 -march=i486 -mtune=i686 -fomit-frame-pointer"
+
+rm -rf Judy-$VER
+tar xzf Judy-$VER.tar.gz
+
+cd Judy-$VER
+export CFLAGS="$OFLAGS"
+export CXXFLAGS="$OFLAGS"
+./configure --prefix=/usr --enable-shared=no
+make
+make install DESTDIR=`pwd`/pkg
+
+cd ..
+
+rm -rf judy
+mkdir -p judy
+cp Judy-$VER/pkg/usr/lib/*.a judy/
+cp Judy-$VER/pkg/usr/include/*.h judy/
+
+rm -rf Judy-$VER

@@ -41,12 +41,10 @@ gint cmd_list(
   GSList* list;
   GSList* i;
 
-  query_func query = legacydb?db_legacy_query:db_query;
-
   switch (mode)
   {
     case CMD_MODE_GLOB:
-      list = query(_glob_selector, regexp, DB_QUERY_NAMES);
+      list = db_query(_glob_selector, regexp, DB_QUERY_NAMES);
       if (!e_ok(e))
       {
         e_set(E_ERROR, "query failed");
@@ -57,7 +55,7 @@ gint cmd_list(
       db_free_query(list, DB_QUERY_NAMES);
     break;
     case CMD_MODE_ALL:
-      list = query(0, 0, DB_QUERY_NAMES);
+      list = db_query(0, 0, DB_QUERY_NAMES);
       if (!e_ok(e))
       {
         e_set(E_ERROR, "query failed");
