@@ -2,22 +2,19 @@
 before alpha1 |
 --------------/
 
-[pkgtools] implement basic installation
-[doc] finish manpage 
-
-DEADLINE: 2006-08-01
+[pkgtools] finish install command
 
 ---------------------------------------------------------------------
 before alpha2 |
 --------------/
 
-[error] rework internals of the error handling (use gslist for error stacking)
-[pkgtools] implement upgrade
+[pkgtools] implement upgrade command
 
 ---------------------------------------------------------------------
 before beta |
 ------------/
 
+[error] rework internals of the error handling (use gslist for error stacking)
 [pkgdb] update py bindings
 
 [untgz] using blockbuf as writebuf can speedup things slightly on the 
