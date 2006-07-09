@@ -109,6 +109,10 @@ install-docs: docs
 	install -d -o root -g root -m 0755 $(DESTDIR)$(mandir)/man8/
 	install -o root -g root -m 0644 docs/spkg.8 $(DESTDIR)$(mandir)/man8/
 	gzip -f -9 $(DESTDIR)$(mandir)/man8/spkg.8
+	ln -sf spkg.8.gz $(DESTDIR)$(mandir)/man8/ipkg.8.gz
+	ln -sf spkg.8.gz $(DESTDIR)$(mandir)/man8/rpkg.8.gz
+	ln -sf spkg.8.gz $(DESTDIR)$(mandir)/man8/upkg.8.gz
+	ln -sf spkg.8.gz $(DESTDIR)$(mandir)/man8/lpkg.8.gz
 	install -d -o root -g root -m 0755 $(DESTDIR)$(docdir)
 	install -d -o root -g root -m 0755 $(DESTDIR)$(docdir)/html
 	install -o root -g root -m 0644 LICENSE README INSTALL HACKING NEWS TODO $(DESTDIR)$(docdir)/
@@ -137,7 +141,7 @@ uninstall:
 ############################################################################
 .PHONY: slackpkg dist
 
-PACKAGES := spkg-$(VERSION)-i486-1.tgz pyspkg-$(VERSION)-i486-1.tgz
+PACKAGES := spkg-$(VERSION)-i486-1.tgz
 
 slackpkg: $(PACKAGES)
 

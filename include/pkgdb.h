@@ -101,16 +101,17 @@ extern struct db_pkg* db_alloc_pkg(gchar* name);
  */
 extern void db_free_pkg(struct db_pkg* pkg);
 
-/** Create file object.
+/** Add file or link to the package.
  *
- * @param path File path. (it is not strduped)
- * @return \ref db_file object on success
+ * @param pkg [db_pkg] Package object.
+ * @param path File path.
+ * @param link_target Link target.
  */
 extern void db_add_file(struct db_pkg* pkg, gchar* path, gchar* link_target);
 
 /** Add package to the database.
  *
- * @param pkg \ref db_pkg object
+ * @param pkg [db_pkg] Package object.
  * @return 0 on success, 1 on error
  */
 extern gint db_add_pkg(struct db_pkg* pkg);
@@ -164,7 +165,6 @@ extern gint db_filelist_load(gboolean force_reload);
 extern gint db_filelist_get_file(const gchar* path);
 extern gint db_filelist_get_link(const gchar* path);
 extern void db_filelist_free();
-
 
 #endif
 

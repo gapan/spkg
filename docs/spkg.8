@@ -3,10 +3,15 @@
 spkg \- The Unofficial \fISlackware Linux\fR Package Manager
 .SH SYNOPSIS
 .B spkg
-[\fB-i\fR|\fB--install\fR] [\fB-s\fR|\fB--sync\fR] 
-[\fB-m\fR|\fB--mode\fR \fIMODE\fR] [\fB-r\fR|\fB--root\fR \fIROOT\fR]
-[\fB-n\fR|\fB--dry-run\fR] [\fB-q\fR|\fB--quiet\fR] 
-[\fB-v\fR|\fB--verbose\fR] [\fIpackages...\fR]
+[\fB-i\fR|\fB--install\fR]
+[\fB-d\fR|\fB--remove\fR]
+[\fB-u\fR|\fB--upgrade\fR]
+[\fB-l\fR|\fB--list\fR]
+[\fB-r\fR|\fB--root\fR \fIROOT\fR]
+[\fB-n\fR|\fB--dry-run\fR]
+[\fB-q\fR|\fB--quiet\fR] 
+[\fB-v\fR|\fB--verbose\fR]
+[\fIpackages...\fR]
 .CM ===========================================================================
 .SH DESCRIPTION
 \fBspkg\fR is fast and robust tool for package management that is compatible 
@@ -16,15 +21,18 @@ with \fISlackware Linux\fR.
 .SS Commands
 .TP
 \fB-i\fR, \fB--install\fR
-Install packages. ([p]aranoid|<n>ormal|[b]rutal)
+Install packages.
 .TP
-\fB-s\fR, \fB--sync\fR
-Synchronize databases. (<f>rom-legacy|[t]o-legacy)
+\fB-d\fR, \fB--remove\fR
+Remove packages.
+.TP
+\fB-u\fR, \fB--upgrade\fR
+Upgrade packages.
+.TP
+\fB-l\fR, \fB--list\fR
+List packages.
 .CM ===========================================================================
 .SS Options
-.TP
-\fB-m\fR | \fB--mode=\fIMODE\fR
-Set command mode of operation. See particular command for available modes.
 .TP
 \fB-r\fR | \fB--root=\fIROOT\fR
 Set altrernate root directory for package operations. (default: "/")
@@ -46,7 +54,7 @@ Spkg by default parses doinst.sh for symlink creation code and removes it from
 the script. This improves execution times of doinst.sh. Use this option to
 disable such optimizations.
 .TP
-\fB--no-doinst\fR
+\fB--no-scripts\fR
 Disable postinstallation script.
 .CM ===========================================================================
 .SS Help
@@ -62,27 +70,27 @@ Display spkg version.
 .CM ===========================================================================
 .SH FILES
 .IP "var/log/{packages,scripts}"
-Legacy package database.
-.IP "var/log/spkgdb"
-Spkg package database.
+Package database.
 .SH EXAMPLES
 .TP
-spkg -imb <packages>   [--install --mode=brutal]
+spkg -i <packages>   [--install]
 .TP
-spkg -ump <packages>   [--upgrade --mode=paranoid]
+spkg -dv <packages>  [--remove --verbose]
 .TP
-spkg -vr <packages>    [--verbose --remove --mode=normal]
+spkg -u <packages>   [--upgrade]
 .TP
-spkg -vnumb <packages> [--upgrade --verbose --dry-run --mode=brutal]
-.TP
-spkg -s                [--sync --mode=from-legacy]
+spkg -uvn <packages> [--upgrade --verbose --dry-run]
 .SH AUTHOR
-Written by Ondrej Jirman, 2005
+Written by Ondrej Jirman, 2005-2006
 .TP
 Official website: http://spkg.megous.com
 .SH BUGS
 Bug reports can be sent to <megous@megous.com>.
 .SH SEE ALSO
+.BR ipkg (8),
+.BR rpkg (8),
+.BR upkg (8),
+.BR lpkg (8),
 .BR installpkg (8),
-.BR upgradepkg (8),
-.BR removepkg (8)
+.BR removepkg (8),
+.BR upgradepkg (8)

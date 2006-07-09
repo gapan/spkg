@@ -36,8 +36,6 @@ struct cmd_options {
 /** Install package.
  * 
  * @param pkgfile Package file.
- * @param mode Installation mode.
- * @param optsyms Optimize symlinks.
  * @param opts Options.
  * @param e Error object.
  * @return 0 on success, 1 on error
@@ -53,7 +51,7 @@ extern gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, st
  */
 extern gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct error* e);
 
-/** Remove package <b>[not implemented]</b>.
+/** Remove package.
  * 
  * @param pkgname Package name.
  * @param opts Options.
@@ -64,8 +62,7 @@ extern gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, str
 
 /** List packages.
  * 
- * @param regexp Regular expression.
- * @param mode List mode.
+ * @param arglist List of glob expressions. If NULL, all packages will be shown.
  * @param opts Options.
  * @param e Error object.
  * @return 0 on success, 1 on error
