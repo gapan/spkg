@@ -1,23 +1,21 @@
-<?php require "inc/common.php"; ?>
+<?php require "common.php"; ?>
 <?php head("spkg - status page"); ?>
 
  <h1>Status</h1>
 
   <p>The lastest version of @SPKG@ is <strong>@VER@</strong>.</p>
 
-  <p>@SPKG@ is now under active development. See <a href="/dl/ChangeLog">changelog</a>
-  and <a href="/dl/TODO">TODO</a> for details.</p>
+  <p>@SPKG@ is now under active development. See <a href="dl/ChangeLog">changelog</a>
+  and <a href="dl/TODO">TODO</a> for details.</p>
 
   <table cellspacing="0">
     <tr><th>library part</th><th>docs</th><th>code</th><th>status description</th></tr>
 <?php
   $status = array(
     array("untgz",   100, 100,  "completed!"),
-    array("sql",     100, 100,  "completed!"),
-    array("filedb",   80, 100,  "completed!"),
-    array("pkgdb",    80, 100,  "completed!"),
+    array("pkgdb",   100, 100,  "completed!"),
     array("main",    100, 100,  "completed!"),
-    array("commands", 10,  30,  "partly implemented install command"),
+    array("commands", 60,  60,  "missing upgrade command"),
   );
   function getclass($p)
   {
@@ -38,7 +36,7 @@
 
  <h1>Roadmap</h1>
 
-  <p>Here is the current roadmap of the @SPKG@ development.</p>
+  <p>Here is the current roadmap/history of the @SPKG@ development.</p>
 
   <table cellspacing="0">
     <tr><th>date</th><th>milestone</th></tr>
@@ -51,7 +49,7 @@
     array(1,"website created", "2005-06-09"),
     array(1,"pkgdb library is fully implemented", "2005-06-29"),
     array(1,"command line interface is fully implemented", "2005-07-20"),
-    array(1,"first binary alpha release", "2005-07-20"),
+    array(1,"first binary alpha release", "2006-07-10"),
     array(0,"three basic commands are implemented", "?"),
     array(0,"first fully functional beta release", "?"),
     array(0,"first stable version is released, PyGTK graphical interface", "?"),

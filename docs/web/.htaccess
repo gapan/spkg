@@ -8,6 +8,6 @@ Allow from all
 
 DirectoryIndex index.php
 
-AuthType Basic
-AuthName "megiWeb restricted area"
-AuthUserFile  /home/ftpsite/megous.com/www/.htpasswd
+#AuthType Basic
+#AuthName "megiWeb restricted area"
+#AuthUserFile  /home/ftpsite/megous.com/www/.htpasswd

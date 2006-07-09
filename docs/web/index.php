@@ -1,5 +1,9 @@
-<?php require "inc/common.php"; ?>
+<?php require "common.php"; ?>
 <?php head("spkg - main page"); ?>
+
+  <p style="font-size:130%;font-weight:bold;color:red;padding:4px;
+  border:1px solid yellow;background:white;text-align:center;">
+  @SPKG@-@VER@ "The Speedbringer" was released!</p>
 
  <h1>Intro</h1>
 
@@ -9,49 +13,63 @@
 
   <p>@SPKG@ is implemented in C and optimized for <strong>speed</strong>.</p>
 
+  <p>See <a href="status.php">status</a> page for the current status
+  and the roadmap of the @SPKG@ development.</p>
+
+  <p style="border:1px solid yellow; background:white; padding: 4px;">
+  <b>NOTE (2006-07-10):</b> spkg project developement was stalled for a year, but now
+  I'm back continuing on it. What happened was, that I have got my first job
+  exactly a year ago, partially thanks to my work on @SPKG@, I guess. :-)
+  Some developement continued last summer in silence without release.
+  Now I'm releasing alpha1 version of @SPKG@. This version features fully
+  functional install and remove commands. More is comming soon!</p>
 
  <h1>Features</h1>
 
   <ul>
+    <li>Extreme symplicity. Just like pkgtools.</li>
     <li>Fast installation (approx. 10% faster than <strong>tar xzf</strong>)</li>
     <li>Fast unistallation (faster than <strong>rm -rf</strong>)</li>
-    <li>And yes, fast upgrade too. :-)</li>
     <li>Robust implementation. (nearly all error conditions are checked)</li>
-    <li>Multiple security modes of command operation. (from paranoid up to brutal)</li>
     <li>Rollback functionality. (no file left behind policy ;-))</li>
-    <li>Compatibility with legacy Slackware package database.</li>
-    <li>Everything is librified. (see <a href="/docs.php">docs</a>) You can 
+    <li>Full compatibility with legacy Slackware package database.</li>
+    <li>Everything is libified. (see <a href="docs.php">docs</a>) You can 
     implement new commands easily.</li>
-    <li>Easy access to the package database thanks to Python bindings and 
-    librification.</li>
+    <li>Easy access to the package database thanks to libification.</li>
+  </ul>
+
+  <p><b>Planned features are:</b></p>
+
+  <ul>
+    <li>Fast upgrade, I guess... :-)</li>
+    <li>Python bindings.</li>
+    <li>PyGtk based GUI.</li>
   </ul>
 
  <h1>News</h1>
 
-  <p style="font-size:140%;font-weight:bold;color:red;padding:0;
-  border:1px solid yellow;background:white;text-align:center;">
-  @SPKG@-@VER@ "The Speedbringer" was released!</p>
-
-  <p>See <a href="/status.php">status</a> page for the current status
-  and the roadmap of the @SPKG@ development.</p>
-
   <dl>
-   <dt>2005-08-26</dt>
-    <dd>Firtst alpha version released! This version implements install
-    command with three modes of operation: brutal, normal and paranoid.
-    See manpage for more information. Other new features include fully
-    functional command line interface with corresponding manpage and
-    implementation of safe break points. You can safely break
-    installation using some reasonable signal like SIGINT and all
-    changes made so far during installation will be automatically rolled
-    back.  From developer's point of view: new locking code, better
-    makefile, implemented generic data query functions for both legacy
-    and spkg databases, spkg no longer depends on rm and mkdir programs,
-    implemented very robust path simplification functions, assertions
-    usage audit, better signal handling, reimplemented db sync
-    functions, better verbosity selection. Enjoy it!</dd>
+   <dt>2006-07-10</dt>
+    <dd>Firtst alpha version released! This version implements install,
+    remove and list commands. See manpage for more information.
+    
+    Other new features include fully functional command line interface
+    with corresponding manpage and implementation of safe break points.
+    
+    You can safely break any command using some reasonable signal like
+    SIGINT and all changes made so far will be automatically rolled back.
+    
+    There are new command verbosity selection options too.
 
-   <dt><a href="/history.php">older news</a>...</dt>
+    I've put spkg on diet and completely dropped sqlite and filedb
+    database code. This results in fewer dependencies and little to
+    no performance impact. Filedb code was replaced with JudySL
+    arrays. See <a href="http://judy.sourceforge.net">this</a> page
+    for more info.
+    
+    Enjoy it!</dd>
+
+   <dt><a href="history.php">older news</a>...</dt>
   </dl>
 
 <?php foot(); ?>

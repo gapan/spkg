@@ -1,4 +1,4 @@
-<?php require "inc/common.php"; ?>
+<?php require "common.php"; ?>
 <?php head("spkg - downloads page"); ?>
 
  <h1>Downloads</h1>
@@ -11,14 +11,14 @@
   building section on this page.</p>
 
   <p>You can download latest binary packages of
-  <a href="/dl/spkg-@VER@-i486-1.tgz">spkg</a> and
-  <a href="/dl/pyspkg-@VER@-i486-1.tgz">pyspkg</a> for
-  slackware-current <a href="/dl/">here</a>.</p>
+  <a href="dl/spkg-@VER@-i486-1.tgz">spkg</a> and
+  <a href="dl/pyspkg-@VER@-i486-1.tgz">pyspkg</a> for
+  slackware-current <a href="dl/">here</a>.</p>
 
  <h1>Source code</h1>
 
   <p>Source code is distributed as an ordinary <a
-  href="/dl/spkg-@VER@.tar.gz">tarball</a>.</p>
+  href="dl/spkg-@VER@.tar.gz">tarball</a>.</p>
   
   <p>Prerequisites for building @SPKG@ are:</p>
   <ul>

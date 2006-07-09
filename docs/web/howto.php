@@ -1,4 +1,4 @@
-<?php require "inc/common.php"; ?>
+<?php require "common.php"; ?>
 <?php head("spkg - howto page"); ?>
 
  <h1>@SPKG@ howto</h1>

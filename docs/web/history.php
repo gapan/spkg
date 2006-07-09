@@ -1,4 +1,4 @@
-<?php require "inc/common.php"; ?>
+<?php require "common.php"; ?>
 <?php head("spkg - history"); ?>
 
  <h1>History</h1>
@@ -15,10 +15,10 @@
     <dd>Filedb library received new features: fast distributed
     checksumming and per file arbitrary data storing. It is possible
     to open multiple file databases at once. Implemented new, much
-    better error handling everywhere. <a href="/dl/TODO">TODO</a>
+    better error handling everywhere. <a href="dl/TODO">TODO</a>
     file is now automatically updated on the web.</dd>
    <dt>2005-06-21</dt>
-    <dd>I've implemented <a href="/dl/spkg-docs/pyspkg.html">Python
+    <dd>I've implemented <a href="dl/spkg-docs/pyspkg.html">Python
     bindings</a>. Now I'm finishing pkgdb library.</dd>
    <dt>2005-06-14</dt>
     <dd>SQL database wrapper API completed. Untgz documented.</dd>

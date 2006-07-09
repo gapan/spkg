@@ -42,7 +42,7 @@
  </div>
 
  <div id="botmenu">
- Written by Ondøej Jirman, 2005 
+ Written by Ondøej Jirman, 2005-2006
  | last update: @DATE@ 
  | contact: <a href="mailto:megous@megous.com">megous@megous.com</a>
  | <a href="http://megous.com">megous.com</a>

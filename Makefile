@@ -166,8 +166,8 @@ pyspkg-$(VERSION)-i486-1.tgz:
 dist: docs
 	rm -rf spkg-$(VERSION)
 	mkdir -p spkg-$(VERSION)
-	tar c `tla inventory -s` | tar xC spkg-$(VERSION)
-	tla changelog > spkg-$(VERSION)/ChangeLog
+	git tar-tree HEAD spkg-$(VERSION) | tar x
+	git log > spkg-$(VERSION)/ChangeLog
 	cp -a docs/html spkg-$(VERSION)/docs
 	tar czf spkg-$(VERSION).tar.gz spkg-$(VERSION)
 	rm -rf spkg-$(VERSION)
@@ -185,14 +185,14 @@ web: web-base web-docs #web-dist
 web-base:
 	rm -rf .website
 	mkdir -p .website
-	tar cC docs/web `cd docs/web ; tla inventory -s` | tar xC .website
+	cp -a docs/web/{*,.ht*} .website/
 	sed -i 's/@VER@/$(VERSION)/g ; s/@DATE@/$(shell LANG=C date)/g' .website/*.php .website/inc/*.php
 	sed -i 's/@SPKG@/<strong style="color:darkblue;"><span style="color:red;">s<\/span>pkg<\/strong>/g' .website/*.php .website/inc/*.php
 
 web-docs: docs
 	mkdir -p .website/dl/spkg-docs
 	cp -r docs/html/* .website/dl/spkg-docs
-	tla changelog > .website/dl/ChangeLog
+	git log > .website/dl/ChangeLog
 	cp TODO .website/dl/TODO
 
 web-dist: docs dist slackpkg
