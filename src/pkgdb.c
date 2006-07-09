@@ -222,7 +222,7 @@ void db_filelist_add_pkg_files(const struct db_pkg* pkg)
 
 gint db_filelist_load(gboolean force_reload)
 {
-  _db_open_check(0)
+  _db_open_check(1)
 
   if (_db.filelist_loaded && !force_reload)
     return 0;
