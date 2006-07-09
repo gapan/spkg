@@ -687,35 +687,50 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
   return p;
 }
 
+static gchar* _get_date()
+{
+  static gchar buf[100];
+  time_t t = time(NULL);
+  struct tm* ts = localtime(&t);
+  strftime(buf, sizeof(buf), "%F,%T", ts);
+  return buf;
+}
+
 gint db_rem_pkg(gchar* name)
 {
   _db_open_check(1)
 
   gchar* p = g_strdup_printf("%s/%s", _db.pkgdir, name);
   gchar* s = g_strdup_printf("%s/%s", _db.scrdir, name);
+  gchar* rp = g_strdup_printf("%s/removed_packages/%s-removed-%s", _db.topdir, name, _get_date());
+  gchar* rs = g_strdup_printf("%s/removed_scripts/%s-removed-%s", _db.topdir, name, _get_date());
+
   gint ret = 1;
   if (sys_file_type(p, 0) != SYS_REG)
   {
     e_set(E_ERROR|DB_NOTEX, "package is not in database");
     goto err_1;
   }
-  if (unlink(p) == -1)
+  if (rename(p, rp) == -1)
   {
-    e_set(E_ERROR|DB_NOTEX, "unlink failed: %s", strerror(errno));
+    e_set(E_ERROR, "package removal failed: %s", strerror(errno));
     goto err_1;
   }
   if (sys_file_type(s, 0) == SYS_REG)
   {
-    if (unlink(s) == -1)
+    if (rename(s, rs) == -1)
     {
-      e_set(E_ERROR|DB_NOTEX, "unlink failed: %s", strerror(errno));
+      e_set(E_ERROR, "script removal failed: %s", strerror(errno));
       goto err_1;
     }
   }
+
   ret = 0;
  err_1:
   g_free(p);
   g_free(s);
+  g_free(rp);
+  g_free(rs);
   return ret;
 }
 

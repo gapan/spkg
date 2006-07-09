@@ -20,7 +20,10 @@
 sys_ftype sys_file_type_stat(const gchar* path, gboolean deref, struct stat* s)
 {
   g_assert(path != 0);
+  struct stat st;
   gint rs;
+  if (s == NULL)
+    s = &st;
   if (deref)
     rs = stat(path, s);
   else
@@ -42,8 +45,7 @@ sys_ftype sys_file_type_stat(const gchar* path, gboolean deref, struct stat* s)
 
 sys_ftype sys_file_type(const gchar* path, gboolean deref)
 {
-  struct stat s;
-  return sys_file_type_stat(path, deref, &s);
+  return sys_file_type_stat(path, deref, 0);
 }
 
 time_t sys_file_mtime(const gchar* path, gboolean deref)
