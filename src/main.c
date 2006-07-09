@@ -27,7 +27,7 @@ static guint command = 0;
 static struct poptOption optsCommands[] = {
 {
   "install", 'i', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_INSTALL, 
-  "Install packages. ([p]aranoid|<n>ormal|[b]rutal)", NULL
+  "Install packages.", NULL
 },
 #if 0
 {
@@ -37,53 +37,14 @@ static struct poptOption optsCommands[] = {
 #endif
 {
   "remove", 'd', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_REMOVE,
-  "Remove packages. ([p]aranoid|<n>ormal|[b]rutal)", NULL
+  "Remove packages.", NULL
 },
 {
   "list", 'l', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_LIST,
-  "List packages. (<a>ll|[g]lob)", NULL
+  "List all packages. You can add package names to the command line "
+  "to limit listed packages. This command supports glob matching.", NULL
 },
 POPT_TABLEEND
-};
-
-/* commands/modes definition
- ************************************************************************/
-
-struct mode {
-  gint mode;
-  gchar* shortcut;
-  gchar* longname;
-};
-struct cmd {
-  gint cmd;
-  gint default_mode;
-  struct mode modes[16];
-};
-static struct cmd cmds[] = {
-{
-  CMD_INSTALL, CMD_MODE_NORMAL, {
-    { CMD_MODE_PARANOID, "p", "paranoid" },
-    { CMD_MODE_NORMAL, "n", "normal" },
-    { CMD_MODE_BRUTAL, "b", "brutal" },
-    { 0 },
-  }
-},
-{
-  CMD_REMOVE, CMD_MODE_NORMAL, {
-    { CMD_MODE_PARANOID, "p", "paranoid" },
-    { CMD_MODE_NORMAL, "n", "normal" },
-    { CMD_MODE_BRUTAL, "b", "brutal" },
-    { 0 },
-  }
-},
-{
-  CMD_LIST, CMD_MODE_ALL, {
-    { CMD_MODE_ALL, "a", "all" },
-    { CMD_MODE_GLOB, "g", "glob" },
-    { 0 },
-  }
-},
-{ 0 }
 };
 
 /* options
@@ -93,20 +54,14 @@ static struct cmd_options cmd_opts = {
   .root = "/",
   .dryrun = 0,
   .verbosity = 1,
+  .no_optsyms = 0,
+  .no_scripts = 0,
 };
 
-static gchar* mode = 0;
 static gint verbose = 0;
 static gint quiet = 0;
-static gint no_optsyms = 0;
-static gint no_scripts = 0;
 
 static struct poptOption optsOptions[] = {
-{
-  "mode", 'm', POPT_ARG_STRING, &mode, 0,
-  "Set command mode of operation. See particular command for available "
-  "modes.", "MODE"
-},
 {
   "root", 'r', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &cmd_opts.root, 0,
   "Set altrernate root directory for package operations.", "ROOT"
@@ -128,13 +83,13 @@ static struct poptOption optsOptions[] = {
   "with -v option to check what exactly will given command do.", NULL
 },
 {
-  "no-fast-symlinks", '\0', 0, &no_optsyms, 0,
+  "no-fast-symlinks", '\0', 0, &cmd_opts.no_optsyms, 0,
   "Spkg by default parses doinst.sh for symlink creation code and removes "
   "it from the script. This improves execution times of doinst.sh. Use "
   "this option to disable such optimizations.", NULL
 },
 {
-  "no-scripts", '\0', 0, &no_scripts, 0,
+  "no-scripts", '\0', 0, &cmd_opts.no_scripts, 0,
   "Disable postinstallation script.", NULL
 },
 POPT_TABLEEND
@@ -226,10 +181,11 @@ int main(const int ac, const char* av[])
     printf(
       "\n"
       "Examples:\n"
-      "  spkg -imb <packages>   [--install --mode=brutal]\n"
-      "  spkg -ump <packages>   [--upgrade --mode=paranoid]\n"
-      "  spkg -vr <packages>    [--verbose --remove --mode=normal]\n"
-      "  spkg -vnumb <packages> [--upgrade --verbose --dry-run --mode=brutal]\n"
+      "  spkg -i <packages>     [--install]\n"
+//      "  spkg -u <packages>     [--upgrade]\n"
+      "  spkg -vd <packages>    [--verbose --remove]\n"
+      "  spkg -l kde*           [--list]\n"
+      "  spkg -vnu <packages>   [--upgrade --verbose --dry-run]\n"
       "\n"
       "Official website: http://spkg.megous.com\n"
       "Bug reports can be sent to <megous@megous.com>.\n"
@@ -239,8 +195,8 @@ int main(const int ac, const char* av[])
   if (usage)
   {
     printf(
-      "Usage: spkg [-i|--install] [-m|--mode MODE] [-r|--root ROOT]\n"
-      "            [-n|--dry-run] [-q|--quiet] [-v|--verbose] [packages...]\n"
+      "Usage: spkg [-i|--install] [-r|--root ROOT] [-n|--dry-run]\n"
+      "            [-q|--quiet] [-v|--verbose] [packages...]\n"
     );
     goto out;
   }
@@ -272,41 +228,8 @@ int main(const int ac, const char* av[])
     fprintf(stderr, "error[main]: invalid argument: no command given\n");
     goto err_1;
   }
- got_command:;
 
-  /* get mode for command */
-  struct cmd* c = cmds;
-  gint cmd_mode;
-  while (c->cmd) /* for each command */
-  {
-    if (c->cmd == command)
-    {
-      /* command found */
-      cmd_mode = c->default_mode;
-      if (mode == 0) /* no mode specified on command line */
-        goto mode_ok;
-      struct mode* m = c->modes;
-      while (m->shortcut) /* for each mode */
-      {
-        if (!strcmp(m->shortcut, mode) || !strcmp(m->longname, mode))
-        {
-          cmd_mode = m->mode;
-          goto mode_ok;
-        }
-        m++;
-      }
-      goto no_mode;
-    }
-    c++;
-  }
-  /* command not found in a table (because it is incomplete!) */
-  g_assert_not_reached();
- no_mode:
-  /* mode not found in a table */
-  fprintf(stderr, "error[main]: invalid argument: unknown mode (%s)\n", mode);
-  goto err_1;
- mode_ok:
-
+ got_command:
   /* check verbosity options */
   if (verbose && quiet)
   {
@@ -334,16 +257,6 @@ int main(const int ac, const char* av[])
         goto err_nopackages;
     break;
     case CMD_LIST:
-      if (cmd_mode == CMD_MODE_ALL)
-      {
-        if (poptPeekArg(optCon) != 0)
-          goto err_garbage;
-      }
-      else
-      {
-        if (poptPeekArg(optCon) == 0)
-          goto err_nopackages;
-      }
     break;
     default:
       fprintf(stderr, "error[main]: invalid argument: schizofrenic command usage\n");
@@ -361,17 +274,20 @@ int main(const int ac, const char* av[])
   switch (command)
   {
     case CMD_INSTALL:
+    {
       while ((arg = poptGetArg(optCon)) != 0 && !sig_break)
       {
-        if (cmd_install(arg, cmd_mode, !no_optsyms, &cmd_opts, err))
+        if (cmd_install(arg, &cmd_opts, err))
         {
           e_print(err);
           e_clean(err);
           status = 2;
         }
       }
+    }
     break;
     case CMD_UPGRADE:
+    {
       while ((arg = poptGetArg(optCon)) != 0 && !sig_break)
       {
         if (cmd_upgrade(arg, &cmd_opts, err))
@@ -381,8 +297,10 @@ int main(const int ac, const char* av[])
           status = 2;
         }
       }
+    }
     break;
     case CMD_REMOVE:
+    {
       while ((arg = poptGetArg(optCon)) != 0 && !sig_break)
       {
         if (cmd_remove(arg, &cmd_opts, err))
@@ -392,29 +310,20 @@ int main(const int ac, const char* av[])
           status = 2;
         }
       }
+    }
     break;
     case CMD_LIST:
-      if (cmd_mode != CMD_MODE_ALL)
+    {
+      GSList* arglist = NULL;
+      while ((arg = poptGetArg(optCon)) != 0)
+        arglist = g_slist_append(arglist, g_strdup(arg));
+      if (cmd_list(arglist, &cmd_opts, err))
       {
-        while ((arg = poptGetArg(optCon)) != 0 && !sig_break)
-        {
-          if (cmd_list(arg, cmd_mode, &cmd_opts, err))
-          {
-            e_print(err);
-            e_clean(err);
-            status = 2;
-          }
-        }
+        e_print(err);
+        e_clean(err);
+        status = 2;
       }
-      else
-      {
-        if (cmd_list(0, cmd_mode, &cmd_opts, err))
-        {
-          e_print(err);
-          e_clean(err);
-          status = 2;
-        }
-      }
+    }
     break;
   }
 
@@ -437,8 +346,5 @@ int main(const int ac, const char* av[])
   goto out;
  err_nopackages:
   fprintf(stderr, "error[main]: invalid argument: no packages given\n");
-  goto err_1;
- err_garbage:
-  fprintf(stderr, "error[main]: invalid argument: garbage on command line (%s...)\n", poptPeekArg(optCon));
   goto err_1;
 }

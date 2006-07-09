@@ -37,13 +37,7 @@ static gint blacklisted(gchar* shortname)
 /* public 
  ************************************************************************/
 
-gint cmd_install(
-  const gchar* pkgfile,
-  cmd_install_mode mode,
-  gboolean optsyms,
-  const struct cmd_options* opts,
-  struct error* e
-)
+gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct error* e)
 {
   g_assert(pkgfile != 0);
   g_assert(opts != 0);
@@ -170,7 +164,7 @@ gint cmd_install(
       }
 
       gchar* fullpath = g_strdup_printf("%s/%s", opts->root, sane_path);
-      if (!optsyms || blacklisted(shortname)) /* optimization disabled, just extract */
+      if (opts->no_optsyms || blacklisted(shortname)) /* optimization disabled, just extract */
       {
         if (!opts->dryrun)
         {
@@ -413,7 +407,7 @@ gint cmd_install(
   untgz_close(tgz);
   tgz = 0;
 
-  if (!opts->dryrun && has_doinst)
+  if (!opts->dryrun && !opts->no_scripts && has_doinst)
   {
     gchar* old_cwd = sys_setcwd(opts->root);
     if (old_cwd)

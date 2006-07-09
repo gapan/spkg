@@ -12,64 +12,47 @@
 /* private
  ************************************************************************/
 
-typedef GSList* (*query_func)(db_selector, void*, db_query_type);
-
-static gint _glob_selector(const struct db_pkg* p, void* d)
+static gint _list_selector(const struct db_pkg* p, GSList* args)
 {
-  gint s = fnmatch(d, p->name, 0);
-  if (s == FNM_NOMATCH)
-    return 0;
-  if (s == 0)
+  GSList* i;
+  if (args == NULL)
     return 1;
+  for (i = args; i != 0; i = i->next)
+  {
+    gint s = fnmatch(i->data, p->name, 0);
+    if (s != FNM_NOMATCH && s != 0)
+      goto err;
+    if (s == 0)
+      return 1;
+    s = fnmatch(i->data, p->shortname, 0);
+    if (s != FNM_NOMATCH && s != 0)
+      goto err;
+    if (s == 0)
+      return 1;
+  }
+  return 0;
+ err:
   return -1;
 }
 
 /* public 
  ************************************************************************/
 
-gint cmd_list(
-  const gchar* regexp,
-  cmd_list_mode mode,
-  const struct cmd_options* opts,
-  struct error* e
-)
+gint cmd_list(GSList* arglist, const struct cmd_options* opts, struct error* e)
 {
   g_assert(opts != 0);
   g_assert(e != 0);
 
-  GSList* list;
-  GSList* i;
-
-  switch (mode)
+  GSList* list = db_query((db_selector)_list_selector, arglist, DB_QUERY_NAMES);
+  if (!e_ok(e))
   {
-    case CMD_MODE_GLOB:
-      list = db_query(_glob_selector, regexp, DB_QUERY_NAMES);
-      if (!e_ok(e))
-      {
-        e_set(E_ERROR, "query failed");
-        goto err;
-      }
-      for (i=list; i!=0; i=i->next)
-        printf("%s\n", (gchar*)i->data);
-      db_free_query(list, DB_QUERY_NAMES);
-    break;
-    case CMD_MODE_ALL:
-      list = db_query(0, 0, DB_QUERY_NAMES);
-      if (!e_ok(e))
-      {
-        e_set(E_ERROR, "query failed");
-        goto err;
-      }
-      for (i=list; i!=0; i=i->next)
-        printf("%s\n", (gchar*)i->data);
-      db_free_query(list, DB_QUERY_NAMES);
-    break;
-    default:
-      e_set(E_FATAL, "invalid mode");
-      goto err;
+    e_set(E_ERROR, "query failed");
+    return 1;
   }
+  GSList* i;
+  for (i = list; i != 0; i = i->next)
+    printf("%s\n", (gchar*)i->data);
+  db_free_query(list, DB_QUERY_NAMES);
 
   return 0;
- err:
-  return 1;
 }
