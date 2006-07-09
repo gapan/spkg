@@ -1,0 +1,4 @@
+--tool=memcheck
+--leak-check=yes
+--show-reachable=yes
+--log-file=.valgrind.log
