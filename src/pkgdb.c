@@ -882,3 +882,53 @@ gint db_foreach_package(db_selector cb, void* data, db_get_type type)
  err_0:
   return 1;
 }
+
+gchar* db_get_package_name(const gchar* namespec)
+{
+  _db_open_check(NULL)
+
+  if (namespec == NULL)
+  {
+    e_set(E_FATAL, "namespec not set");
+    goto err_0;
+  }
+
+  gchar* pkgname = NULL;
+  DIR* d = opendir(_db.pkgdir);
+  if (d == NULL)
+  {
+    e_set(E_FATAL, "can't open legacy db directory");
+    goto err_0;
+  }
+  
+  struct dirent* de;
+  while ((de = readdir(d)) != NULL)
+  {
+    if (!strcmp(de->d_name,".") || !strcmp(de->d_name,".."))
+      continue;
+
+    gchar* curname = de->d_name;
+    if (parse_pkgname(curname, 6) == 0)
+      continue;
+
+    if (!strcmp(namespec, curname))
+    {
+      pkgname = g_strdup(curname);
+      break;
+    }
+
+    gchar* shortname = parse_pkgname(curname, 1);
+    if (!strcmp(namespec, shortname))
+    {
+      pkgname = g_strdup(curname);
+      g_free(shortname);
+      break;
+    }
+    g_free(shortname);
+  }
+
+  closedir(d);
+  return pkgname;
+ err_0:
+  return NULL;
+}

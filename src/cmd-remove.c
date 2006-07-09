@@ -32,15 +32,18 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
 
   _notice("geting package from database: %s", pkgname);
   /* get package from database */
-  struct db_pkg* pkg = db_get_pkg(pkgname, DB_GET_FULL);
+  gchar* real_pkgname = db_get_package_name(pkgname);
+  if (real_pkgname == NULL)
+  {
+    e_set(E_ERROR, "package not found (%s)", pkgname);
+    goto err0;
+  }
+  
+  struct db_pkg* pkg = db_get_pkg(real_pkgname, DB_GET_FULL);
   if (pkg == NULL)
   {
-    if (!(e_errno(e) & DB_NOTEX))
-      e_set(E_ERROR|CMD_EXIST, "package is not installed (%s)", pkgname);
-    else
-      e_set(E_ERROR, "internal error (%s)", pkgname);
-    db_free_pkg(pkg);
-    goto err0;
+    e_set(E_ERROR, "internal error (%s)", pkgname);
+    goto err1;
   }
 
   _notice("loading list of files...");
@@ -48,7 +51,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
   /* we will need filelist, so get it if it is not already loaded */
   db_filelist_load(FALSE);
 
-  _safe_breaking_point(err1);
+  _safe_breaking_point(err2);
 
   _notice("removing files...");
 
@@ -142,10 +145,14 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
 
   _notice("finished");
 
+  db_free_pkg(pkg);
+  g_free(real_pkgname);
   return 0;
 
- err1:
+ err2:
   db_free_pkg(pkg);
+ err1:
+  g_free(real_pkgname);
  err0:
   _notice("removal terminated");
   return 1;
