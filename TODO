@@ -2,7 +2,6 @@
 before alpha1 |
 --------------/
 
-[paths] handle ./ path in tar and in db ???
 [pkgtools] implement basic installation
 [doc] finish manpage 
 
