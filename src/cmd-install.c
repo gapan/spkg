@@ -172,11 +172,14 @@ gint cmd_install(
       gchar* fullpath = g_strdup_printf("%s/%s", opts->root, sane_path);
       if (!optsyms || blacklisted(shortname)) /* optimization disabled, just extract */
       {
-        if (untgz_write_file(tgz, fullpath))
+        if (!opts->dryrun)
         {
-          g_free(fullpath);
-          e_set(E_ERROR|CMD_BADIO,"file extraction failed %s (%s)", sane_path, pkgfile);
-          goto err3;
+          if (untgz_write_file(tgz, fullpath))
+          {
+            g_free(fullpath);
+            e_set(E_ERROR|CMD_BADIO,"file extraction failed %s (%s)", sane_path, pkgfile);
+            goto err3;
+          }
         }
         g_free(fullpath);
         has_doinst = 1;
@@ -228,11 +231,14 @@ gint cmd_install(
       /* write stripped down version of doinst.sh to a file */
       if (doinst != 0)
       {
-        if (sys_write_buffer_to_file(fullpath, doinst, (gsize)0, e))
+        if (!opts->dryrun)
         {
-          e_set(E_ERROR|CMD_BADIO,"file extraction failed %s (%s)", sane_path, pkgfile);
-          g_free(fullpath);
-          goto err3;        
+          if (sys_write_buffer_to_file(fullpath, doinst, (gsize)0, e))
+          {
+            e_set(E_ERROR|CMD_BADIO,"file extraction failed %s (%s)", sane_path, pkgfile);
+            g_free(fullpath);
+            goto err3;        
+          }
         }
         has_doinst = 1;
       }
@@ -383,9 +389,9 @@ gint cmd_install(
   pkg->csize = tgz->csize/1024;
 
   /* add package to the database */
+  _notice("updating legacy database");
   if (!opts->dryrun)
   {
-    _notice("updating legacy database");
     if (db_add_pkg(pkg))
     {
       e_set(E_ERROR|CMD_DB,"can't add package to the database");
@@ -393,6 +399,10 @@ gint cmd_install(
     }
     _safe_breaking_point(err4);
   }
+
+  /* update filelist */
+  _notice("adding files to filelist...");
+  db_filelist_add_pkg_files(pkg);
 
   /* finalize transaction */
   _notice("finalizing transaction");
