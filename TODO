@@ -13,19 +13,12 @@ before alpha2 |
 --------------/
 
 [error] rework internals of the error handling (use gslist for error stacking)
-[pkgtools] implement remove
-
----------------------------------------------------------------------
-before alpha3 |
---------------/
-
 [pkgtools] implement upgrade
 
 ---------------------------------------------------------------------
 before beta |
 ------------/
 
-[pkgtools] implement command modes (other than normal)
 [pkgdb] update py bindings
 
 [untgz] using blockbuf as writebuf can speedup things slightly on the 
