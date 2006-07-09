@@ -22,7 +22,8 @@
   exactly a year ago, partially thanks to my work on @SPKG@, I guess. :-)
   Some developement continued last summer in silence without release.
   Now I'm releasing alpha1 version of @SPKG@. This version features fully
-  functional install and remove commands. More is comming soon!</p>
+  functional install and remove commands. More is comming soon! (hmm,
+  hopefully sooner than next summer :-))</p>
 
  <h1>Features</h1>
 

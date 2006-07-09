@@ -7,25 +7,23 @@
 
  <h1>Quick start</h1>
 
-  <p>After successful installation you need to create @SPKG@ database
-  from your current slackware package database. (legacy database)</p>
-
-  <code># spkg --sync-cache</code>
-
-  <p>That's all. Now you can use @SPKG@ to install packages.</p>
-
-  <code># spkg --verbose --install --mode=paranoid some-package-1.0-i486-1.tgz</code>
+  <p>After successful installation you can start installing and removing
+  packages using following commands:</p>
+  <code># spkg --install some-package-1.0-i486-1.tgz</code>
   
-  <p>If you are lazy typer, previous command can be rewritten to:</p>
+  <p>If you are a lazy typer, previous command can be rewritten to:</p>
+  <code># spkg -i some-package-1.0-i486-1.tgz</code>
 
-  <code># spkg -vimp some-package-1.0-i486-1.tgz</code>
+  <p>And for total lazy-bones, we have even simpler command:</p>
+  <code># ipkg some-package-1.0-i486-1.tgz</code>
+
+  <p>You can remove installed package using this command:</p>
+  <code># rpkg some-package</code>
 
   <p>For more info see help:</p>
-
   <code># spkg --help</code>
 
   <p>or manpage:</p>
-
-  <code># man 8 spkg</code>
+  <code># man spkg</code>
 
 <?php foot(); ?>

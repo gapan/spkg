@@ -186,8 +186,8 @@ web-base:
 	rm -rf .website
 	mkdir -p .website
 	cp -a docs/web/{*,.ht*} .website/
-	sed -i 's/@VER@/$(VERSION)/g ; s/@DATE@/$(shell LANG=C date)/g' .website/*.php .website/inc/*.php
-	sed -i 's/@SPKG@/<strong style="color:darkblue;"><span style="color:red;">s<\/span>pkg<\/strong>/g' .website/*.php .website/inc/*.php
+	sed -i 's/@VER@/$(VERSION)/g ; s/@DATE@/$(shell LANG=C date)/g' .website/*.php
+	sed -i 's/@SPKG@/<strong style="color:darkblue;"><span style="color:red;">s<\/span>pkg<\/strong>/g' .website/*.php
 
 web-docs: docs
 	mkdir -p .website/dl/spkg-docs
