@@ -838,66 +838,6 @@ void db_free_query(GSList* pkgs, db_query_type type)
   g_slist_free(pkgs);
 }
 
-gint db_foreach_package(db_selector cb, void* data, db_get_type type)
-{
-  _db_open_check(0)
-
-  if (type != DB_GET_WITHOUT_FILES &&
-      type != DB_GET_FULL)
-  {
-    e_set(E_BADARG, "invalid query type");
-    goto err_0;
-  }
-  
-  if (cb == 0)
-  {
-    e_set(E_BADARG, "callback not set");
-    goto err_0;
-  }
-
-  DIR* d = opendir(_db.pkgdir);
-  if (d == NULL)
-  {
-    e_set(E_FATAL, "can't open legacy db directory");
-    goto err_0;
-  }
-  
-  struct dirent* de;
-  while ((de = readdir(d)) != NULL)
-  {
-    if (!strcmp(de->d_name,".") || !strcmp(de->d_name,".."))
-      continue;
-    struct db_pkg* p;
-    gchar* name = de->d_name;
-    if (parse_pkgname(name, 6) == 0)
-      continue;
-    /* if cb == 0, then package matches */
-    /* otherwise get package from database ask the selector if it 
-       likes this package */
-    p = db_get_pkg(name, type);
-    if (p == 0)
-    {
-      e_set(E_ERROR, "can't get package from database");
-      goto err_1;
-    }
-    gint rs = cb(p, data);
-    db_free_pkg(p);
-    if (rs < 0)
-    {
-      e_set(E_ERROR, "callback returned error");
-      goto err_1;
-    }
-  }
-
-  closedir(d);
-  return 0;
-
- err_1:
-  closedir(d);
- err_0:
-  return 1;
-}
-
 gchar* db_get_package_name(const gchar* namespec)
 {
   _db_open_check(NULL)

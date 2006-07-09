@@ -155,8 +155,6 @@ extern GSList* db_query(db_selector cb, void* data, db_query_type type);
  */
 extern void db_free_query(GSList* pkgs, db_query_type type);
 
-extern gint db_foreach_package(db_selector cb, void* data, db_get_type type);
-
 extern gchar* db_get_package_name(const gchar* name);
 
 extern void db_filelist_rem_pkg_files(const struct db_pkg* pkg);
