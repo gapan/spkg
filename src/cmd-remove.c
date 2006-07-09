@@ -112,8 +112,9 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
 
   _notice("removing directories...");
 
-  strcpy(path, "");
-  JSLF(ptr, pkg->files, path);
+  memset(path, 0xff, sizeof(path)-1);
+  path[sizeof(path)-1] = '\0';
+  JSLL(ptr, pkg->files, path);
   while (ptr != NULL)
   {
     gint len = strlen(path);
@@ -136,7 +137,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     }
 
    skip3:
-    JSLN(ptr, pkg->files, path);
+    JSLP(ptr, pkg->files, path);
   }
 
   _notice("finished");
