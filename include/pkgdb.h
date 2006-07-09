@@ -155,14 +155,55 @@ extern GSList* db_query(db_selector cb, void* data, db_query_type type);
  */
 extern void db_free_query(GSList* pkgs, db_query_type type);
 
+/** Get full name of the installed package from namespec.
+ *
+ * Namespec can be:
+ * - kdebase
+ * - kdebase-3.3-i486-1
+ * - kdebase-3.3-i486-1.tgz
+ *
+ * @param name Namespec.
+ * @return Full package name.
+ */
 extern gchar* db_get_package_name(const gchar* name);
 
-extern void db_filelist_rem_pkg_files(const struct db_pkg* pkg);
-extern void db_filelist_add_pkg_files(const struct db_pkg* pkg);
+/** Load filelist from the package database.
+ *
+ * @param force_reload If filelist is already loaded thuis function does nothing.
+ * Set this parameter to true if you want to reload already loaded filelist.
+ * @return 0 on success, 1 on failure.
+ */
 extern gint db_filelist_load(gboolean force_reload);
-extern gint db_filelist_get_file(const gchar* path);
-extern gint db_filelist_get_link(const gchar* path);
+
+/** Free loaded filelist.
+ */
 extern void db_filelist_free();
+
+/** Lookup file in filelist.
+ *
+ * @param path File path.
+ * @return Number of references.
+ */
+extern gint db_filelist_get_file(const gchar* path);
+
+/** Lookup symlink in filelist.
+ *
+ * @param path Symlink path.
+ * @return Number of references.
+ */
+extern gint db_filelist_get_link(const gchar* path);
+
+/** Add files and symlinks from the package to the filelist.
+ *
+ * @param pkg Package object.
+ */
+extern void db_filelist_add_pkg_files(const struct db_pkg* pkg);
+
+/** Remove files and symlinks from the package from the filelist.
+ *
+ * @param pkg Package object.
+ */
+extern void db_filelist_rem_pkg_files(const struct db_pkg* pkg);
 
 #endif
 
