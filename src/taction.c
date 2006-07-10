@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <errno.h>
 #include <time.h>
 #include <string.h>
 
@@ -25,49 +26,48 @@ struct transaction {
   gboolean dryrun;
   struct error* err;
   GSList* list;
+  GMemChunk* chunks;
 };
 
 static struct transaction _ta = {
   .active = 0,
   .err = 0,
   .list = 0,
-  .dryrun = 0
+  .dryrun = 0,
+  .chunks = 0
 };
 
 /* action list handling */
-typedef enum { MOVE, KEEP, LINK, SYMLINK } t_on_finalize;
+typedef enum { MOVE, KEEP, LINK, SYMLINK, CHPERM } t_on_finalize;
 typedef enum { REMOVE, NOTHING } t_on_rollback;
 
 struct action {
+  t_on_finalize on_finalize;
+  t_on_rollback on_rollback;
   gchar* path1;
   gchar* path2;
   gboolean is_dir;
-  t_on_finalize on_finalize;
-  t_on_rollback on_rollback;
+  gint mode;
+  gint owner;
+  gint group;
 };
 
-static void _ta_insert(
-  gchar* path1,
-  gchar* path2,
-  gboolean is_dir,
+static struct action* _ta_insert(
   t_on_finalize on_finalize,
   t_on_rollback on_rollback
 )
 {
-  struct action* a = g_new(struct action, 1);
-  a->path1 = path1;
-  a->path2 = path2;
-  a->is_dir = is_dir;
+  struct action* a = g_mem_chunk_alloc0(_ta.chunks);
   a->on_finalize = on_finalize;
   a->on_rollback = on_rollback;
   _ta.list = g_slist_prepend(_ta.list, a);
+  return a;
 }
 
 static void _ta_free_action(struct action* a)
 {
   g_free(a->path1);
   g_free(a->path2);
-  g_free(a);
 }
 
 /* public 
@@ -86,34 +86,56 @@ gint ta_initialize(gboolean dryrun, struct error* e)
   _ta.active = 1;
   _ta.dryrun = dryrun;
   _ta.list = 0;
+  _ta.chunks = g_mem_chunk_new("spkg_transaction_actions",
+                               sizeof(struct action),
+                               sizeof(struct action)*1024,
+                               G_ALLOC_ONLY);
   return 0;
 }
 
 void ta_keep_remove(gchar* path, gboolean is_dir)
 {
   g_assert(path != 0);
-  _ta_insert(path,0,is_dir,KEEP,REMOVE);
+  struct action* a = _ta_insert(KEEP, REMOVE);
+  a->path1 = path;
+  a->is_dir = is_dir;
 }
 
 void ta_move_remove(gchar* path, gchar* fin_path)
 {
   g_assert(path != 0);
   g_assert(fin_path != 0);
-  _ta_insert(path,fin_path,0,MOVE,REMOVE);
+  struct action* a = _ta_insert(MOVE, REMOVE);
+  a->path1 = path;
+  a->path2 = fin_path;
 }
 
 void ta_link_nothing(gchar* path, gchar* src_path)
 {
   g_assert(path != 0);
   g_assert(src_path != 0);
-  _ta_insert(path,src_path,0,LINK,NOTHING);
+  struct action* a = _ta_insert(LINK, NOTHING);
+  a->path1 = path;
+  a->path2 = src_path;
 }
 
 void ta_symlink_nothing(gchar* path, gchar* src_path)
 {
   g_assert(path != 0);
   g_assert(src_path != 0);
-  _ta_insert(path,src_path,0,SYMLINK,NOTHING);
+  struct action* a = _ta_insert(SYMLINK, NOTHING);
+  a->path1 = path;
+  a->path2 = src_path;
+}
+
+void ta_chperm_nothing(gchar* path, gint mode, gint owner, gint group)
+{
+  g_assert(path != 0);
+  struct action* a = _ta_insert(CHPERM, NOTHING);
+  a->path1 = path;
+  a->mode = mode;
+  a->owner = owner;
+  a->group = group;
 }
 
 gint ta_finalize()
@@ -123,7 +145,7 @@ gint ta_finalize()
   if (!_ta.active)
   {
     e_set(E_ERROR|TA_NACTIVE, "transaction is not initialized");
-    goto err;
+    return 1;
   }
 
   _ta.list = g_slist_reverse(_ta.list);
@@ -166,16 +188,35 @@ gint ta_finalize()
       }
       _notice("ln -s %s %s", a->path2, a->path1);
     }
+    else if (a->on_finalize == CHPERM)
+    {
+      /* chmod */
+      _notice("chmod %05o %s", a->mode, a->path1);
+      if (!_ta.dryrun)
+      {
+        if (chmod(a->path1, a->mode) == -1)
+        {
+          _warning("failed chmod %05o %s: %s", a->mode, a->path1, strerror(errno));
+        }
+      }
+      /* chown */
+      _notice("chown %d:%d %s", a->owner, a->group, a->path1);
+      if (!_ta.dryrun)
+      {
+        if (chown(a->path1, a->owner, a->group) == -1)
+        {
+          _warning("failed chown %05o %s: %s", a->mode, a->path1, strerror(errno));
+        }
+      }
+    }
    next_action:
     _ta_free_action(a);
   }
-  g_slist_free(_ta.list);
-  _ta.list = 0;
-  _ta.active = 0;
 
+  g_slist_free(_ta.list);
+  g_mem_chunk_destroy(_ta.chunks);
+  memset(&_ta, 0, sizeof(_ta));
   return 0;
- err:
-  return 1;
 }
 
 gint ta_rollback()
@@ -185,7 +226,7 @@ gint ta_rollback()
   if (!_ta.active)
   {
     e_set(E_ERROR|TA_NACTIVE, "transaction is not initialized");
-    goto err;
+    return 1;
   }
 
   for (l=_ta.list; l!=0; l=l->next)
@@ -218,17 +259,12 @@ gint ta_rollback()
         _notice("rm %s", a->path1);
       }
     }
-    else if (a->on_rollback == NOTHING)
-    {
-    }
    next_action:
     _ta_free_action(a);
   }
-  g_slist_free(_ta.list);
-  _ta.list = 0;
-  _ta.active = 0;
 
+  g_slist_free(_ta.list);
+  g_mem_chunk_destroy(_ta.chunks);
+  memset(&_ta, 0, sizeof(_ta));
   return 0;
- err:
-  return 1;
 }

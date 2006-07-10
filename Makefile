@@ -6,7 +6,7 @@
 #\----------------------------------------------------------------------/#
 DESTDIR :=
 prefix := /usr/local
-DEBUG := no
+DEBUG := yes
 ASSERTS := yes
 BENCH := no
 VERSION := alpha1
@@ -180,7 +180,7 @@ docs:
 	doxygen docs/Doxyfile
 	rm -f docs/html/doxygen.png
 
-web: web-base web-docs #web-dist
+web: web-base web-docs web-dist
 
 web-base:
 	rm -rf .website

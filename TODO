@@ -3,6 +3,8 @@ before alpha1 |
 --------------/
 
 [pkgtools] finish install command
+[pkgtools] force mode (or nonforce mode if force is enabled by default)
+[pkgtools] check mem allocation in the install command and transactions
 
 ---------------------------------------------------------------------
 before alpha2 |

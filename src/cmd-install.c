@@ -6,6 +6,7 @@
 \*----------------------------------------------------------------------*/
 #include <stdlib.h>
 #include <unistd.h>
+#include <errno.h>
 #include <string.h>
 
 #include "misc.h"
@@ -199,10 +200,39 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
           gchar* path = g_strdup_printf("%s/%s", dir, link);
           g_free(dir);
           g_free(link);
-          _notice("symlink %s -> %s", path, target);
+          _notice("detected symlink %s -> %s", path, target);
           db_add_file(pkg, path, target);
+
           gchar* fullpath = g_strdup_printf("%s/%s", opts->root, path);
-          ta_symlink_nothing(fullpath, g_strdup(target));
+          struct stat ex_stat;
+          sys_ftype ex_type = sys_file_type_stat(fullpath, 0, &ex_stat);
+          
+          if (ex_type == SYS_ERR)
+          {
+            _warning("can't stat path for symlink %s", path);
+            g_free(target);
+            g_free(ln);
+            goto extract_failed;
+          }
+          else if (ex_type == SYS_DIR)
+          {
+            _warning("can't create symlink over directory %s", path);
+            g_free(target);
+            g_free(ln);
+            goto extract_failed;
+          }
+          else if (ex_type == SYS_NONE)
+          {
+            ta_symlink_nothing(fullpath, g_strdup(target));
+            fullpath = NULL;
+          }
+          else
+          {
+            _warning("can't create symlink over existing file %s", path);
+            g_free(target);
+            g_free(ln);
+            goto extract_failed;
+          }
         }
         /* if this is not 'delete old file' line... */
         else if (!parse_cleanuplink(ln))
@@ -264,7 +294,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
      * - type of the file on the filesystem (existing)
      * - presence of the file in the file database
      *
-     * And decide what to do based on what mode we are in:
+     * And decide what to do:
      *
      * - install new file
      * - overwrite existing file
@@ -276,85 +306,112 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     /* get information about installed file from filesystem and filedb */
     struct stat ex_stat;
     sys_ftype ex_type = sys_file_type_stat(fullpath, 0, &ex_stat);
-    gint in_fileref = db_filelist_get_file(sane_path);
-    e_clean(e);
+//    e_clean(e);
 
-//  CMD_MODE_PARANOID,
-//  CMD_MODE_NORMAL,
-//  CMD_MODE_BRUTAL,
-
+    if (ex_type == SYS_ERR)
+    {
+      _warning("lstat failed on path %s", sane_path);
+      goto extract_failed;
+    }
+    
     // installed file type
     switch (tgz->f_type)
     {
       case UNTGZ_DIR: /* we have directory */
+      {
         if (ex_type == SYS_DIR)
         {
           /* installed directory already exist */
           _notice("installed direcory already exists %s", sane_path);
+          ta_chperm_nothing(fullpath, tgz->f_mode, tgz->f_uid, tgz->f_gid);
+          fullpath = 0;
         }
         else if (ex_type == SYS_NONE)
         {
           _notice("mkdir %s", sane_path);
+  
           if (!opts->dryrun)
             if (untgz_write_file(tgz, fullpath))
               goto extract_failed;
+  
           ta_keep_remove(fullpath, 1);
           fullpath = 0;
-        }
-        else if (ex_type == SYS_ERR)
-        {
-          _warning("stat failed %s", sane_path);
-          /*XXX: bug */
         }
         else
         {
           _warning("can't mkdir over ordinary file %s", sane_path);
-          /*XXX: bug (ordinary file) */
+          goto extract_failed;
         }
+      }
       break;
       case UNTGZ_SYM: /* wtf?, symlinks are not permitted to be in package */
-        _warning("symlink in archive %s", sane_path);
-        /* XXX: bug */
-      break;
-      case UNTGZ_LNK: /* hardlinks are special beasts, most easy solution is to 
-        postpone hardlink creation into transaction finalization phase */
       {
+        _warning("symlink in archive %s", sane_path);
+        goto extract_failed;
+      }
+      break;
+      case UNTGZ_LNK: 
+      { 
+        /* hardlinks are special beasts, most easy solution is to 
+         * postpone hardlink creation into transaction finalization phase 
+         */
         gchar* linkpath = g_strdup_printf("%s/%s", opts->root, tgz->f_link);
-        _notice("hardlink found %s -> %s (postponed)", sane_path, tgz->f_link);
+        _notice("hardlink found %s -> %s (creation postponed)", sane_path, tgz->f_link);
         ta_link_nothing(fullpath, linkpath);
         fullpath = 0;
       }
       break;
       case UNTGZ_NONE:
-        /*XXX: bug */
+        _warning("what's this? (%s)", sane_path);
+        goto extract_failed;
       break;
       default: /* ordinary file */
         if (ex_type == SYS_DIR)
         {
-          _warning("can't extract file over dir %s", sane_path);
           /* target path is a directory, bad! */
+          _warning("can't extract file over existing directory %s", sane_path);
+          goto extract_failed;
         }
         else if (ex_type == SYS_NONE)
         {
           _notice("extracting %s", sane_path);
+  
           if (!opts->dryrun)
             if (untgz_write_file(tgz, fullpath))
               goto extract_failed;
+  
           ta_keep_remove(fullpath, 0);
-          fullpath = temppath = 0;
-        }
-        else if (ex_type == SYS_ERR)
-        {
-          _warning("stat failed %s", sane_path);
-          /*XXX: bug */
+          fullpath = 0;
         }
         else /* file already exist there */
         {
-          /*XXX: here we may check file types, etc. */
           _warning("file already exist %s", sane_path);
+
+          sys_ftype tmp_type = sys_file_type(temppath, 0);
+          if (tmp_type == SYS_ERR)
+          {
+            _warning("can't lstat temporary file %s", temppath);
+            goto extract_failed;
+          }
+          else if (tmp_type == SYS_DIR)
+          {
+            _warning("temporary file is a directory! %s", temppath);
+            goto extract_failed;
+          }
+          else if (tmp_type != SYS_NONE)
+          {
+            _warning("found temporary file, removing %s", temppath);
+            if (unlink(temppath) < 0)
+            {
+              _warning("removal failed %s: %s", temppath, strerror(errno));
+              goto extract_failed;
+            }
+          }
+
           if (!opts->dryrun)
             if (untgz_write_file(tgz, temppath))
               goto extract_failed;
+  
           ta_move_remove(temppath, fullpath);
           fullpath = temppath = 0;
         }

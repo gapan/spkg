@@ -2,8 +2,9 @@
 #set logging overwrite on
 #set logging on
 set print pretty on
-set args -n -r .root -d bin
+#set args -n -vvv -r .root -i aaa_base-10.2.0-noarch-4.tgz
+set args -vvv -r .root -i aaa_elflibs-10.2.0-i486-4.tgz
 file ./spkg
-#b filedb.c:193
-#b db_open
 r
+
+

@@ -64,6 +64,15 @@ extern void ta_link_nothing(gchar* path, gchar* src_path);
  */
 extern void ta_symlink_nothing(gchar* path, gchar* src_path);
 
+/** Add action to the current transaction.
+ * 
+ * @param path path to the transactioned object
+ * @param mode new mode of the object
+ * @param owner new owner of the object
+ * @param group new group of the object
+ */
+extern void ta_chperm_nothing(gchar* path, gint mode, gint owner, gint group);
+
 #endif
 
 /*! @} */
