@@ -6,7 +6,7 @@
 #\----------------------------------------------------------------------/#
 DESTDIR :=
 prefix := /usr/local
-DEBUG := yes
+DEBUG := no
 ASSERTS := yes
 BENCH := no
 VERSION := alpha1
@@ -109,7 +109,7 @@ install-docs: docs
 	ln -sf spkg.8.gz $(DESTDIR)$(mandir)/man8/lpkg.8.gz
 	install -d -o root -g root -m 0755 $(DESTDIR)$(docdir)
 	install -d -o root -g root -m 0755 $(DESTDIR)$(docdir)/html
-	install -o root -g root -m 0644 LICENSE README INSTALL HACKING NEWS TODO $(DESTDIR)$(docdir)/
+	install -o root -g root -m 0644 LICENSE README INSTALL BENCHMARKS NEWS TODO $(DESTDIR)$(docdir)/
 	install -o root -g root -m 0644 docs/html/* $(DESTDIR)$(docdir)/html/
 
 uninstall:
