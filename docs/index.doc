@@ -22,25 +22,33 @@ Common requirements for a command implementation are:
 
 @section ins Install
 
-Here is description of what will install commnad do in specific situations,
-for each mode of operation:
-<table>
-  <tr><th>situation</th><th>paranoid</th><th>normal</th><th>brutal</th></tr>
-  <tr><td>installed file exist and is not in db</td><td></td><td></td><td></td></tr>
-  <tr><td>installed file exist and is in db</td><td></td><td></td><td></td></tr>
-  <tr><td>installed file not exist</td><td></td><td></td><td></td></tr>
-  <tr><td>installed dir exist and is not in db</td><td></td><td></td><td></td></tr>
-  <tr><td>installed dir exist and is in db</td><td></td><td></td><td></td></tr>
-  <tr><td>installed dir not exist</td><td></td><td></td><td></td></tr>
-  <tr><td>installed symlink exist and is in db</td><td></td><td></td><td></td></tr>
-  <tr><td>installed symlink exist and is not in db</td><td></td><td></td><td></td></tr>
-  <tr><td>installed symlink not exist</td><td></td><td></td><td></td></tr>
-</table>
+Here is description of what install commnad does:
+ - check umask 022 and setuid 0
+ - check if package exist in db
+ - init ta
+ - for each file in archive:
+   - extract package description
+   - extract doinst.sh symbolic links
+   - check all tgz files for overwriting (including links)
+   - extract file
+   - add it to a transaction
 
+ - create symbolic links
+ - update package database
+ - finalize transaction
+ - run ldconfig
+ - run doinst.sh
+ - cleanup install/doinst.sh and slack-*
 
 @section upg Upgrade
 
+Not yet implemented.
+
 @section rem Remove
+ - check if file is not used by other packages
+ - init ta
+ - remove it (to temp dir)
+ - updatedb
 
 */
 
