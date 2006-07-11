@@ -16,6 +16,8 @@
 #define TA_ACTIVE  E(0) /**< another transaction is still active */
 #define TA_NACTIVE E(1) /**< transaction is not active */
 
+/*XXX: these comments are total crap, fixem */
+
 /** Initialize current transaction.
  * 
  * @param dryrun don't touch filesystem

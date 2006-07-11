@@ -1,7 +1,7 @@
 <?php require "common.php"; ?>
 <?php head("spkg - howto page"); ?>
 
- <h1>@SPKG@ howto</h1>
+ <h1>@SPKG@ HOWTO</h1>
 
   <p>This page explains how to get started with @SPKG@.</p>
 
