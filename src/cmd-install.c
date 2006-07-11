@@ -215,7 +215,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
           
           if (ex_type == SYS_ERR)
           {
-            _warning("can't stat path for symlink %s", path);
+            e_set(E_ERROR, "can't stat path for symlink %s", path);
             goto extract_failed;
           }
           else if (ex_type == SYS_NONE)
@@ -227,7 +227,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
           {
             if (opts->safe)
             {
-              _warning("can't create symlink over existing %s %s", ex_type == SYS_DIR ? "directory" : "file", path);
+              e_set(E_ERROR, "can't create symlink over existing %s %s", ex_type == SYS_DIR ? "directory" : "file", path);
               goto extract_failed;
             }
             else
@@ -316,7 +316,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
 
     if (ex_type == SYS_ERR)
     {
-      _warning("lstat failed on path %s", sane_path);
+      e_set(E_ERROR, "lstat failed on path %s", sane_path);
       goto extract_failed;
     }
     
@@ -328,13 +328,9 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
         if (ex_type == SYS_DIR)
         {
           /* installed directory already exist */
-          if (opts->safe)
+          _notice("installed direcory already exists %s", sane_path);
+          if (!opts->safe)
           {
-            _warning("installed direcory already exists %s");
-          }
-          else
-          {
-            _notice("installed direcory already exists %s", sane_path);
             ta_chperm_nothing(fullpath, tgz->f_mode, tgz->f_uid, tgz->f_gid);
             fullpath = 0;
           }
@@ -352,14 +348,14 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
         }
         else
         {
-          _warning("can't mkdir over ordinary file %s", sane_path);
+          e_set(E_ERROR, "can't mkdir over ordinary file %s", sane_path);
           goto extract_failed;
         }
       }
       break;
       case UNTGZ_SYM: /* wtf?, symlinks are not permitted to be in package */
       {
-        _warning("symlink in archive %s", sane_path);
+        e_set(E_ERROR, "symlink in archive %s", sane_path);
         goto extract_failed;
       }
       break;
@@ -374,7 +370,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
         sys_ftype tgt_type = sys_file_type(linkpath, 0);
         if (tgt_type == SYS_ERR)
         {
-          _warning("can't lstat link target file %s", linkpath);
+          e_set(E_ERROR, "can't lstat link target file %s", linkpath);
           g_free(linkpath);
           goto extract_failed;
         }
@@ -392,7 +388,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
           {
             if (opts->safe)
             {
-              _warning("can't create hardlink over existing %s %s", ex_type == SYS_DIR ? "directory" : "file", sane_path);
+              e_set(E_ERROR, "can't create hardlink over existing %s %s", ex_type == SYS_DIR ? "directory" : "file", sane_path);
               g_free(linkpath);
               goto extract_failed;
             }
@@ -405,7 +401,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
         }
         else
         {
-          _warning("hardlink target must be a regular file %s", linkpath);
+          e_set(E_ERROR, "hardlink target must be a regular file %s", linkpath);
           g_free(linkpath);
           goto extract_failed;
         }
@@ -413,7 +409,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
       break;
       case UNTGZ_NONE:
       {
-        _warning("what's this? (%s)", sane_path);
+        e_set(E_ERROR, "what's this? (%s)", sane_path);
         goto extract_failed;
       }
       break;
@@ -422,7 +418,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
         if (ex_type == SYS_DIR)
         {
           /* target path is a directory, bad! */
-          _warning("can't extract file over existing directory %s", sane_path);
+          e_set(E_ERROR, "can't extract file over existing directory %s", sane_path);
           goto extract_failed;
         }
         else if (ex_type == SYS_NONE)
@@ -442,7 +438,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
         {
           if (opts->safe)
           {
-            _warning("file already exist %s", sane_path);
+            e_set(E_ERROR, "file already exist %s", sane_path);
             goto extract_failed;
           }
 
@@ -451,12 +447,12 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
           sys_ftype tmp_type = sys_file_type(temppath, 0);
           if (tmp_type == SYS_ERR)
           {
-            _warning("can't lstat temporary file %s", temppath);
+            e_set(E_ERROR, "can't lstat temporary file %s", temppath);
             goto extract_failed;
           }
           else if (tmp_type == SYS_DIR)
           {
-            _warning("temporary file is a directory! %s", temppath);
+            e_set(E_ERROR, "temporary file is a directory! %s", temppath);
             goto extract_failed;
           }
           else if (tmp_type != SYS_NONE)
@@ -464,7 +460,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
             _warning("found temporary file, removing %s", temppath);
             if (unlink(temppath) < 0)
             {
-              _warning("removal failed %s: %s", temppath, strerror(errno));
+              e_set(E_ERROR, "removal failed %s: %s", temppath, strerror(errno));
               goto extract_failed;
             }
           }
