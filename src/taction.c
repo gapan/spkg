@@ -14,6 +14,7 @@
 
 #include "taction.h"
 #include "message.h"
+#include "sys.h"
 
 /* private
  ************************************************************************/
@@ -36,7 +37,7 @@ static struct transaction _ta = {
 };
 
 /* action list handling */
-typedef enum { MOVE, KEEP, LINK, SYMLINK, CHPERM } t_on_finalize;
+typedef enum { MOVE, KEEP, LINK, SYMLINK, CHPERM, FORCESYMLINK } t_on_finalize;
 typedef enum { REMOVE, NOTHING } t_on_rollback;
 
 struct action {
@@ -123,6 +124,15 @@ void ta_symlink_nothing(gchar* path, gchar* src_path)
   a->path2 = src_path;
 }
 
+void ta_forcesymlink_nothing(gchar* path, gchar* src_path)
+{
+  g_assert(path != 0);
+  g_assert(src_path != 0);
+  struct action* a = _ta_insert(FORCESYMLINK, NOTHING);
+  a->path1 = path;
+  a->path2 = src_path;
+}
+
 void ta_chperm_nothing(gchar* path, gint mode, gint owner, gint group)
 {
   g_assert(path != 0);
@@ -149,6 +159,7 @@ gint ta_finalize()
     struct action* a = l->data;
     if (a->on_finalize == MOVE)
     {
+      _notice("mv %s %s", a->path1, a->path2);
       if (!_ta.dryrun)
       {
         if (rename(a->path1, a->path2) == -1)
@@ -157,10 +168,10 @@ gint ta_finalize()
           continue;
         }
       }
-      _notice("mv %s %s", a->path1, a->path2);
     }
     else if (a->on_finalize == LINK)
     {
+      _notice("ln %s %s", a->path2, a->path1);
       if (!_ta.dryrun)
       {
         if (link(a->path2, a->path1) == -1)
@@ -169,10 +180,10 @@ gint ta_finalize()
           continue;
         }
       }
-      _notice("ln %s %s", a->path2, a->path1);
     }
     else if (a->on_finalize == SYMLINK)
     {
+      _notice("ln -s %s %s", a->path2, a->path1);
       if (!_ta.dryrun)
       {
         if (symlink(a->path2, a->path1) == -1)
@@ -181,7 +192,24 @@ gint ta_finalize()
           continue;
         }
       }
+    }
+    else if (a->on_finalize == FORCESYMLINK)
+    {
+      _notice("rm -rf %s", a->path1);
       _notice("ln -s %s %s", a->path2, a->path1);
+      if (!_ta.dryrun)
+      {
+        if (sys_rm_rf(a->path1))
+        {
+          _warning("failed rm -rf %s", a->path1);
+          continue;
+        }
+        if (symlink(a->path2, a->path1) == -1)
+        {
+          _warning("failed ln -s %s %s", a->path2, a->path1);
+          continue;
+        }
+      }
     }
     else if (a->on_finalize == CHPERM)
     {
@@ -229,6 +257,7 @@ gint ta_rollback()
     {
       if (a->is_dir)
       {
+        _notice("rmdir %s", a->path1);
         if (!_ta.dryrun)
         {
           if (rmdir(a->path1) == -1)
@@ -237,10 +266,10 @@ gint ta_rollback()
             continue;
           }
         }
-        _notice("rmdir %s", a->path1);
       }
       else
       {
+        _notice("rm %s", a->path1);
         if (!_ta.dryrun)
         {
           if (unlink(a->path1) == -1)
@@ -249,7 +278,6 @@ gint ta_rollback()
             continue;
           }
         }
-        _notice("rm %s", a->path1);
       }
     }
   }

@@ -217,11 +217,6 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
             _warning("can't stat path for symlink %s", path);
             goto extract_failed;
           }
-          else if (ex_type == SYS_DIR)
-          {
-            _warning("can't create symlink over directory %s", path);
-            goto extract_failed;
-          }
           else if (ex_type == SYS_NONE)
           {
             ta_symlink_nothing(fullpath, g_strdup(target));
@@ -229,8 +224,16 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
           }
           else
           {
-            _warning("can't create symlink over existing file %s", path);
-            goto extract_failed;
+            if (opts->safe)
+            {
+              _warning("can't create symlink over existing %s %s", ex_type == SYS_DIR ? "directory" : "file", path);
+              goto extract_failed;
+            }
+            else
+            {
+              ta_forcesymlink_nothing(fullpath, g_strdup(target));
+              fullpath = NULL;
+            }
           }
         }
         /* if this is not 'delete old file' line... */
@@ -324,9 +327,16 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
         if (ex_type == SYS_DIR)
         {
           /* installed directory already exist */
-          _notice("installed direcory already exists %s", sane_path);
-          ta_chperm_nothing(fullpath, tgz->f_mode, tgz->f_uid, tgz->f_gid);
-          fullpath = 0;
+          if (opts->safe)
+          {
+            _warning("installed direcory already exists %s");
+          }
+          else
+          {
+            _notice("installed direcory already exists %s", sane_path);
+            ta_chperm_nothing(fullpath, tgz->f_mode, tgz->f_uid, tgz->f_gid);
+            fullpath = 0;
+          }
         }
         else if (ex_type == SYS_NONE)
         {
@@ -357,8 +367,30 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
         /* hardlinks are special beasts, most easy solution is to 
          * postpone hardlink creation into transaction finalization phase 
          */
+        /* Should check target file (is it regular file?) */
         gchar* linkpath = g_strdup_printf("%s/%s", opts->root, tgz->f_link);
         _notice("hardlink found %s -> %s (creation postponed)", sane_path, tgz->f_link);
+
+        sys_ftype tgt_type = sys_file_type(linkpath, 0);
+        if (tgt_type == SYS_ERR)
+        {
+          _warning("can't lstat link target file %s", linkpath);
+          g_free(linkpath);
+          goto extract_failed;
+        }
+        else if (tgt_type == SYS_DIR || tgt_type == SYS_SYM)
+        {
+          _warning("hardlink target can't be %s: %s", tgt_type == SYS_SYM ? "symlink" : "directory", linkpath);
+          g_free(linkpath);
+          goto extract_failed;
+        }
+        else if (tgt_type == SYS_NONE)
+        {
+          _warning("hardlink target does not exist %s", linkpath);
+          g_free(linkpath);
+          goto extract_failed;
+        }
+
         ta_link_nothing(fullpath, linkpath);
         fullpath = 0;
       }
