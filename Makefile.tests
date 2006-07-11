@@ -23,10 +23,11 @@ objs-tests = $(foreach t,$(compiled-tests),.build/$(t).o)
 test-untgz: .build/test-untgz.o
 
 .build/test.deps:
+	@mkdir -p .build
 	@echo "# automatically generated file" > $@
 	@( for t in $(compiled-tests) ; do echo $$t: .build/$$t.o .build/libspkg.a >> $@ ; done )
 
-include .build/test.deps
+-include .build/test.deps
 
 $(compiled-tests):
 	$(CC) $^ $(LDFLAGS) -o $@
