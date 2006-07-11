@@ -8,19 +8,11 @@
 testdir = tests
 
 compiled-tests = \
-  test-pkgdb-legacy \
-  test-filedb-speed \
-  test-pkgdb \
-  test-pkgtools \
-  test-sql-speed \
-  test-sql \
   test-untgz \
   test-parsers \
   test-path \
   test-mkdir \
   test-rm
-
-test-filedb-speed test-sql-speed: test-files.so
 
 .PHONY: tests
 tests: $(compiled-tests)
@@ -28,19 +20,16 @@ tests: $(compiled-tests)
 vpath %.c $(testdir) .build
 objs-tests = $(foreach t,$(compiled-tests),.build/$(t).o)
 
-$(compiled-tests): .build/$$@.o .build/libspkg.a
+test-untgz: .build/test-untgz.o
+
+.build/test.deps:
+	@echo "# automatically generated file" > $@
+	@( for t in $(compiled-tests) ; do echo $$t: .build/$$t.o .build/libspkg.a >> $@ ; done )
+
+include .build/test.deps
+
+$(compiled-tests):
 	$(CC) $^ $(LDFLAGS) -o $@
 
-test-files.so: .build/test-files.o
-	$(CC) $(LDFLAGS) -shared $^ -o $@
-
-.build/test-files.o: .build/test-files.c
-
-.build/test-files.c:
-	( echo "const char* files[] = {" ; \
-	  ( cd / ; find usr | head -n 100000 | sed 's/.*/"\0",/' ) ; \
-	  echo "}; const unsigned int files_cnt = sizeof(files)/sizeof(files[0]);" \
-	) > $@
-
 tests-clean:
-	rm -f $(compiled-tests) .build/test-files.c test-files.so
+	rm -f $(compiled-tests)

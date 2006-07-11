@@ -14,4 +14,5 @@ int main(int ac, char* av[])
 {
   if (ac == 2)
     sys_rm_rf(av[1]);
+  return 0;
 }

@@ -15,4 +15,5 @@ int main(int ac, char* av[])
   sys_mkdir_p("../.././a/b/c/d/e");
   sys_mkdir_p("./a/b/c/d/e");
   sys_mkdir_p("/a/b/c/d/e");
+  return 0;
 }
