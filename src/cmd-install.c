@@ -24,6 +24,7 @@ static gchar* blacklist[] = {
   "aaa_base",
   "bin",
   "glibc-solibs",
+  "glibc",
 };
 
 static gint blacklisted(gchar* shortname)
@@ -367,10 +368,9 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
         /* hardlinks are special beasts, most easy solution is to 
          * postpone hardlink creation into transaction finalization phase 
          */
-        /* Should check target file (is it regular file?) */
         gchar* linkpath = g_strdup_printf("%s/%s", opts->root, tgz->f_link);
-        _notice("hardlink found %s -> %s (creation postponed)", sane_path, tgz->f_link);
 
+        /* check file we will be linking to (it should be a regular file) */
         sys_ftype tgt_type = sys_file_type(linkpath, 0);
         if (tgt_type == SYS_ERR)
         {
@@ -378,28 +378,47 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
           g_free(linkpath);
           goto extract_failed;
         }
-        else if (tgt_type == SYS_DIR || tgt_type == SYS_SYM)
+        else if (tgt_type == SYS_REG)
         {
-          _warning("hardlink target can't be %s: %s", tgt_type == SYS_SYM ? "symlink" : "directory", linkpath);
-          g_free(linkpath);
-          goto extract_failed;
-        }
-        else if (tgt_type == SYS_NONE)
-        {
-          _warning("hardlink target does not exist %s", linkpath);
-          g_free(linkpath);
-          goto extract_failed;
-        }
+          _notice("hardlink %s -> %s (postponed)", sane_path, tgz->f_link);
 
-        ta_link_nothing(fullpath, linkpath);
-        fullpath = 0;
+          /* when creating hardlink, nothing must exist on created path */
+          if (ex_type == SYS_NONE)
+          {
+            ta_link_nothing(fullpath, linkpath);
+            fullpath = 0;
+          }
+          else
+          {
+            if (opts->safe)
+            {
+              _warning("can't create hardlink over existing %s %s", ex_type == SYS_DIR ? "directory" : "file", sane_path);
+              g_free(linkpath);
+              goto extract_failed;
+            }
+            else
+            {
+              ta_forcelink_nothing(fullpath, linkpath);
+              fullpath = 0;
+            }
+          }
+        }
+        else
+        {
+          _warning("hardlink target must be a regular file %s", linkpath);
+          g_free(linkpath);
+          goto extract_failed;
+        }
       }
       break;
       case UNTGZ_NONE:
+      {
         _warning("what's this? (%s)", sane_path);
         goto extract_failed;
+      }
       break;
       default: /* ordinary file */
+      {
         if (ex_type == SYS_DIR)
         {
           /* target path is a directory, bad! */
@@ -411,15 +430,23 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
           _notice("extracting %s", sane_path);
   
           if (!opts->dryrun)
+          {
             if (untgz_write_file(tgz, fullpath))
               goto extract_failed;
+          }
   
           ta_keep_remove(fullpath, 0);
           fullpath = 0;
         }
         else /* file already exist there */
         {
-          _warning("file already exist %s", sane_path);
+          if (opts->safe)
+          {
+            _warning("file already exist %s", sane_path);
+            goto extract_failed;
+          }
+
+          _notice("extracting %s", sane_path);
 
           sys_ftype tmp_type = sys_file_type(temppath, 0);
           if (tmp_type == SYS_ERR)
@@ -443,12 +470,15 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
           }
 
           if (!opts->dryrun)
+          {
             if (untgz_write_file(tgz, temppath))
               goto extract_failed;
+          }
   
           ta_move_remove(temppath, fullpath);
           fullpath = temppath = 0;
         }
+      }
       break;
     }
     if (0) /* common error handling */
