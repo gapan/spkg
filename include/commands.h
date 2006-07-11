@@ -32,6 +32,7 @@ struct cmd_options {
   gint verbosity;      /**< Verbosity level. */
   gboolean no_scripts; /**< Turn off scripts (doinst.sh) execution. */
   gboolean no_optsyms; /**< Turn off symlink optimizations. */
+  gboolean no_ldconfig; /**< Turn off ldconfig execution. */
 };
 
 /** Install package.

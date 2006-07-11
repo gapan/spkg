@@ -57,6 +57,7 @@ static struct cmd_options cmd_opts = {
   .safe = 0,
   .no_optsyms = 0,
   .no_scripts = 0,
+  .no_ldconfig = 0
 };
 
 static gint verbose = 0;
@@ -96,6 +97,10 @@ static struct poptOption optsOptions[] = {
 {
   "no-scripts", '\0', 0, &cmd_opts.no_scripts, 0,
   "Disable postinstallation script.", NULL
+},
+{
+  "no-ldconfig", 0, 0, &cmd_opts.no_ldconfig, 0,
+  "Don't execute ldconfig after installation and upgrade.", NULL
 },
 POPT_TABLEEND
 };

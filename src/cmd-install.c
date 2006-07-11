@@ -542,26 +542,29 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   }
 
   /* run ldconfig */
-  if (access("/sbin/ldconfig", X_OK) == 0)
+  if (!opts->no_ldconfig)
   {
-    gchar* ldconf_file = g_strdup_printf("%s/etc/ld.so.conf", opts->root);
-    if (access(ldconf_file, R_OK) == 0)
+    if (access("/sbin/ldconfig", X_OK) == 0)
     {
-      gchar* qroot = g_shell_quote(opts->root);
-      gchar* cmd = g_strdup_printf("/sbin/ldconfig -r %s", qroot);
+      gchar* ldconf_file = g_strdup_printf("%s/etc/ld.so.conf", opts->root);
+      if (access(ldconf_file, R_OK) == 0)
+      {
+        gchar* qroot = g_shell_quote(opts->root);
+        gchar* cmd = g_strdup_printf("/sbin/ldconfig -r %s", qroot);
 
-      _notice("running ldconfig");
-      if (system(cmd))
-        _warning("ldconfig failed");
+        _notice("running ldconfig");
+        if (system(cmd))
+          _warning("ldconfig failed");
 
-      g_free(cmd);
-      g_free(qroot);
+        g_free(cmd);
+        g_free(qroot);
+      }
+      g_free(ldconf_file);
     }
-    g_free(ldconf_file);
-  }
-  else
-  {
-    _warning("/sbin/ldconfig was not found");
+    else
+    {
+      _warning("/sbin/ldconfig was not found");
+    }
   }
 
   if (!opts->dryrun)
