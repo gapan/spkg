@@ -153,7 +153,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
       gint i;
       for (i=0;i<11;i++)
       {
-        _inform("| %s", desc[i]);
+        _notice("| %s", desc[i]);
         g_free(desc[i]);
       }  
       continue;
@@ -529,12 +529,6 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     gchar* old_cwd = sys_setcwd(opts->root);
     if (old_cwd)
     {
-#if 0
-      /* run ldconfig */
-      _notice("running ldconfig");
-      if (system("/sbin/ldconfig -r ."))
-        _warning("ldconfig failed");
-#endif
       /* run doinst sh */
       if (sys_file_type("install/doinst.sh", 0) == SYS_REG)
       {
@@ -545,6 +539,29 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
       }
       sys_setcwd(old_cwd);
     }
+  }
+
+  /* run ldconfig */
+  if (access("/sbin/ldconfig", X_OK) == 0)
+  {
+    gchar* ldconf_file = g_strdup_printf("%s/etc/ld.so.conf", opts->root);
+    if (access(ldconf_file, R_OK) == 0)
+    {
+      gchar* qroot = g_shell_quote(opts->root);
+      gchar* cmd = g_strdup_printf("/sbin/ldconfig -r %s", qroot);
+
+      _notice("running ldconfig");
+      if (system(cmd))
+        _warning("ldconfig failed");
+
+      g_free(cmd);
+      g_free(qroot);
+    }
+    g_free(ldconf_file);
+  }
+  else
+  {
+    _warning("/sbin/ldconfig was not found");
   }
 
   if (!opts->dryrun)
