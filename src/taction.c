@@ -26,15 +26,13 @@ struct transaction {
   gboolean dryrun;
   struct error* err;
   GSList* list;
-  GMemChunk* chunks;
 };
 
 static struct transaction _ta = {
   .active = 0,
   .err = 0,
   .list = 0,
-  .dryrun = 0,
-  .chunks = 0
+  .dryrun = 0
 };
 
 /* action list handling */
@@ -57,7 +55,7 @@ static struct action* _ta_insert(
   t_on_rollback on_rollback
 )
 {
-  struct action* a = g_mem_chunk_alloc0(_ta.chunks);
+  struct action* a = g_slice_new0(struct action);
   a->on_finalize = on_finalize;
   a->on_rollback = on_rollback;
   _ta.list = g_slist_prepend(_ta.list, a);
@@ -68,6 +66,7 @@ static void _ta_free_action(struct action* a)
 {
   g_free(a->path1);
   g_free(a->path2);
+  g_slice_free(struct action, a);
 }
 
 /* public 
@@ -86,10 +85,6 @@ gint ta_initialize(gboolean dryrun, struct error* e)
   _ta.active = 1;
   _ta.dryrun = dryrun;
   _ta.list = 0;
-  _ta.chunks = g_mem_chunk_new("spkg_transaction_actions",
-                               sizeof(struct action),
-                               sizeof(struct action)*1024,
-                               G_ALLOC_ONLY);
   return 0;
 }
 
@@ -159,7 +154,7 @@ gint ta_finalize()
         if (rename(a->path1, a->path2) == -1)
         {
           _warning("failed mv %s %s", a->path1, a->path2);
-          goto next_action;
+          continue;
         }
       }
       _notice("mv %s %s", a->path1, a->path2);
@@ -171,7 +166,7 @@ gint ta_finalize()
         if (link(a->path2, a->path1) == -1)
         {
           _warning("failed ln %s %s", a->path2, a->path1);
-          goto next_action;
+          continue;
         }
       }
       _notice("ln %s %s", a->path2, a->path1);
@@ -183,7 +178,7 @@ gint ta_finalize()
         if (symlink(a->path2, a->path1) == -1)
         {
           _warning("failed ln -s %s %s", a->path2, a->path1);
-          goto next_action;
+          continue;
         }
       }
       _notice("ln -s %s %s", a->path2, a->path1);
@@ -209,12 +204,10 @@ gint ta_finalize()
         }
       }
     }
-   next_action:
-    _ta_free_action(a);
   }
 
+  g_slist_foreach(_ta.list, (GFunc)_ta_free_action, 0);
   g_slist_free(_ta.list);
-  g_mem_chunk_destroy(_ta.chunks);
   memset(&_ta, 0, sizeof(_ta));
   return 0;
 }
@@ -241,7 +234,7 @@ gint ta_rollback()
           if (rmdir(a->path1) == -1)
           {
             _warning("failed rmdir %s", a->path1);
-            goto next_action;
+            continue;
           }
         }
         _notice("rmdir %s", a->path1);
@@ -253,18 +246,16 @@ gint ta_rollback()
           if (unlink(a->path1) == -1)
           {
             _warning("failed rmdir %s", a->path1);
-            goto next_action;
+            continue;
           }
         }
         _notice("rm %s", a->path1);
       }
     }
-   next_action:
-    _ta_free_action(a);
   }
 
+  g_slist_foreach(_ta.list, (GFunc)_ta_free_action, 0);
   g_slist_free(_ta.list);
-  g_mem_chunk_destroy(_ta.chunks);
   memset(&_ta, 0, sizeof(_ta));
   return 0;
 }

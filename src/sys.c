@@ -105,12 +105,18 @@ gint sys_rm_rf(const gchar* path)
 
 gint sys_mkdir_p(const gchar* path)
 {
+  gchar* simple_path;
+  gchar** pathv;
+  gint i, j, retval = 1, pathv_len;
+  gchar* tmp, *tmp_end;
+
   g_assert(path != 0);
-  gchar* simple_path = path_simplify(path);
-  gchar** pathv = path_get_elements(simple_path);
-  gint i, j, retval = 1, pathv_len = g_strv_length(pathv);
-  gchar* tmp = g_malloc0(strlen(path)+10/* just a reserve */);
-  gchar* tmp_end = tmp;
+  
+  simple_path = path_simplify(path);
+  pathv = path_get_elements(simple_path);
+  pathv_len = g_strv_length(pathv);
+  tmp = tmp_end = g_malloc0(strlen(simple_path)+10);
+  g_free(simple_path);
 
   for (i=0; i<pathv_len; i++)
   {
@@ -142,7 +148,6 @@ gint sys_mkdir_p(const gchar* path)
   retval = 0;
 out:
   g_free(tmp);
-  g_free(simple_path);
   g_strfreev(pathv);
   return retval;
 }

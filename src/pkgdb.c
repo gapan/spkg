@@ -151,6 +151,10 @@ void db_close()
 
   sys_lock_del(_db.fd_lock);
 
+  gint used;
+  JSLFA(used, _db.files);
+  JSLFA(used, _db.links);
+
   g_free(_db.topdir);
   g_free(_db.pkgdir);
   g_free(_db.scrdir);
@@ -369,9 +373,21 @@ void db_free_pkg(struct db_pkg* pkg)
 {
   continue_timer(6);
   guint freed;
+  void** ptr;
+  gchar path[4096];
+
   if (pkg == 0)
     return;
+
+  strcpy(path, "");
+  JSLF(ptr, pkg->files, path);
+  while (ptr != NULL)
+  {
+    g_free(*ptr);
+    JSLN(ptr, pkg->files, path);
+  }
   JSLFA(freed, pkg->files);
+
   g_free(pkg->name);
   g_free(pkg->shortname);
   g_free(pkg->version);
@@ -380,6 +396,7 @@ void db_free_pkg(struct db_pkg* pkg)
   g_free(pkg->location);
   g_free(pkg->desc);
   g_free(pkg->doinst);
+  memset(pkg, 0, sizeof(*pkg));
   g_free(pkg);
   stop_timer(6);
 }
@@ -649,9 +666,6 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
       g_free(path);
     }
   }
-  
-  if (line)
-    free(line);
 
   fseek(fs, 0, SEEK_END);
   guint script_size = ftell(fs);
@@ -671,20 +685,20 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
     }
   }
 
+
  fini:
-  goto no_err;
-
- err_1:
-  db_free_pkg(p);
-  p=0;
-
- no_err:
+  if (line)
+    free(line);
   if (fs)
     fclose(fs);
   fclose(fp);
  err_0:
   stop_timer(4);
   return p;
+ err_1:
+  db_free_pkg(p);
+  p = NULL;
+  goto fini;
 }
 
 static gchar* _get_date()
@@ -736,6 +750,22 @@ gint db_rem_pkg(gchar* name)
 
 /* public - generic database package queries
  ************************************************************************/
+
+static gint _query_compare(gconstpointer a, gconstpointer b, gpointer data)
+{
+  db_query_type type = (db_query_type)data;
+  if (type == DB_QUERY_PKGS_WITH_FILES || type == DB_QUERY_PKGS_WITHOUT_FILES)
+  {
+    const struct db_pkg* apkg = a;
+    const struct db_pkg* bpkg = b;
+    return strcmp(apkg->name, bpkg->name);
+  }
+  else if (type == DB_QUERY_NAMES)
+  {
+    return strcmp(a, b);
+  }
+  return 0;
+}
 
 GSList* db_query(db_selector cb, void* data, db_query_type type)
 {
@@ -813,7 +843,7 @@ GSList* db_query(db_selector cb, void* data, db_query_type type)
   }
 
   closedir(d);
-  return pkgs;
+  return g_slist_sort_with_data(pkgs, _query_compare, (gpointer)type);
  err_1:
   db_free_query(pkgs, type);
   closedir(d);
@@ -831,10 +861,7 @@ void db_free_query(GSList* pkgs, db_query_type type)
       type == DB_QUERY_PKGS_WITHOUT_FILES)
     data_free_func = (void (*)(void*))db_free_pkg;
   
-  GSList* l;
-  for (l=pkgs; l!=0; l=l->next)
-    data_free_func(l->data);
-
+  g_slist_foreach(pkgs, (GFunc)data_free_func, 0);
   g_slist_free(pkgs);
 }
 

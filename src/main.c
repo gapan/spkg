@@ -137,8 +137,13 @@ int main(const int ac, const char* av[])
   gint rc;
   gint status = 0;
   const gchar* arg;
-  struct error* err = e_new();
+  struct error* err;
 
+#ifdef __DEBUG  
+  g_mem_set_vtable(glib_mem_profiler_table);
+#endif
+
+  err = e_new();
   /* check if we have enough privileges */
   unsetenv("LD_LIBRARY_PATH");
   if (getuid() != 0)
@@ -323,6 +328,8 @@ int main(const int ac, const char* av[])
         e_clean(err);
         status = 2;
       }
+      g_slist_foreach(arglist, (GFunc)g_free, 0);
+      g_slist_free(arglist);
     }
     break;
   }
@@ -332,6 +339,11 @@ int main(const int ac, const char* av[])
  out:
   poptFreeContext(optCon);
   e_free(err);
+
+#ifdef __DEBUG  
+  g_mem_profile();
+#endif
+
   /* 0 = all ok
    * 1 = command line error
    * 2 = package manager error

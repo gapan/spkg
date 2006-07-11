@@ -220,6 +220,8 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
       _notice("keeping directory: %s", path);
     }
 
+    g_free(fullpath);
+
    skip3:
     JSLP(ptr, pkg->files, path);
   }

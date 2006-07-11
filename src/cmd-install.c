@@ -141,17 +141,18 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
         goto err3;
       }
 
-      gchar *buf, *desc[11] = {0};
+      gchar *buf = NULL, *desc[11] = {0};
       gsize len;
       untgz_write_data(tgz, &buf, &len);
       parse_slackdesc(buf, shortname, desc);
       pkg->desc = gen_slackdesc(shortname, desc);
+      g_free(buf);
 
       /* free description */
       gint i;
       for (i=0;i<11;i++)
       {
-        _notice("%s", desc[i]);
+        _inform("| %s", desc[i]);
         g_free(desc[i]);
       }  
       continue;
@@ -187,7 +188,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
       untgz_write_data(tgz, &buf, &len);
       
       /* optimize out symlinks creation from doinst.sh */
-      gchar *b, *end, *ln, *n=buf;
+      gchar *b, *end, *ln, *n = buf;
       gchar* doinst = 0;
       while(iter_lines(&b, &end, &n, &ln))
       { /* for each line */
@@ -201,24 +202,24 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
           g_free(dir);
           g_free(link);
           _notice("detected symlink %s -> %s", path, target);
-          db_add_file(pkg, path, target);
+          db_add_file(pkg, path, target); /* target is freed by db_free_pkg() */
 
           gchar* fullpath = g_strdup_printf("%s/%s", opts->root, path);
           struct stat ex_stat;
           sys_ftype ex_type = sys_file_type_stat(fullpath, 0, &ex_stat);
+          g_free(path);
+
+          g_free(ln);
+          ln = NULL;
           
           if (ex_type == SYS_ERR)
           {
             _warning("can't stat path for symlink %s", path);
-            g_free(target);
-            g_free(ln);
             goto extract_failed;
           }
           else if (ex_type == SYS_DIR)
           {
             _warning("can't create symlink over directory %s", path);
-            g_free(target);
-            g_free(ln);
             goto extract_failed;
           }
           else if (ex_type == SYS_NONE)
@@ -229,8 +230,6 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
           else
           {
             _warning("can't create symlink over existing file %s", path);
-            g_free(target);
-            g_free(ln);
             goto extract_failed;
           }
         }
@@ -248,7 +247,9 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
           doinst = nd;          
         }
         g_free(ln);
-      }
+        ln = NULL;
+      } /* iter_lines */
+
       /* we always store full doinst.sh in database */
       pkg->doinst = buf;
 
@@ -264,6 +265,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
             goto err3;        
           }
         }
+        g_free(doinst);
         has_doinst = 1;
       }
       
@@ -497,6 +499,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   _notice("finished");
 
   db_free_pkg(pkg);
+  g_free(sane_path);
   g_free(name);
   g_free(shortname);
   return 0;
