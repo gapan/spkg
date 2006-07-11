@@ -8,8 +8,6 @@ remove commands can be found on the @ref cmds_impl page.
 Some info on package database can be found on the @ref db_impl
 page.
 
-If you are a Python fan you may want to look at @ref pyspkg page.
-
 */
 
 /** @page cmds_impl Commands Implementation

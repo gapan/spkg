@@ -84,23 +84,9 @@ endif
 # include tests
 include Makefile.tests
 
-# python bindings
-############################################################################
-.PHONY: python-build python-gen python-clean
-
-python-gen:
-	( cd pyspkg && ./gen.sh )
-
-python-build: .build/libspkg.a python-gen
-	python setup.py build
-
-python-clean:
-	rm -rf build
-	rm -f pyspkg/pyspkg-meth.h pyspkg/pyspkg-doc.h pyspkg/methtab.c
-
 # installation
 ############################################################################
-.PHONY: install install-docs install-spkg install-gspkg install-pyspkg uninstall
+.PHONY: install install-docs install-spkg uninstall
 
 install: install-spkg install-docs
 
@@ -126,22 +112,8 @@ install-docs: docs
 	install -o root -g root -m 0644 LICENSE README INSTALL HACKING NEWS TODO $(DESTDIR)$(docdir)/
 	install -o root -g root -m 0644 docs/html/* $(DESTDIR)$(docdir)/html/
 
-install-gspkg: 
-	install -d -o root -g root -m 0755 $(DESTDIR)$(sbindir)
-	install -o root -g bin -m 0755 gspkg/gspkg.py $(DESTDIR)$(sbindir)/
-
-install-pyspkg: .build/libspkg.a python-gen
-ifneq ($(DESTDIR),)
-	python setup.py install --root=$(DESTDIR)
-	strip -g $(DESTDIR)/usr/lib/python2.?/site-packages/spkg.so
-else
-	python setup.py install
-	strip -g /usr/lib/python2.?/site-packages/spkg.so
-endif
-
 uninstall:
 	rm -f $(DESTDIR)$(sbindir)/spkg
-	rm -f $(DESTDIR)$(sbindir)/gspkg.py
 	rm -f $(DESTDIR)$(mandir)/man8/spkg.8.gz
 	rm -rf $(DESTDIR)$(docdir)
 
@@ -159,15 +131,6 @@ spkg-$(VERSION)-i486-1.tgz:
 	make install RELEASE=yes DESTDIR=./pkg
 	install -d -o root -g root -m 0755 ./pkg/install
 	install -o root -g root -m 0644 docs/slack-desc.spkg ./pkg/install/slack-desc
-	( cd pkg ; makepkg -l y -c n ../$@ )
-	rm -rf pkg
-
-pyspkg-$(VERSION)-i486-1.tgz:
-	make clean
-	rm -rf pkg
-	make install-pyspkg RELEASE=yes DESTDIR=./pkg
-	install -d -o root -g root -m 0755 ./pkg/install
-	install -o root -g root -m 0644 docs/slack-desc.pyspkg ./pkg/install/slack-desc
 	( cd pkg ; makepkg -l y -c n ../$@ )
 	rm -rf pkg
 
@@ -211,7 +174,7 @@ web-dist: docs dist slackpkg
 # cleanup
 ############################################################################
 .PHONY: clean mrproper 
-clean: tests-clean python-clean
+clean: tests-clean
 	-rm -rf .build/*.o .build/*.a spkg build
 
 mrproper: clean
