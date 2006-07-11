@@ -27,6 +27,7 @@
 /** Common package command options structure. */
 struct cmd_options {
   gchar* root;         /**< Root directory. */
+  gboolean safe;       /**< Play it safe (i.e. don't replace existing files). */
   gboolean dryrun;     /**< Don't touch filesystem. */
   gint verbosity;      /**< Verbosity level. */
   gboolean no_scripts; /**< Turn off scripts (doinst.sh) execution. */

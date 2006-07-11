@@ -54,6 +54,7 @@ static struct cmd_options cmd_opts = {
   .root = "/",
   .dryrun = 0,
   .verbosity = 1,
+  .safe = 0,
   .no_optsyms = 0,
   .no_scripts = 0,
 };
@@ -67,6 +68,15 @@ static struct poptOption optsOptions[] = {
   "Set altrernate root directory for package operations.", "ROOT"
 },
 {
+  "safe", 's', 0, &cmd_opts.safe, 0,
+  "Play it safe. Don't replace existing files/directories on install.", NULL
+},
+{
+  "dry-run", 'n', 0, &cmd_opts.dryrun, 0,
+  "Don't modify filesystem or database. This may be useful when used along "
+  "with -v option to check what exactly will given command do.", NULL
+},
+{
   "verbose", 'v', 0, 0, 1,
   "Increase verbosity level. You may use this option multiple times to get "
   "even more verbose output.", NULL
@@ -76,11 +86,6 @@ static struct poptOption optsOptions[] = {
   "Set verbosity level to zero. Default verbosity level is 1 (show only "
   "warnings). This option disables warnings. Please note, that error "
   "messages can't be disabled.", NULL
-},
-{
-  "dry-run", 'n', 0, &cmd_opts.dryrun, 0,
-  "Don't modify filesystem or database. This may be useful when used along "
-  "with -v option to check what exactly will given command do.", NULL
 },
 {
   "no-fast-symlinks", '\0', 0, &cmd_opts.no_optsyms, 0,
@@ -190,7 +195,7 @@ int main(const int ac, const char* av[])
 //      "  spkg -u <packages>     [--upgrade]\n"
       "  spkg -vd <packages>    [--verbose --remove]\n"
       "  spkg -l kde*           [--list]\n"
-      "  spkg -vnu <packages>   [--upgrade --verbose --dry-run]\n"
+//      "  spkg -vnu <packages>   [--upgrade --verbose --dry-run]\n"
       "\n"
       "Official website: http://spkg.megous.com\n"
       "Bug reports can be sent to <megous@megous.com>.\n"
@@ -200,8 +205,7 @@ int main(const int ac, const char* av[])
   if (usage)
   {
     printf(
-      "Usage: spkg [-i|--install] [-r|--root ROOT] [-n|--dry-run]\n"
-      "            [-q|--quiet] [-v|--verbose] [packages...]\n"
+      "Usage: spkg [-i|-d|-l] [-r ROOT] [-n] [-s] [-q] [-v] [packages...]\n"
     );
     goto out;
   }
