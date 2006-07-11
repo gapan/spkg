@@ -11,11 +11,13 @@ ASSERTS := yes
 BENCH := no
 VERSION := alpha1
 RELEASE := no
+STATIC := no
 
 ifeq ($(RELEASE),yes)
 DEBUG := no
 ASSERTS := yes # for alpha releases, this is good to be turned on
 BENCH := no
+STATIC := yes
 prefix := /usr
 endif
 
@@ -26,8 +28,14 @@ docdir = $(prefix)/doc/spkg-$(VERSION)
 CC := gcc
 AR := ar
 CFLAGS := -pipe -Wall
-CPPFLAGS := -Iinclude -Ilibs/zlib -Ilibs/glib -Ilibs/popt -Ilibs/judy -D_GNU_SOURCE -DSPKG_VERSION=$(VERSION)
+ifeq ($(STATIC),yes)
+CPPFLAGS := -Iinclude -Ilibs/zlib -Ilibs/glib -Ilibs/popt -Ilibs/judy
 LDFLAGS := libs/zlib/libz.a libs/glib/libglib-2.0.a libs/popt/libpopt.a libs/judy/libJudy.a
+else
+CPPFLAGS := -Iinclude $(shell pkg-config --cflags glib-2.0)
+LDFLAGS := -lz $(shell pkg-config --libs glib-2.0) -lpopt -lJudy
+endif
+CPPFLAGS += -D_GNU_SOURCE -DSPKG_VERSION=$(VERSION)
 ifeq ($(DEBUG),yes)
 CFLAGS +=  -ggdb3 -O0
 CPPFLAGS += -D__DEBUG=1
