@@ -1,37 +1,190 @@
-spkg potøetí
+spkg alpha1
 
 <p>
- Jak jsem slíbil minule, den se rozepí¹u o technickém øe¹ení.
+ Poslednì jsem pomlouval pkgtools a vymej¹lel fíèury. No a aby to nebyly jen
+ plané øeèi, tak je na èase ukázat výsledky mého sna¾ení. Tady jsou...
 </p>
 
-<_>
+<break>
 
-<h2>Co spkg dìlá?</h2>
+<h2>Co to je?</h2>
 <p>
- Proto¾e spkg je implementeace pkgtools v C, provádí spkg pøesnì to
- co pkgtools. Instalaci, odstraòování a upgrade balíèkù.
+ Nejdøív jen odstaveèek o spkg, pro ty co neèetli mé pøedchozí pøíspìvky.
+ Spkg je implementeace pkgtools v C. Jde o nízkoúrovòový nástroj pro
+ instalaci, odstraòování a (v budoucnu) upgrade balíèkù pro distribuci
+ Slackware Linux. Spkg má i nìco navíc:
+</p>
+ <ul>
+  <li>Safe mode - bezpeèný re¾im pro nedùvìryhodné balíèky.</li>
+  <li>Rollback - kdy¾ nìco sel¾e pøi instalaci, tak se provede návrat souborového systému do pùvodního stavu.</li>
+  <li>Knihovní funkce pro práci s databází balíèkù a souborù.</li>
+ </ul>
+
+<h2>Alpha1? Eeeeek!</h2>
+<p>
+ "Alfa" pro mì znamená ¾e v spkg chybìjí zásadní vlastnosti (upgrade).
+ Nikoliv, ¾e je v¹e se¹ité horkou jehlou a na bug je mo¾né narazit na
+ ka¾dém kroku. Èili není tøeba se obávat toho, ¾e by spkg nedìlal to co
+ se od nìj oèekává, èi nedejbo¾e padal. Naopak, vlastnosti které jsou
+ naimplementované jsou otestovány. Testování samozøejmì není
+ nikdy dost. Najde se nìjaký odvá¾livec?
+</p>
+
+<h2>To byla doba</h2>
+<p>
+ Jo. Byla. Zaèal jsem pracovat, tak¾e nebyl èas.
+</p>
+
+<h2>Tak¾e?</h2>
+<p>
+ Tak¾e koho nezajímá co je safe mode, proè má spkg funkci bezpeèného
+ návratu (taky to nìkomu pøipomíná Apollo 13?) a jak se dosáhlo vysoké
+ rychlosti bì¾ných operací mù¾e klidnì pøeskoèit k bechmarkùm. 
 </p>
 <p>
- Pro v¹echny tyto èinnosti je potøeba udr¾ovat databázi nainstalovaných
- balíèkù a k nim pøinále¾ejících souborù a adresáøù. Seznamy souborù
- nále¾ejících balíèku se obecnì mohou pøekrývat. Tj. jeden soubor mù¾e
- patøit více balíèkùm.
+ Safe mode zabraòuje tomu, aby se pøi instalaci balíku pøepsali jakékoliv
+ v systému ji¾ existující soubory nebo adresáøe. V tomto re¾imu by nemìlo
+ být mo¾né si po¹kodit systém pouhou instalací zákeøného balíku. Re¾im je¹tì
+ není zcela dokonèen. V budoucnu se v tomto re¾imu nebude spou¹tìt
+ postinstalaèní skript. (co¾ nijak nebrání vytvoøení symlinkù, které se
+ bì¾nì ve Slackware vytváøí pomocí postinstalaèního skriptu, jak uvidíme dále)
 </p>
-<ul>
- <li></li>
- <li></li>
- <li></li>
- <li></li>
-</ul>
-
-<h2>Roz¹iøitelnost</h2>
-
-
-<h2>Smazat èi nesmazat?</h2>
 <p>
+ Hlavním dùvodem pro implementaci rollbacku je, aby nebylo nutné provádìt
+ testování konzistence tgz balíku pøed jeho rozbalením, tak jak to musí
+ dìlat installpkg, aby zabránilo neùplné instalaci/upgradu balíku. Pokud
+ se pøi rozbalování narazí na chybu (která nemusí být zpùsobená pouze
+ chybou v tgz archivu), prostì se vrátí zpìt v¹echny doposud provedené
+ operace a naplánované operace (takové, které nelze vzít zpìt) se prostì
+ neprovedou. Rollback pøiná¹í i dal¹í zajímavé mo¾nosti, jako je napø.
+ bezpeèné pøeru¹ení provádìné operace u¾ivatelem.
 </p>
-
+<p>
+ Nìkteré vìci, které dìlají spkg tak rychlým:
+</p>
+ <ul>
+  <li>Jednoprùchodové zpracování tgz souboru.</li>
+  <li>Ruènì vyladìný parser souborù databáze balíèkù.</li>
+  <li>Pou¾ití JudySL polí pro manipulaci se seznamy souborù.</li>
+  <li>Zpracování více balíèkù najednou bez nutnosti znovu naèítat
+  databázi souborù po ka¾dé operaci. (tohle zrychluje hlavnì
+  operaci odstraòování více balíèkù najednou)</li>
+  <li>Minimalizace poètu operací fork() a exec().</li>
+  <li>Pøedzpracování instalaèního skriptu a programové vytvoøení symlinkù.</li>
+  <li>Nezávislost na externích programech, kromì shellu pro spou¹tìní
+  postinstalaèních skriptù. (dramaticky zmensuje pocet souborù, které je potøeba
+  naèíst z disku pøi prvotním spu¹tìní nìjaké operace).</li>
+  <li>Vyladìný untar.</li>
+ </ul>
 
 <h2>"Benèe"</h2>
+
+Tady je obsah souboru BENCHMARKS který lze nalézt ve zdrojácích spkg.
+<pre>
+This benchmark compares spkg with pkgtools and plain tar.
+
+Hardware setup used:
+
+CPU: Athlon Thunderbird 1GHz
+MEM: 512MB SDRAM 133MHz
+HDD1: Seagate Baracuda 7200.9 80GB
+HDD2: Samsung SP2002H 20GB 7200 rpm
+OS: 'vanilla' linux 2.6.17.2, slackware-current
+
+Benchmarking methods:
+
+Before each 'install' benchmark clean ext2 filesystem will be created on
+HDD2 using following command:
+  mke2fs /dev/hdb
+
+Before each benchmarks caches will be flushed using:
+  echo 2 > /proc/sys/vm/drop_caches
+
+All services that could affect result of benchmarks will be stopped.
+
+Install speed
+~~~~~~~~~~~~~
+Install/extract all official slackware-current (2006-07-11) packages
+from the installation packages on HDD1 to the root directory on HDD2.
+
+1)
+  spkg -r /data -i */*.tgz
+
+2)
+  installpkg -root /data */*.tgz
+
+3) 
+  for f in */*.tgz ; do
+    tar xf $f -C /data
+  done
+
+Remove speed
+~~~~~~~~~~~~
+Remove all 'kde*' packages from the system. ;-)
+
+1)
+  spkg -r /data -d `spkg -r /data -l 'kde*'`
+
+2)
+  ROOT=/data removepkg `spkg -r /data -l 'kde*'`
+
+Results
+~~~~~~~
+
+Install speed:
+  1) real 12m 36s, user 2m 3s, sys 51s
+  2) real 23m 41s, user 15m 31s, 5m 28s
+  3) real 13m 17s, user 1m 46s, sys 56s
+
+Remove speed:
+  1) real 1m 29s, user 3.4s, sys 3.9s
+  2) real 27m 49s, user 19m 46s, sys 6m 30s
+</pre>
+
+<h2>Interpretace výsledkù</h2>
 <p>
+ Srovnáním reálných èasù, které zahrnují èekání systému na dokonèení
+ hardwarových operací, jako je zápis na disk lze získat obrázek o tom
+ jak bude u¾ivatel vnímat zlep¹ení prezentovaných operací pøi pøechodu
+ na spkg.
+</p>
+<p>
+ Je vidìt, ¾e instalace celého systému se zrychlí dvojnásobnì. A
+ odstraòování balíèkù bude zhruba 18x rychle¹í.
+</p>
+<p>
+ O kvalitì implementace v¹ak vypovídají spí¹e èasy které se tráví
+ maøením cyklù procesoru a ne èekáním na to ne¾ se nastavìjí hlavièky na
+ harddisku a plotna se dootoèí do správné pozice. :-) Èili èasy trávené
+ v kernel space (sys) a v user space (user). Seètením sys a user èasù
+ lze zhruba získat obrázek o tom, jak rychle by operace probìhla, kdyby
+ data byly na ramdisku. Pøípadnì by se ve¹ly do cache.
+</p>
+<p>
+ Instalace je pøi tomto srovnání 20x rychlej¹í a odstranìní balíèku
+ pak 210x rychlej¹í ne¾ pomocí pkgtools.
+</p>
+<p>
+ Tato zrychlení se dají pozorovat pøi instalaci velkého mno¾ství malých
+ balíèkù jejich¾ nainstalované soubory se vejdou do cache. Napø.
+ výsledky porovnání èasù installpkg a spkg -i pro instalaci v¹ech
+ balíèkù jedné malé komerèní distribuce, která spkg vyu¾ívá pro
+ instalaci:
+</p>
+<p>
+ Distribuce má 64 balíèkù o celkové velikosti 25MB.<br/>
+ spkg: real 4.666s, user 3.086s, sys 1.100s<br/>
+ installpkg: real 1m34s, user 1m10s, sys 24s
+</p>
+<p>
+ Tady u¾ je vidìt i vylep¹ený u¾ivatelský zá¾itek, a to hned 20x.
+ Dùvod je v tom, ¾e se nemusí èekat na pánì harddisk, ne¾ se uráèí
+ vykonat potøebné pohyby.
+</p>
+
+<h2>Pøí¹tì</h2>
+<p>
+ Pøí¹tì (doufejme døíve ne¾ zase za rok :-) udìlám nìjaké benchmarky té
+ nejèastìji pou¾ívané operace: upgradepkg. Proto¾e ve verzi alpha2
+ ji¾ bude naimplementovaná.
 </p>
