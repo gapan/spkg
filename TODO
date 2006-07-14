@@ -2,22 +2,41 @@
 before alpha2 |
 --------------/
 
+[error] rework internals of the error handling (use gslist for error stacking)
+[msg] cleanup _notice, _inform and _warning messages
 [pkgtools] implement upgrade command
 
 ---------------------------------------------------------------------
 before beta |
 ------------/
 
-[error] rework internals of the error handling (use gslist for error stacking)
-[pkgdb] update py bindings
+[test] automatic testuite
+
+---------------------------------------------------------------------
+before 1.0 |
+-----------/
+
+[doc] finish readmes, update manpage and web
+
+Use it for a month or so instead of pkgtools everywhere.
+
+---------------------------------------------------------------------
+post 1.0 |
+---------/
+
+- python bindings
+- gui interface
+- backward comaptible script extending using special comments for
+  pre/post install/update/remove code
 
 [untgz] using blockbuf as writebuf can speedup things slightly on the 
     user side (approx. by some 5%)
 
-[doc] finish readmes
+install/doinst.sh:
 
----------------------------------------------------------------------
-before rc1 |
------------/
-
-[tests] automatic testsuite
+#<I#
+#I>#
+#U>#
+#<U#/etc/rc.d/dnsmasq restart
+#R>#/etc/rc.d/dnsmasq stop
+#<R#
