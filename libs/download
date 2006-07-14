@@ -1,0 +1,6 @@
+#!/bin/sh
+
+wget http://spkg.megous.com/dl/deps/glib-2.10.3.tar.gz
+wget http://spkg.megous.com/dl/deps/popt-1.10.2.tar.gz
+wget http://spkg.megous.com/dl/deps/Judy-1.0.3.tar.gz
+wget http://spkg.megous.com/dl/deps/zlib-1.2.3.tar.gz
