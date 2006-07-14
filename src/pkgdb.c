@@ -11,7 +11,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
-#include <sys/mman.h>
 #include <utime.h>
 #include <errno.h>
 #include <zlib.h>
