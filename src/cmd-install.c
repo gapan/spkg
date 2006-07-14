@@ -22,20 +22,33 @@
 #define e_set(n, fmt, args...) e_add(e, "install", __func__, n, fmt, ##args)
 
 /* packages that can't be optimized, until they are fixed */
-static gchar* blacklist[] = {
+static gchar* _doinst_opt_blacklist[] = {
   "aaa_base",
   "bin",
   "glibc-solibs",
   "glibc",
+  NULL
 };
 
-static gint _blacklisted(gchar* shortname)
+static gboolean _blacklisted(const gchar* shortname, gchar** blacklist)
 {
-  gint i;
-  for (i=0; i<sizeof(blacklist)/sizeof(blacklist[0]); i++)
-    if (!strcmp(blacklist[i], shortname))
-      return 1;
-  return 0;
+  gchar** i = blacklist;
+  while (*i)
+  {
+    if (!strcmp(*i, shortname))
+      return TRUE;
+    i++;
+  }
+  return FALSE;
+}
+
+static gboolean _unsafe_path(const gchar* path)
+{
+  if (g_path_is_absolute(path))
+    return TRUE;
+  else if (!strncmp(path, "../", 3))
+    return TRUE;
+  return FALSE;
 }
 
 static void _read_slackdesc(struct untgz_state* tgz, struct db_pkg* pkg)
@@ -64,13 +77,13 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
   gchar* fullpath = g_strdup_printf("%s%s", root, sane_path);
 
   /* optimization disabled, just extract doinst script */
-  if (opts->no_optsyms || _blacklisted(pkg->shortname))
+  if (opts->no_optsyms || _blacklisted(pkg->shortname, _doinst_opt_blacklist))
   {
     if (opts->safe)
     {
       _warning("In safe mode, install script is not executed,"
       " and with disabled optimized symlink creation, symlinks"
-      " will not be created.%s", _blacklisted(pkg->shortname) ?
+      " will not be created.%s", _blacklisted(pkg->shortname, _doinst_opt_blacklist) ?
       " Note that this package is blacklisted for optimized"
       " symlink creation. This may change in the future as"
       " better heuristics are developed for extracting symlink"
@@ -129,13 +142,11 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
          free(sane_link_path), free(link_fullpath) */
 
       /* link path checks (be careful here) */
-      if (g_path_is_absolute(sane_link_path))
+      if (_unsafe_path(sane_link_path))
       {
-        e_set(E_ERROR, "detected symlink with absolute path: %s", sane_link_path);
+        e_set(E_ERROR, "detected symlink with unsafe path: %s", sane_link_path);
         goto parse_failed;
       }
-      
-      /*XXX: more checks */
 
       _notice("detected symlink %s -> %s", sane_link_path, link_target);
       db_add_file(pkg, sane_link_path, link_target); /* target is freed by db_free_pkg() */
@@ -537,10 +548,10 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     /* check file path */
     g_free(sane_path);
     sane_path = path_simplify(tgz->f_name);
-    if (sane_path == 0 || sane_path[0] == '/' || !strncmp(sane_path, "../", 3))
+    if (sane_path == 0 || _unsafe_path(sane_path))
     {
       /* some damned fucker created this package to mess our system */
-      e_set(E_ERROR|CMD_CORRUPT,"package contains file with unsecure path: %s", tgz->f_name);
+      e_set(E_ERROR|CMD_CORRUPT,"package contains file with unsafe path: %s", tgz->f_name);
       goto err3;
     }
 
