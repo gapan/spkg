@@ -61,10 +61,10 @@ extern gint parse_createlink(gchar* line, gchar** dir, gchar** link, gchar** tar
  */
 extern gint parse_cleanuplink(gchar* line);
 
-/** Iterate through buffer line by line.
+/** Iterate through null-termianted buffer line by line.
  *
  * @param b  begining of the line
- * @param e  end of the line
+ * @param e  one character after the end of the line (excluding \n)
  * @param n  next line start (set this to the buffer begining at start)
  * @param ln line (zero terminated g_strduped string, freed by user) 
  *           (could be zero if you don't want to us it)
@@ -77,13 +77,13 @@ extern gint parse_cleanuplink(gchar* line);
  *  }
  * @endcode
  */
-extern gint iter_lines(gchar** b, gchar** e, gchar** n, gchar** ln);
+extern gint iter_str_lines(gchar** b, gchar** e, gchar** n, gchar** ln);
 
 /** Iterate through buffer line by line and terminate just before eof.
  *
  * @param b  begining of the line
- * @param e  end of the line
- * @param eof end of the buffer (after the last valid character eof=b+length)
+ * @param e  one character after the end of the line (excluding \n)
+ * @param eof end of the buffer (after the last valid character eof = b + length)
  * @param n  next line start (set this to the buffer begining at start)
  * @param ln line (zero terminated g_strduped string, freed by user) 
  *           (could be zero if you don't want to us it)
@@ -96,7 +96,7 @@ extern gint iter_lines(gchar** b, gchar** e, gchar** n, gchar** ln);
  *  }
  * @endcode
  */
-extern gint iter_lines2(gchar** b, gchar** e, gchar** n, gchar* eof, gchar** ln);
+extern gint iter_buf_lines(gchar** b, gchar** e, gchar** n, gchar* eof, gchar** ln);
 
 #endif
 

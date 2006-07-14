@@ -259,7 +259,7 @@ gint sys_write_buffer_to_file(const gchar* file, const gchar* buf, gsize len, st
   g_assert(e != 0);
 
   FILE* f = fopen(file, "w");
-  if (f == 0)
+  if (f == NULL)
   {
     e_set(e, E_FATAL, "can't open file for writing: %s", strerror(errno));
     return 1;

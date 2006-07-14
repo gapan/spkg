@@ -263,45 +263,47 @@ gint parse_cleanuplink(gchar* line)
   return 1;
 }
 
-gint iter_lines(gchar** b, gchar** e, gchar** n, gchar** ln)
+gint iter_str_lines(gchar** b, gchar** e, gchar** n, gchar** ln)
 {
   g_assert(b != 0);
   g_assert(e != 0);
   g_assert(n != 0);
   *b = *n;
-  if (*b == 0)
+  if (*b == 0) /* next pointer was NULL */
     return 0;
-  if (**b == 0) /* last line is empty, discard it */
+  if (**b == 0) /* next pointer points to the end of string */
     return 0;
   *e = strchr(*b, '\n'); /* XXX: here may be CRLF check instead */
+  /* *e should point after the end of line */
   if (*e == 0) /* eof */
-    *e = *b+strlen(*b)-1, *n=0;
+    *e = *b + strlen(*b), *n = 0; 
   else
-    *n = *e+1, *e-=1;
+    *n = *e + 1;
   if (ln)
-    *ln = g_strndup(*b, *e-*b+1);
+    *ln = g_strndup(*b, *e - *b);
   return 1;
 }
 
 /* eof points after last character */
-gint iter_lines2(gchar** b, gchar** e, gchar** n, gchar* eof, gchar** ln)
+gint iter_buf_lines(gchar** b, gchar** e, gchar** n, gchar* eof, gchar** ln)
 {
   g_assert(b != 0);
   g_assert(e != 0);
   g_assert(n != 0);
   *b = *n; /* move to the next line */
-  if (*b == 0) /* nothing? */
+  if (*b == 0) /* next pointer was NULL */
     return 0;
-  if (eof == *b)
+  if (*b == eof) /* after the end of the buffer */
     return 0;
-  gchar* t = *b; /* temp pointer */
+  gchar* t = *b; /* temp pointer (for searching for end of line) */
   while (t < eof && *t != '\n') /* go forward until eof or \n */
     t++;
+  *e = t;
   if (t == eof) /* eof */
-    *e = t-1, *n=0;
+    *n = 0;
   else /* must be newline */
-    *e = t-1, *n=(t+1==eof)?0:t+1; /* ignore last line if it is empty */
+    *n = (t + 1 == eof) ? 0 : t + 1; /* ignore last line if it is empty */
   if (ln)
-    *ln = g_strndup(*b, *e-*b+1);
+    *ln = g_strndup(*b, *e - *b);
   return 1;
 }

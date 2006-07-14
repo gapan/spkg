@@ -118,10 +118,11 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
   /* EXIT: free(fullpath), free(buf) */
       
   /* optimize out symlinks creation from doinst.sh */
-  gchar *doinst = NULL;
+  GSList *doinst = NULL;
+  gsize doinst_len = 0;
   gchar *b, *end, *ln = NULL, *n = buf, *sane_link_path = NULL,
         *link_target = NULL, *link_fullpath = NULL;
-  while(iter_lines(&b, &end, &n, &ln))
+  while(iter_str_lines(&b, &end, &n, &ln))
   { /* for each line */
     gchar *link_dir, *link_name;
 
@@ -183,14 +184,9 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
     else if (!parse_cleanuplink(ln))
     {
       /* ...append it to doinst buffer */
-      /*XXX: this is a stupid braindead hack */
-      gchar* nd;
-      if (doinst)
-        nd = g_strdup_printf("%s%s\n", doinst, ln);
-      else
-        nd = g_strdup_printf("%s\n", ln);
-      g_free(doinst);
-      doinst = nd;          
+      doinst = g_slist_prepend(doinst, ln);
+      doinst_len += end - b + 1; /* line len + eol */
+      ln = NULL; /* will be freed later */
     }
 
     g_free(ln);
@@ -208,13 +204,29 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
   {
     if (!opts->dryrun)
     {
-      if (sys_write_buffer_to_file(fullpath, doinst, 0, e))
+      gchar* doinst_buf = g_malloc(doinst_len*2);
+      gchar* doinst_buf_ptr = doinst_buf;
+      doinst = g_slist_reverse(doinst);
+      GSList* i;
+      for (i = doinst; i != 0; i = i->next)
+      {
+        strcpy(doinst_buf_ptr, i->data);
+        doinst_buf_ptr += strlen(i->data);
+        *doinst_buf_ptr = '\n';
+        doinst_buf_ptr++;
+      }
+      if (sys_write_buffer_to_file(fullpath, doinst_buf, doinst_len, e))
       {
         e_set(E_ERROR|CMD_BADIO,"file extraction failed %s (%s)", sane_path, pkg->location);
+        g_free(doinst_buf);
+        g_slist_foreach(doinst, (GFunc)g_free, 0);
+        g_slist_free(doinst);
         goto err0;
       }
+      g_free(doinst_buf);
     }
-    g_free(doinst);
+    g_slist_foreach(doinst, (GFunc)g_free, 0);
+    g_slist_free(doinst);
     has_doinst = 1;
   }
 
@@ -369,9 +381,13 @@ void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
       }
       else
       {
-        e_set(E_ERROR, "hardlink target must be a regular file %s", linkpath);
+        if (!opts->dryrun)
+        {
+          e_set(E_ERROR, "hardlink target must be a regular file %s", linkpath);
+          g_free(linkpath);
+          goto extract_failed;
+        }
         g_free(linkpath);
-        goto extract_failed;
       }
     }
     break;
