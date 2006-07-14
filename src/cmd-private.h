@@ -13,8 +13,6 @@
 #include "commands.h"
 #include "untgz.h"
 
-#define e_set(n, fmt, args...) e_add(e, "command", __func__, n, fmt, ##args)
-
 #define _safe_breaking_point(label) \
   do { \
     if (sig_break) \

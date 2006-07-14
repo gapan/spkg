@@ -19,6 +19,8 @@
 /* private 
  ************************************************************************/
 
+#define e_set(n, fmt, args...) e_add(e, "install", __func__, n, fmt, ##args)
+
 /* packages that can't be optimized, until they are fixed */
 static gchar* blacklist[] = {
   "aaa_base",
@@ -64,15 +66,28 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
   /* optimization disabled, just extract doinst script */
   if (opts->no_optsyms || _blacklisted(pkg->shortname))
   {
-    if (!opts->dryrun)
+    if (opts->safe)
     {
-      if (untgz_write_file(tgz, fullpath))
-      {
-        e_set(E_ERROR|CMD_BADIO,"file extraction failed %s (%s)", sane_path, pkg->location);
-        goto err0;
-      }
+      _warning("In safe mode, install script is not executed,"
+      " and with disabled optimized symlink creation, symlinks"
+      " will not be created.%s", _blacklisted(pkg->shortname) ?
+      " Note that this package is blacklisted for optimized"
+      " symlink creation. This may change in the future as"
+      " better heuristics are developed for extracting symlink"
+      " creation code from install script." : "");
     }
-    has_doinst = 1;
+    else
+    {
+      if (!opts->dryrun)
+      {
+        if (untgz_write_file(tgz, fullpath))
+        {
+          e_set(E_ERROR|CMD_BADIO,"file extraction failed %s (%s)", sane_path, pkg->location);
+          goto err0;
+        }
+      }
+      has_doinst = 1;
+    }
     goto done;
   }
 
@@ -261,14 +276,19 @@ void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
       {
         /* installed directory already exist */
         _notice("installed direcory already exists %s", sane_path);
-        if (!opts->safe)
+        if (_mode_differ(tgz, &ex_stat) || _gid_or_uid_differ(tgz, &ex_stat))
         {
-          if (_mode_differ(tgz, &ex_stat) || _gid_or_uid_differ(tgz, &ex_stat))
+          _warning("directory already exists, but with different permissions %s", sane_path);
+          if (!opts->safe)
           {
-            _warning("directory already exists, but with different permissions %s", sane_path);
             _warning("forcing new permissions: %d:%d %03o", tgz->f_uid, tgz->f_gid, tgz->f_mode, sane_path);
             ta_chperm_nothing(fullpath, tgz->f_mode, tgz->f_uid, tgz->f_gid);
             fullpath = NULL;
+          }
+          else
+          {
+            e_set(E_ERROR, "can't change existing directory permissions in safe mode %s", sane_path);
+            goto extract_failed;
           }
         }
       }
@@ -607,7 +627,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
 
   /* EXIT: free(name), free(shortname), free(root), db_free_pkg(pkg) */
 
-  if (!opts->dryrun && !opts->no_scripts && has_doinst)
+  if (!opts->dryrun && !opts->no_scripts && has_doinst && !opts->safe)
   {
     gchar* old_cwd = sys_setcwd(root);
     if (old_cwd)
@@ -685,6 +705,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   g_free(name);
   g_free(shortname);
  err0:
+  e_set(E_ERROR,"package installation terimanted (%s)", pkgfile);
   _notice("installation terminated");
   return 1;
 }

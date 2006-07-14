@@ -12,6 +12,8 @@
 /* private
  ************************************************************************/
 
+#define e_set(n, fmt, args...) e_add(e, "list", __func__, n, fmt, ##args)
+
 static gint _list_selector(const struct db_pkg* p, GSList* args)
 {
   GSList* i;

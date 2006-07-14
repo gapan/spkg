@@ -15,6 +15,11 @@
 #include "path.h"
 #include "cmd-private.h"
 
+/* private
+ ************************************************************************/
+
+#define e_set(n, fmt, args...) e_add(e, "remove", __func__, n, fmt, ##args)
+
 /* public 
  ************************************************************************/
 
@@ -252,6 +257,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
  err1:
   g_free(real_pkgname);
  err0:
+  e_set(E_ERROR,"package removal terimanted (%s)", pkgname);
   _notice("removal failed");
   return 1;
 }
