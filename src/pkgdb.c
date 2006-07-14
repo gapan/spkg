@@ -401,9 +401,9 @@ void db_free_pkg(struct db_pkg* pkg)
   stop_timer(6);
 }
 
-void db_add_file(struct db_pkg* pkg, gchar* path, gchar* link_target)
+void db_add_file(struct db_pkg* pkg, const gchar* path, const gchar* link_target)
 {
-  void** ptr;
+  const void** ptr;
   JSLI(ptr, pkg->files, path);
   *ptr = link_target;
 }

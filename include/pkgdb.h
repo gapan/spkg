@@ -107,7 +107,7 @@ extern void db_free_pkg(struct db_pkg* pkg);
  * @param path File path.
  * @param link_target Link target.
  */
-extern void db_add_file(struct db_pkg* pkg, gchar* path, gchar* link_target);
+extern void db_add_file(struct db_pkg* pkg, const gchar* path, const gchar* link_target);
 
 /** Add package to the database.
  *
