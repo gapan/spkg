@@ -20,6 +20,7 @@
 
 #include "sys.h"
 #include "misc.h"
+#include "path.h"
 #include "pkgdb.h"
 #include "bench.h"
 
@@ -73,19 +74,18 @@ gint db_open(const gchar* root, struct error* e)
     goto err_0;
   }
   
-  if (root == 0 || *root == 0)
-    root = "/";
-
-  if (g_path_is_absolute(root))
-    _db.topdir = g_strdup_printf("%s/%s", root, PKGDB_DIR);
+  gchar* sane_root = sanitize_root_path(root);
+  if (g_path_is_absolute(sane_root))
+    _db.topdir = g_strdup_printf("%s%s", sane_root, PKGDB_DIR);
   else
   {
     gchar* cwd = g_get_current_dir();
-    _db.topdir = g_strdup_printf("%s/%s/%s", cwd, root, PKGDB_DIR);
+    _db.topdir = g_strdup_printf("%s/%s%s", cwd, sane_root, PKGDB_DIR);
     g_free(cwd);
   }
   _db.pkgdir = g_strdup_printf("%s/packages", _db.topdir);
   _db.scrdir = g_strdup_printf("%s/scripts", _db.topdir);
+  g_free(sane_root);
 
   /* check legacy and spkg db dirs */
   for (d = checkdirs; *d != 0; d++)

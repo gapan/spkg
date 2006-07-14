@@ -109,6 +109,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
 
   gboolean has_doinst = 0;
   gchar* sane_path = 0;
+  gchar* root = sanitize_root_path(opts->root);
   /* for each file in package */
   while (untgz_get_header(tgz) == 0)
   {
@@ -166,7 +167,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
         goto err3;
       }
 
-      gchar* fullpath = g_strdup_printf("%s/%s", opts->root, sane_path);
+      gchar* fullpath = g_strdup_printf("%s%s", root, sane_path);
       if (opts->no_optsyms || blacklisted(shortname)) /* optimization disabled, just extract */
       {
         if (!opts->dryrun)
@@ -205,7 +206,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
           _notice("detected symlink %s -> %s", path, target);
           db_add_file(pkg, path, target); /* target is freed by db_free_pkg() */
 
-          gchar* fullpath = g_strdup_printf("%s/%s", opts->root, path);
+          gchar* fullpath = g_strdup_printf("%s%s", root, path);
           struct stat ex_stat;
           sys_ftype ex_type = sys_file_type_stat(fullpath, 0, &ex_stat);
           g_free(path);
@@ -281,7 +282,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
 
     /* following strings can be freed by the ta_* code, if so, you must zero
        variables after passing them to a ta_* function */
-    gchar* fullpath = g_strdup_printf("%s/%s", opts->root, sane_path);
+    gchar* fullpath = g_strdup_printf("%s%s", root, sane_path);
     gchar* temppath = g_strdup_printf("%s--###install###", fullpath);
 
     /* add file to the package */
@@ -364,7 +365,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
         /* hardlinks are special beasts, most easy solution is to 
          * postpone hardlink creation into transaction finalization phase 
          */
-        gchar* linkpath = g_strdup_printf("%s/%s", opts->root, tgz->f_link);
+        gchar* linkpath = g_strdup_printf("%s%s", root, tgz->f_link);
 
         /* check file we will be linking to (it should be a regular file) */
         sys_ftype tgt_type = sys_file_type(linkpath, 0);
@@ -526,7 +527,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
 
   if (!opts->dryrun && !opts->no_scripts && has_doinst)
   {
-    gchar* old_cwd = sys_setcwd(opts->root);
+    gchar* old_cwd = sys_setcwd(root);
     if (old_cwd)
     {
       /* run doinst sh */
@@ -546,15 +547,18 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   {
     if (access("/sbin/ldconfig", X_OK) == 0)
     {
-      gchar* ldconf_file = g_strdup_printf("%s/etc/ld.so.conf", opts->root);
+      gchar* ldconf_file = g_strdup_printf("%setc/ld.so.conf", root);
       if (access(ldconf_file, R_OK) == 0)
       {
-        gchar* qroot = g_shell_quote(opts->root);
+        gchar* qroot = g_shell_quote(root);
         gchar* cmd = g_strdup_printf("/sbin/ldconfig -r %s", qroot);
 
-        _notice("running ldconfig");
-        if (system(cmd))
-          _warning("ldconfig failed");
+        _notice("running /sbin/ldconfig -r %s", qroot);
+        if (!opts->dryrun)
+        {
+          if (system(cmd))
+            _warning("ldconfig failed");
+        }
 
         g_free(cmd);
         g_free(qroot);
@@ -569,7 +573,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
 
   if (!opts->dryrun)
   {
-    gchar* install_path = g_strdup_printf("%s/install", opts->root);
+    gchar* install_path = g_strdup_printf("%sinstall", root);
     rmdir(install_path);
     g_free(install_path);
   }
@@ -587,6 +591,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
  err3:
   _notice("rolling back");
   g_free(sane_path);
+  g_free(root);
   ta_rollback();
   db_free_pkg(pkg);
  err2:

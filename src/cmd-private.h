@@ -28,7 +28,7 @@
 
 static __inline__ gint _mode_differ(struct untgz_state* u, struct stat* st)
 {
-  return ((u->f_mode ^ st->st_mode) & 0x03ff);
+  return ((u->f_mode ^ st->st_mode) & 07777);
 }
 
 static __inline__ gint _guid_differ(struct untgz_state* u, struct stat* st)

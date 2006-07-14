@@ -12,6 +12,7 @@
 #include <Judy.h>
 
 #include "sys.h"
+#include "path.h"
 #include "cmd-private.h"
 
 /* public 
@@ -27,7 +28,6 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
   void **ptr;
 
   msg_setup("remove", opts->verbosity);
-
   _inform("removing package %s", pkgname);
 
   _safe_breaking_point(err0);
@@ -57,7 +57,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
 
   _notice("removing files...");
 
-//        if (!opts->dryrun)
+  gchar* root = sanitize_root_path(opts->root);
 
   strcpy(path, "");
   JSLF(ptr, pkg->files, path);
@@ -68,7 +68,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     if ((len > 0 && path[len-1] == '/') || (*ptr != 0))
       goto skip1;
 
-    gchar* fullpath = g_strdup_printf("%s/%s", opts->root, path);
+    gchar* fullpath = g_strdup_printf("%s%s", root, path);
     sys_ftype type = sys_file_type(fullpath, 0);
     if (type == SYS_ERR)
     {
@@ -124,7 +124,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     if ((len > 0 && path[len-1] == '/') || (*ptr == 0))
       goto skip2;
 
-    gchar* fullpath = g_strdup_printf("%s/%s", opts->root, path);
+    gchar* fullpath = g_strdup_printf("%s%s", root, path);
     sys_ftype type = sys_file_type(fullpath, 0);
     if (type == SYS_ERR)
     {
@@ -181,7 +181,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     if ((len > 0 && path[len-1] != '/') || (*ptr != 0))
       goto skip3;
 
-    gchar* fullpath = g_strdup_printf("%s/%s", opts->root, path);
+    gchar* fullpath = g_strdup_printf("%s%s", root, path);
     sys_ftype type = sys_file_type(fullpath, 0);
     if (type == SYS_ERR)
     {
@@ -226,6 +226,8 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     JSLP(ptr, pkg->files, path);
   }
 
+  g_free(root);
+
   _notice("removing files from filelist...");
   db_filelist_rem_pkg_files(pkg);
 
@@ -235,7 +237,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     if (db_rem_pkg(real_pkgname))
     {
       e_set(E_ERROR, "can't remove package from database (%s)", real_pkgname);
-      goto err1;
+      goto err2;
     }
   }
 
