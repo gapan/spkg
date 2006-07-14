@@ -263,8 +263,13 @@ void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
         _notice("installed direcory already exists %s", sane_path);
         if (!opts->safe)
         {
-          ta_chperm_nothing(fullpath, tgz->f_mode, tgz->f_uid, tgz->f_gid);
-          fullpath = NULL;
+          if (_mode_differ(tgz, &ex_stat) || _gid_or_uid_differ(tgz, &ex_stat))
+          {
+            _warning("directory already exists, but with different permissions %s", sane_path);
+            _warning("forcing new permissions: %d:%d %03o", tgz->f_uid, tgz->f_gid, tgz->f_mode, sane_path);
+            ta_chperm_nothing(fullpath, tgz->f_mode, tgz->f_uid, tgz->f_gid);
+            fullpath = NULL;
+          }
         }
       }
       else if (ex_type == SYS_NONE)
