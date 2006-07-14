@@ -86,7 +86,7 @@ gint db_open(const gchar* root, struct error* e)
   _db.scrdir = g_strdup_printf("%s/scripts", _db.topdir);
   g_free(sane_root);
 
-  /* check legacy and spkg db dirs */
+  /* check db dirs */
   for (d = checkdirs; *d != 0; d++)
   {
     gchar* tmpdir = g_strdup_printf("%s/%s", _db.topdir, *d);
@@ -233,7 +233,7 @@ gint db_filelist_load(gboolean force_reload)
   DIR* d = opendir(_db.pkgdir);
   if (d == NULL)
   {
-    e_set(E_FATAL, "can't open legacy db directory");
+    e_set(E_FATAL, "can't open db directory");
     goto err_0;
   }
   gchar sbuf[1024*128];
@@ -526,7 +526,7 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
 
   continue_timer(4);
 
-  /* open legacy package db entries */  
+  /* open package db entries */  
   tmpstr = g_strdup_printf("%s/%s", _db.pkgdir, name);
   fp = fopen(tmpstr, "r");
   time_t mtime = sys_file_mtime(tmpstr,0);
@@ -626,7 +626,7 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
 	}
     else
     {
-      e_set(E_ERROR, "corrupt legacy package database");
+      e_set(E_ERROR, "corrupt package database");
       goto err_1;
     }
   }
@@ -783,7 +783,7 @@ GSList* db_query(db_selector cb, void* data, db_query_type type)
   DIR* d = opendir(_db.pkgdir);
   if (d == NULL)
   {
-    e_set(E_FATAL, "can't open legacy db directory");
+    e_set(E_FATAL, "can't open db directory");
     goto err_0;
   }
   
@@ -878,7 +878,7 @@ gchar* db_get_package_name(const gchar* namespec)
   DIR* d = opendir(_db.pkgdir);
   if (d == NULL)
   {
-    e_set(E_FATAL, "can't open legacy db directory");
+    e_set(E_FATAL, "can't open db directory");
     goto err_0;
   }
   
