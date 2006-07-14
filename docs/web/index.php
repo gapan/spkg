@@ -50,6 +50,9 @@
  <h1>News</h1>
 
   <dl>
+   <dt>2006-07-14</dt>
+    <dd>I started publishing patches to the alpha1 version of @SPKG@
+    in the <a href="dl/patches">patches</a> directory.</dd>
    <dt>2006-07-10</dt>
     <dd>Firtst alpha version released! This version implements install,
     remove and list commands. See manpage for more information.
