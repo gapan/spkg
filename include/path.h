@@ -35,6 +35,18 @@ extern gchar* path_simplify(const gchar* path);
  */
 extern gchar** path_get_elements(const gchar* path);
 
+/** Sanitize root path.
+ *
+ * / -> '/'
+ * ./ -> ''
+ * ./bla -> bla/
+ * /bla/bla -> /bla/bla/
+ * 
+ * @param root Root path.
+ * @return sanitized root path, should be freed by the caller
+ */
+extern gchar* sanitize_root_path(const gchar* root);
+
 #endif
 
 /*! @} */
