@@ -241,12 +241,12 @@ gint ta_finalize()
     else if (a->on_finalize == CHPERM)
     {
       /* chmod */
-      _notice("chmod %05o %s", a->mode, a->path1);
+      _notice("chmod %04o %s", a->mode, a->path1);
       if (!_ta.dryrun)
       {
         if (chmod(a->path1, a->mode) == -1)
         {
-          _warning("failed chmod %05o %s: %s", a->mode, a->path1, strerror(errno));
+          _warning("failed chmod %04o %s: %s", a->mode, a->path1, strerror(errno));
         }
       }
       /* chown */
@@ -255,7 +255,7 @@ gint ta_finalize()
       {
         if (chown(a->path1, a->owner, a->group) == -1)
         {
-          _warning("failed chown %05o %s: %s", a->mode, a->path1, strerror(errno));
+          _warning("failed chown %d:%d %s: %s", a->owner, a->group, a->path1, strerror(errno));
         }
       }
     }
