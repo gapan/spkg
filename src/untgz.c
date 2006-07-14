@@ -418,9 +418,9 @@ gint untgz_get_header(struct untgz_state* s)
 
   /* parse header */
   s->f_size = remaining;
-  s->f_mode = getoct(s, b->h.mode, sizeof(b->h.mode));
-  s->f_uid  = getoct(s, b->h.uid, sizeof(b->h.uid));
-  s->f_gid  = getoct(s, b->h.gid, sizeof(b->h.gid));
+  s->f_mode = getoct(s, b->h.mode, sizeof(b->h.mode)) & 07777;
+  s->f_uid = getoct(s, b->h.uid, sizeof(b->h.uid));
+  s->f_gid = getoct(s, b->h.gid, sizeof(b->h.gid));
   s->f_mtime = (time_t) getoct(s, b->h.mtime, sizeof(b->h.mtime));
   s->f_devmaj = getoct(s, b->h.devmajor, sizeof(b->h.devmajor));
   s->f_devmin = getoct(s, b->h.devminor, sizeof(b->h.devminor));
