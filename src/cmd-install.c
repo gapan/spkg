@@ -564,7 +564,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     /* check file path */
     g_free(sane_path);
     sane_path = path_simplify(tgz->f_name);
-    if (sane_path == 0 || _unsafe_path(sane_path))
+    if (sane_path == NULL || _unsafe_path(sane_path))
     {
       /* some damned fucker created this package to mess our system */
       e_set(E_ERROR|CMD_CORRUPT,"package contains file with unsafe path: %s", tgz->f_name);
@@ -656,19 +656,22 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
 
   if (!opts->dryrun && !opts->no_scripts && has_doinst && !opts->safe)
   {
-    gchar* old_cwd = sys_setcwd(root);
-    if (old_cwd)
+    gchar* doinst_path = g_strdup_printf("%sinstall/doinst.sh", root);
+    /* run doinst.sh if it exists */
+    if (sys_file_type(doinst_path, 0) == SYS_REG)
     {
-      /* run doinst sh */
-      if (sys_file_type("install/doinst.sh", 0) == SYS_REG)
-      {
-        _notice("running doinst.sh");
-        if (system(". install/doinst.sh"))
-          _warning("doinst.sh failed");
-        unlink("install/doinst.sh");
-      }
-      sys_setcwd(old_cwd);
+      gchar* qroot = g_shell_quote(root);
+      gchar* cmd = g_strdup_printf("cd %s && . install/doinst.sh", qroot);
+      g_free(qroot);
+
+      _notice("running doinst.sh");
+      if (system(cmd))
+        _warning("doinst.sh failed");
+      unlink(doinst_path);
+
+      g_free(cmd);
     }
+    g_free(doinst_path);
   }
 
   /* run ldconfig */
@@ -681,8 +684,9 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
       {
         gchar* qroot = g_shell_quote(root);
         gchar* cmd = g_strdup_printf("/sbin/ldconfig -r %s", qroot);
+        g_free(qroot);
 
-        _notice("running /sbin/ldconfig -r %s", qroot);
+        _notice("running %s", cmd);
         if (!opts->dryrun)
         {
           if (system(cmd))
@@ -690,7 +694,6 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
         }
 
         g_free(cmd);
-        g_free(qroot);
       }
       g_free(ldconf_file);
     }
