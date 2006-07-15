@@ -492,6 +492,28 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   g_assert(opts != 0);
   g_assert(e != 0);
 
+  /*
+   - check if package file exists
+   - check/parse package name format
+   - get installed package by full name (check if not already installed)
+   - get installed package by short name (check if older version not already installed)
+   - open package tgz file
+   - initialize transaction
+   - prepare empty db_pkg obejct for newly installed package
+   - for each file in the package:
+     - sanitize path
+     - handle special files (install/*)
+     - check on disk status of the file
+     - install file if possible
+   - update package database: install new package desc
+   -NO- update filelist
+   - finish transaction
+   - close package file
+   - run doinst.sh
+   - run ldconfig
+   - remove install/
+  */
+
   msg_setup(opts->verbosity);
   _inform("Installing package %s...", pkgfile);
 
@@ -650,7 +672,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   }
 
   /* update filelist */
-  db_filelist_add_pkg_files(pkg);
+//  db_filelist_add_pkg_files(pkg);
 
   /* finalize transaction */
   _notice("Finalizing transaction...");

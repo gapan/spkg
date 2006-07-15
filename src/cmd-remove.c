@@ -32,6 +32,16 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
   gchar path[4096];
   void **ptr;
 
+  /*
+   - load package from db
+   - load list of all installed files
+   - remove files that has ref == 1
+   - remove symlinks that has ref == 1
+   - remove dirs that has ref == 1
+   - update list of all installed files
+   - update package database: remove package desc
+  */
+
   msg_setup(opts->verbosity);
   _inform("Removing package %s...", pkgname);
 

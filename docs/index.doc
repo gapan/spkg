@@ -22,33 +22,9 @@ Common requirements for a command implementation are:
 
 @section ins Install
 
-Here is description of what install commnad does:
- - check umask 022 and setuid 0
- - check if package exist in db
- - init ta
- - for each file in archive:
-   - extract package description
-   - extract doinst.sh symbolic links
-   - check all tgz files for overwriting (including links)
-   - extract file
-   - add it to a transaction
-
- - create symbolic links
- - update package database
- - finalize transaction
- - run ldconfig
- - run doinst.sh
- - cleanup install/doinst.sh and slack-*
-
 @section upg Upgrade
 
-Not yet implemented.
-
 @section rem Remove
- - check if file is not used by other packages
- - init ta
- - remove it (to temp dir)
- - updatedb
 
 */
 
