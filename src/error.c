@@ -65,7 +65,7 @@ void e_add(
   va_start(ap, errfmt);
   gchar* msg = g_strdup_vprintf(errfmt, ap);
   va_end(ap);
-  gchar* tmp = g_strdup_printf("error[%s:%s](%d:%d): %s\n", context, function, errnum&0xff, (errnum>>8)&0xff, msg);
+  gchar* tmp = g_strdup_printf("ERROR: %s\n", msg);
   g_free(msg);
   msg = tmp;
   if (e->string)
