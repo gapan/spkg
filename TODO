@@ -2,15 +2,20 @@
 before alpha2 |
 --------------/
 
+[pkgdb] implement package search by shortname in installpkg,
+        remove .tgz from package name before searching db dir
 [error] rework internals of the error handling (use gslist for error stacking)
-[msg] cleanup _notice, _inform and _warning messages
+
 [pkgtools] implement upgrade command
 
 ---------------------------------------------------------------------
 before beta |
 ------------/
 
+[test] QA checklist
 [test] automatic testuite
+[safe] check for suid binaries and other rights based checks for files
+ (enforcing slackware policy)
 
 ---------------------------------------------------------------------
 before 1.0 |
