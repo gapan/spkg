@@ -48,7 +48,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
   struct db_pkg* pkg = db_get_pkg(real_pkgname, DB_GET_FULL);
   if (pkg == NULL)
   {
-    e_set(E_ERROR, "Internal error. (%s)", real_pkgname);
+    e_set(E_ERROR, "Can't get package from the database. (%s)", real_pkgname);
     goto err1;
   }
 
