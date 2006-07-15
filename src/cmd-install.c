@@ -248,7 +248,7 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
   goto err0;
 }
 
-void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
+static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
                    const gchar* sane_path, const gchar* root,
                    const struct cmd_options* opts, struct error* e)
 {
@@ -513,22 +513,21 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
 
   _safe_breaking_point(err1);
 
-  /*XXX: shortname check */
   /* check if package is already in the database */  
-  struct db_pkg* pkg=0;
-  pkg = db_get_pkg(name, DB_GET_WITHOUT_FILES);
-  if (pkg)
+  gchar* installed_version = db_get_package_name(name);
+  if (installed_version)
   {
-    e_set(E_ERROR|CMD_EXIST, "Package is already installed. (%s)", name);
-    db_free_pkg(pkg);
+    e_set(E_ERROR|CMD_EXIST, "Package is already installed. (%s)", installed_version);
+    g_free(installed_version);
     goto err1;
   }
-  if (! (e_errno(e) & DB_NOTEX))
-  { /* if error was not because of nonexisting package, then terminate */
-    e_set(E_ERROR, "Internal error. (%s)", name);
+  installed_version = db_get_package_name(shortname);
+  if (installed_version)
+  {
+    e_set(E_ERROR|CMD_EXIST, "Different package with same short name is already installed. (%s)", installed_version);
+    g_free(installed_version);
     goto err1;
   }
-  e_clean(e); /* cleanup error object */
 
   _safe_breaking_point(err1);
 
@@ -553,7 +552,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   }
 
   /* alloc package object */
-  pkg = db_alloc_pkg(name);
+  struct db_pkg* pkg = db_alloc_pkg(name);
   pkg->location = g_strdup(pkgfile);
 
   gboolean has_doinst = 0;
