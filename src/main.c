@@ -29,12 +29,10 @@ static struct poptOption optsCommands[] = {
   "install", 'i', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_INSTALL, 
   "Install packages.", NULL
 },
-#if 0
 {
   "upgrade", 'u', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_UPGRADE,
   "Upgrade packages", NULL
 },
-#endif
 {
   "remove", 'd', POPT_ARG_NONE|POPT_BIT_SET, &command, CMD_REMOVE,
   "Remove packages.", NULL
@@ -70,7 +68,9 @@ static struct poptOption optsOptions[] = {
 },
 {
   "safe", 's', 0, &cmd_opts.safe, 0,
-  "Play it safe. Don't replace existing files/directories on install.", NULL
+  "Play it safe. Don't replace existing files on --install or --upgrade. "
+  "Don't run post-installation scripts. Don't remove changed files on "
+  "--remove.", NULL
 },
 {
   "dry-run", 'n', 0, &cmd_opts.dryrun, 0,
@@ -197,10 +197,10 @@ int main(const int ac, const char* av[])
       "\n"
       "Examples:\n"
       "  spkg -i <packages>     [--install]\n"
-//      "  spkg -u <packages>     [--upgrade]\n"
+      "  spkg -u <packages>     [--upgrade]\n"
       "  spkg -vd <packages>    [--verbose --remove]\n"
       "  spkg -l kde*           [--list]\n"
-//      "  spkg -vnu <packages>   [--upgrade --verbose --dry-run]\n"
+      "  spkg -vnu <packages>   [--upgrade --verbose --dry-run]\n"
       "\n"
       "Official website: http://spkg.megous.com\n"
       "Bug reports can be sent to <megous@megous.com>.\n"
