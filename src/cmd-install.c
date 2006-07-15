@@ -502,7 +502,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
    - prepare empty db_pkg obejct for newly installed package
    - for each file in the package:
      - sanitize path
-     - handle special files (install/*)
+     - handle special files (install/)
      - check on disk status of the file
      - install file if possible
    - update package database: install new package desc
