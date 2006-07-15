@@ -64,7 +64,7 @@ static void _read_slackdesc(struct untgz_state* tgz, struct db_pkg* pkg)
   gint i;
   for (i=0;i<11;i++)
   {
-    _notice("| %s", desc[i]);
+    _inform("| %s", desc[i]);
     g_free(desc[i]);
   }  
 }
@@ -79,6 +79,7 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
   /* optimization disabled, just extract doinst script */
   if (opts->no_optsyms || _blacklisted(pkg->shortname, _doinst_opt_blacklist))
   {
+    _notice("Symlink optimization is disabled.");
     if (opts->safe)
     {
       _warning("In safe mode, install script is not executed,"
@@ -95,7 +96,7 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
       {
         if (untgz_write_file(tgz, fullpath))
         {
-          e_set(E_ERROR|CMD_BADIO,"file extraction failed %s (%s)", sane_path, pkg->location);
+          e_set(E_ERROR|CMD_BADIO, "Failed to extract file %s.", sane_path);
           goto err0;
         }
       }
@@ -111,11 +112,13 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
   gsize len;
   if (untgz_write_data(tgz, &buf, &len))
   {
-    e_set(E_ERROR|CMD_BADIO,"file extraction failed %s (%s)", sane_path, pkg->location);
+    e_set(E_ERROR|CMD_BADIO, "Failed to read post-installation script into buffer.");
     goto err0;
   }
 
   /* EXIT: free(fullpath), free(buf) */
+
+  _notice("Extracting symlinks from the post-installation script...");
       
   /* optimize out symlinks creation from doinst.sh */
   GSList *doinst = NULL;
@@ -145,17 +148,17 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
       /* link path checks (be careful here) */
       if (_unsafe_path(sane_link_path))
       {
-        e_set(E_ERROR, "detected symlink with unsafe path: %s", sane_link_path);
+        e_set(E_ERROR, "Package contains symlink with unsafe path. (%s)", sane_link_path);
         goto parse_failed;
       }
 
-      _notice("detected symlink %s -> %s", sane_link_path, link_target);
+      _notice("Symlink detected: %s -> %s", sane_link_path, link_target);
       db_add_file(pkg, sane_link_path, link_target); /* target is freed by db_free_pkg() */
       sys_ftype ex_type = sys_file_type_stat(link_fullpath, 0, &ex_stat);
 
       if (ex_type == SYS_ERR)
       {
-        e_set(E_ERROR, "can't stat path for symlink %s", sane_link_path);
+        e_set(E_ERROR, "Can't check path for symlink. (%s)", sane_link_path);
         goto parse_failed;
       }
       else if (ex_type == SYS_NONE)
@@ -167,11 +170,12 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
       {
         if (opts->safe)
         {
-          e_set(E_ERROR, "can't create symlink over existing %s %s", ex_type == SYS_DIR ? "directory" : "file", sane_link_path);
+          e_set(E_ERROR, "Can't create symlink over existing %s. (%s)", ex_type == SYS_DIR ? "directory" : "file", sane_link_path);
           goto parse_failed;
         }
         else
         {
+          _warning("%s exists, where symlink should be created. It will be removed.", ex_type == SYS_DIR ? "Directory" : "File");
           ta_forcesymlink_nothing(link_fullpath, g_strdup(link_target));
           link_fullpath = NULL;
         }
@@ -202,6 +206,8 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
   /* write stripped down version of doinst.sh to a file */
   if (doinst != NULL)
   {
+    _notice("Saving optimized post-installation script...");
+
     if (!opts->dryrun)
     {
       gchar* doinst_buf = g_malloc(doinst_len*2);
@@ -217,7 +223,7 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
       }
       if (sys_write_buffer_to_file(fullpath, doinst_buf, doinst_len, e))
       {
-        e_set(E_ERROR|CMD_BADIO,"file extraction failed %s (%s)", sane_path, pkg->location);
+        e_set(E_ERROR|CMD_BADIO, "Can't write buffer to file %s.", sane_path);
         g_free(doinst_buf);
         g_slist_foreach(doinst, (GFunc)g_free, 0);
         g_slist_free(doinst);
@@ -286,7 +292,7 @@ void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
 
   if (ex_type == SYS_ERR)
   {
-    e_set(E_ERROR, "lstat failed on path %s", sane_path);
+    e_set(E_ERROR, "Can't check path. (%s)", sane_path);
     goto extract_failed;
   }
   
@@ -298,44 +304,49 @@ void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
       if (ex_type == SYS_DIR)
       {
         /* installed directory already exist */
-        _notice("installed direcory already exists %s", sane_path);
         if (_mode_differ(tgz, &ex_stat) || _gid_or_uid_differ(tgz, &ex_stat))
         {
-          _warning("directory already exists, but with different permissions %s", sane_path);
+          _warning("Directory already exists %s (permissions differ)", sane_path);
           if (!opts->safe)
           {
-            _warning("forcing new permissions: %d:%d %03o", tgz->f_uid, tgz->f_gid, tgz->f_mode, sane_path);
+            _warning("Permissions will be changed to owner=%d, group=%d, mode=%03o.", tgz->f_uid, tgz->f_gid, tgz->f_mode, sane_path);
             ta_chperm_nothing(fullpath, tgz->f_mode, tgz->f_uid, tgz->f_gid);
             fullpath = NULL;
           }
           else
           {
-            e_set(E_ERROR, "can't change existing directory permissions in safe mode %s", sane_path);
+            e_set(E_ERROR, "Can't change existing directory permissions in safe mode. (%s)", sane_path);
             goto extract_failed;
           }
+        }
+        else
+        {
+          _notice("Direcory already exists %s", sane_path);
         }
       }
       else if (ex_type == SYS_NONE)
       {
-        _notice("mkdir %s", sane_path);
+        _notice("Creating directory %s", sane_path);
 
         if (!opts->dryrun)
+        {
           if (untgz_write_file(tgz, fullpath))
             goto extract_failed;
+        }
 
         ta_keep_remove(fullpath, 1);
         fullpath = NULL;
       }
       else
       {
-        e_set(E_ERROR, "can't mkdir over ordinary file %s", sane_path);
+        e_set(E_ERROR, "Can't create directory over ordinary file. (%s)", sane_path);
         goto extract_failed;
       }
     }
     break;
     case UNTGZ_SYM: /* wtf?, symlinks are not permitted to be in package */
     {
-      e_set(E_ERROR, "symlink in archive %s", sane_path);
+      e_set(E_ERROR, "Symlink was found in the archive. (%s)", sane_path);
       goto extract_failed;
     }
     break;
@@ -350,13 +361,13 @@ void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
       sys_ftype tgt_type = sys_file_type(linkpath, 0);
       if (tgt_type == SYS_ERR)
       {
-        e_set(E_ERROR, "can't lstat link target file %s", linkpath);
+        e_set(E_ERROR, "Can't check hardlink target path. (%s)", linkpath);
         g_free(linkpath);
         goto extract_failed;
       }
       else if (tgt_type == SYS_REG)
       {
-        _notice("hardlink %s -> %s (postponed)", sane_path, tgz->f_link);
+        _notice("Hardlink detected: %s -> %s", sane_path, tgz->f_link);
 
         /* when creating hardlink, nothing must exist on created path */
         if (ex_type == SYS_NONE)
@@ -368,12 +379,13 @@ void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
         {
           if (opts->safe)
           {
-            e_set(E_ERROR, "can't create hardlink over existing %s %s", ex_type == SYS_DIR ? "directory" : "file", sane_path);
+            e_set(E_ERROR, "Can't create hardlink over existing %s. (%s)", ex_type == SYS_DIR ? "directory" : "file", sane_path);
             g_free(linkpath);
             goto extract_failed;
           }
           else
           {
+            _warning("%s exists, where hardlink should be created. It will be removed.", ex_type == SYS_DIR ? "Directory" : "File");
             ta_forcelink_nothing(fullpath, linkpath);
             fullpath = NULL;
           }
@@ -383,7 +395,7 @@ void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
       {
         if (!opts->dryrun)
         {
-          e_set(E_ERROR, "hardlink target must be a regular file %s", linkpath);
+          e_set(E_ERROR, "Hardlink target is NOT a regular file. (%s)", linkpath);
           g_free(linkpath);
           goto extract_failed;
         }
@@ -393,22 +405,22 @@ void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
     break;
     case UNTGZ_NONE:
     {
-      e_set(E_ERROR, "what's this? (%s)", sane_path);
+      e_set(E_ERROR, "Broken tar archive.");
       goto extract_failed;
     }
     break;
     default: /* ordinary file */
     {
+      _notice("Creating file %s", sane_path);
+
       if (ex_type == SYS_DIR)
       {
         /* target path is a directory, bad! */
-        e_set(E_ERROR, "can't extract file over existing directory %s", sane_path);
+        e_set(E_ERROR, "Can't create file over existing directory. (%s)", sane_path);
         goto extract_failed;
       }
       else if (ex_type == SYS_NONE)
       {
-        _notice("extracting %s", sane_path);
-
         if (!opts->dryrun)
         {
           if (untgz_write_file(tgz, fullpath))
@@ -422,29 +434,29 @@ void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
       {
         if (opts->safe)
         {
-          e_set(E_ERROR, "file already exist %s", sane_path);
+          e_set(E_ERROR, "File already exist. (%s)", sane_path);
           goto extract_failed;
         }
 
-        _notice("extracting %s", sane_path);
+        _warning("File already exist %s", sane_path);
 
         sys_ftype tmp_type = sys_file_type(temppath, 0);
         if (tmp_type == SYS_ERR)
         {
-          e_set(E_ERROR, "can't lstat temporary file %s", temppath);
+          e_set(E_ERROR, "Can't check temporary file path. (%s)", temppath);
           goto extract_failed;
         }
         else if (tmp_type == SYS_DIR)
         {
-          e_set(E_ERROR, "temporary file is a directory! %s", temppath);
+          e_set(E_ERROR, "Temporary file path is used by a direcotry. (%s)", temppath);
           goto extract_failed;
         }
         else if (tmp_type != SYS_NONE)
         {
-          _warning("found temporary file, removing %s", temppath);
+          _warning("Temporary file already exists, removing %s", temppath);
           if (unlink(temppath) < 0)
           {
-            e_set(E_ERROR, "removal failed %s: %s", temppath, strerror(errno));
+            e_set(E_ERROR, "Can't remove temporary file %s. (%s)", temppath, strerror(errno));
             goto extract_failed;
           }
         }
@@ -467,7 +479,7 @@ void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
   g_free(fullpath);
   return;
  extract_failed:
-  e_set(E_ERROR|CMD_BADIO,"file extraction failed %s (%s)", sane_path, pkg->location);
+  e_set(E_ERROR|CMD_BADIO, "Failed to extract file %s.", sane_path);
   goto done;
 }
 
@@ -480,13 +492,13 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   g_assert(opts != 0);
   g_assert(e != 0);
 
-  msg_setup("install", opts->verbosity);
-  _inform("installing package %s", pkgfile);
+  msg_setup(opts->verbosity);
+  _inform("Installing package %s...", pkgfile);
 
   /* check if file exist and is regular file */
   if (sys_file_type(pkgfile,1) != SYS_REG)
   {
-    e_set(E_ERROR|CMD_NOTEX, "package file does not exist (%s)", pkgfile);
+    e_set(E_ERROR|CMD_NOTEX, "Package file does not exist. (%s)", pkgfile);
     goto err0;
   }
 
@@ -495,24 +507,25 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   if ((name = parse_pkgname(pkgfile,5)) == 0 
       || (shortname = parse_pkgname(pkgfile,1)) == 0)
   {
-    e_set(E_ERROR|CMD_BADNAME, "package name is invalid (%s)", pkgfile);
+    e_set(E_ERROR|CMD_BADNAME, "Package name is invalid. (%s)", pkgfile);
     goto err1;
   }
 
   _safe_breaking_point(err1);
 
+  /*XXX: shortname check */
   /* check if package is already in the database */  
   struct db_pkg* pkg=0;
   pkg = db_get_pkg(name, DB_GET_WITHOUT_FILES);
   if (pkg)
   {
-    e_set(E_ERROR|CMD_EXIST, "package is already installed (%s)", name);
+    e_set(E_ERROR|CMD_EXIST, "Package is already installed. (%s)", name);
     db_free_pkg(pkg);
     goto err1;
   }
   if (! (e_errno(e) & DB_NOTEX))
   { /* if error was not because of nonexisting package, then terminate */
-    e_set(E_ERROR, "internal error (%s)", name);
+    e_set(E_ERROR, "Internal error. (%s)", name);
     goto err1;
   }
   e_clean(e); /* cleanup error object */
@@ -526,18 +539,16 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   tgz = untgz_open(pkgfile, 0, e);
   if (tgz == 0)
   {
-    e_set(E_ERROR|CMD_NOTEX,"can't open package file (%s)", pkgfile);
+    e_set(E_ERROR|CMD_NOTEX,"Can't open package file. (%s)", pkgfile);
     goto err1;
   }
-
-  _notice("package file opened: %s", pkgfile);
 
   /* EXIT: free(name), free(shortname), untgz_close(tgz) */
 
   /* init transaction */
   if (ta_initialize(opts->dryrun, e))
   {
-    e_set(E_ERROR,"can't initialize transaction");
+    e_set(E_ERROR,"Can't initialize transaction.");
     goto err2;
   }
 
@@ -567,7 +578,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     if (sane_path == NULL || _unsafe_path(sane_path))
     {
       /* some damned fucker created this package to mess our system */
-      e_set(E_ERROR|CMD_CORRUPT,"package contains file with unsafe path: %s", tgz->f_name);
+      e_set(E_ERROR|CMD_CORRUPT,"Package contains file with unsafe path. (%s)", tgz->f_name);
       goto err3;
     }
 
@@ -583,7 +594,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     {
       if (tgz->f_size > 1024*4) /* 4K is enough */
       {
-        e_set(E_ERROR|CMD_CORRUPT, "slack-desc file is too big (%d kB)", tgz->f_size/1024);
+        e_set(E_ERROR|CMD_CORRUPT, "Package description file is too big. (%d kB)", tgz->f_size / 1024);
         goto err3;
       }
       _read_slackdesc(tgz, pkg);
@@ -593,13 +604,13 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     {
       if (tgz->f_size > 1024*512) /* 512K is enough for all. :) */
       {
-        e_set(E_ERROR|CMD_CORRUPT, "doinst.sh file is too big (%d kB)", tgz->f_size/1024);
+        e_set(E_ERROR|CMD_CORRUPT, "Installation script is too big. (%d kB)", tgz->f_size / 1024);
         goto err3;
       }
       has_doinst = _read_doinst_sh(tgz, pkg, root, sane_path, opts, e);
       if (!e_ok(e))
       {
-        e_set(E_ERROR|CMD_CORRUPT, "doinst.sh file parsing failed");
+        e_set(E_ERROR|CMD_CORRUPT, "Installation script processing failed.");
         goto err3;
       }
       continue;
@@ -620,7 +631,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   /* error occured during extraction */
   if (!e_ok(e))
   {
-    e_set(E_ERROR|CMD_CORRUPT,"package is corrupted (%s)", pkgfile);
+    e_set(E_ERROR|CMD_CORRUPT,"Package file is corrupted. (%s)", pkgfile);
     goto err3;
   }
 
@@ -628,27 +639,25 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   pkg->csize = tgz->csize/1024;
 
   /* add package to the database */
-  _notice("updating legacy database");
+  _notice("Updating package database...");
   if (!opts->dryrun)
   {
     if (db_add_pkg(pkg))
     {
-      e_set(E_ERROR|CMD_DB,"can't add package to the database");
+      e_set(E_ERROR|CMD_DB,"Can't add package to the database.");
       goto err3;
     }
     _safe_breaking_point(err4);
   }
 
   /* update filelist */
-  _notice("adding files to filelist...");
   db_filelist_add_pkg_files(pkg);
 
   /* finalize transaction */
-  _notice("finalizing transaction");
+  _notice("Finalizing transaction...");
   ta_finalize();
 
   /* close tgz */
-  _notice("closing package");
   untgz_close(tgz);
   tgz = NULL;
 
@@ -664,9 +673,12 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
       gchar* cmd = g_strdup_printf("cd %s && . install/doinst.sh", qroot);
       g_free(qroot);
 
-      _notice("running doinst.sh");
-      if (system(cmd))
-        _warning("doinst.sh failed");
+      _notice("Running post-installation script...");
+      gint rv = system(cmd);
+      if (rv < 0)
+        _warning("Can't execute post-installation script. (%s)", strerror(errno));
+      else if (rv > 0)
+        _warning("Post-installation script failed. (%d)", rv);
       unlink(doinst_path);
 
       g_free(cmd);
@@ -686,11 +698,14 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
         gchar* cmd = g_strdup_printf("/sbin/ldconfig -r %s", qroot);
         g_free(qroot);
 
-        _notice("running %s", cmd);
+        _notice("Running /sbin/ldconfig...");
         if (!opts->dryrun)
         {
-          if (system(cmd))
-            _warning("ldconfig failed");
+          gint rv = system(cmd);
+          if (rv < 0)
+            _warning("Can't execute /sbin/ldconfig. (%s)", strerror(errno));
+          else if (rv > 0)
+            _warning("Program /sbin/ldconfig failed. (%d)", rv);
         }
 
         g_free(cmd);
@@ -699,7 +714,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     }
     else
     {
-      _warning("/sbin/ldconfig was not found");
+      _warning("Program /sbin/ldconfig was not found on the system.");
     }
   }
 
@@ -712,7 +727,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
 
   /* EXIT: free(name), free(shortname), free(root), db_free_pkg(pkg) */
 
-  _notice("finished");
+  _notice("Package installation finished!");
 
   db_free_pkg(pkg);
   g_free(root);
@@ -723,19 +738,18 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
  err4:
   db_rem_pkg(name);
  err3:
-  _notice("rolling back");
+  _notice("Rolling back...");
   g_free(sane_path);
   g_free(root);
   ta_rollback();
   db_free_pkg(pkg);
  err2:
-  _notice("closing package");
   untgz_close(tgz);
  err1:
   g_free(name);
   g_free(shortname);
  err0:
-  e_set(E_ERROR,"package installation terimanted (%s)", pkgfile);
-  _notice("installation terminated");
+//  _notice("Package installation failed!");
+  e_set(E_ERROR,"Package installation failed!");
   return 1;
 }

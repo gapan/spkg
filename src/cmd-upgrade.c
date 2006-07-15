@@ -20,6 +20,6 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
   g_assert(pkgfile != 0);
   g_assert(opts != 0);
   g_assert(e != 0);
-  e_set(E_FATAL,"command is not yet implemented");
+  e_set(E_FATAL, "Upgrade command is not yet implemented.");
   return 1;
 }

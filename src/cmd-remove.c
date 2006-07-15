@@ -32,35 +32,34 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
   gchar path[4096];
   void **ptr;
 
-  msg_setup("remove", opts->verbosity);
-  _inform("removing package %s", pkgname);
+  msg_setup(opts->verbosity);
+  _inform("Removing package %s...", pkgname);
 
   _safe_breaking_point(err0);
 
-  _notice("geting package from database: %s", pkgname);
   /* get package from database */
   gchar* real_pkgname = db_get_package_name(pkgname);
   if (real_pkgname == NULL)
   {
-    e_set(E_ERROR, "package not found (%s)", pkgname);
+    e_set(E_ERROR, "Package not found. (%s)", pkgname);
     goto err0;
   }
   
   struct db_pkg* pkg = db_get_pkg(real_pkgname, DB_GET_FULL);
   if (pkg == NULL)
   {
-    e_set(E_ERROR, "internal error (%s)", real_pkgname);
+    e_set(E_ERROR, "Internal error. (%s)", real_pkgname);
     goto err1;
   }
 
-  _notice("loading list of files...");
+  _notice("Loading list of all installed files...");
 
   /* we will need filelist, so get it if it is not already loaded */
   db_filelist_load(FALSE);
 
   _safe_breaking_point(err2);
 
-  _notice("removing files...");
+  _notice("Removing files...");
 
   gchar* root = sanitize_root_path(opts->root);
 
@@ -77,39 +76,38 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     sys_ftype type = sys_file_type(fullpath, 0);
     if (type == SYS_ERR)
     {
-      _warning("can't determine file type, assuming it does not exist: %s", path);
+      _warning("File type check failed, assuming file does not exist. (%s)", path);
       type = SYS_NONE;
     }
 
     gint refs = db_filelist_get_file(path);
     if (refs == 0)
     {
-      _warning("file is in package but not in filelist: %s", path);
+      _warning("File is in the package but not in the filelist. (%s)", path);
     }
     else if (refs == 1)
     {
       if (type == SYS_DIR)
       {
-        _warning("this should not be directory, but file: %s", path);
+        _warning("Expecting file, but getting directory. (%s)", path);
       }
       else if (type == SYS_NONE)
       {
-        _warning("file does not exist: %s", path);
+        _warning("File was already removed: %s", path);
       }
       else
       {
-        _notice("removing file: %s", path);
-        _debug("unlink(%s)", fullpath);
+        _notice("Removing file %s", path);
         if (!opts->dryrun)
         {
           if (unlink(fullpath) < 0)
-            _warning("file removal failed: %s: %s", path, strerror(errno));
+            _warning("Can't remove file %s. (%s)", path, strerror(errno));
         }
       }
     }
     else
     {
-      _notice("keeping file: %s", path);
+      _notice("Keeping file %s (used by another package)", path);
     }
 
     g_free(fullpath);
@@ -118,7 +116,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     JSLN(ptr, pkg->files, path);
   }
 
-  _notice("removing links...");
+  _notice("Removing symlinks...");
 
   strcpy(path, "");
   JSLF(ptr, pkg->files, path);
@@ -133,39 +131,38 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     sys_ftype type = sys_file_type(fullpath, 0);
     if (type == SYS_ERR)
     {
-      _warning("can't determine file type, assuming it does not exist: %s", path);
+      _warning("File type check failed, assuming file does not exist. (%s)", path);
       type = SYS_NONE;
     }
 
     gint refs = db_filelist_get_link(path);
     if (refs == 0)
     {
-      _warning("link is in package but not in filelist: %s", path);
+      _warning("Symlink is in the package but not in filelist. (%s)", path);
     }
     else if (refs == 1)
     {
       if (type == SYS_SYM)
       {
-        _notice("removing link: %s", path);
-        _debug("unlink(%s)", fullpath);
+        _notice("Removing symlink %s", path);
         if (!opts->dryrun)
         {
           if (unlink(fullpath) < 0)
-            _warning("link removal failed: %s: %s", path, strerror(errno));
+            _warning("Can't remove symlink %s. (%s)", path, strerror(errno));
         }
       }
       else if (type == SYS_NONE)
       {
-        _warning("link does not exist: %s", path);
+        _warning("Symlink was already removed: %s", path);
       }
       else
       {
-        _warning("this file is not a link: %s", path);
+        _warning("Expecting symlink, but getting something else. (%s)", path);
       }
     }
     else
     {
-      _notice("keeping link: %s", path);
+      _notice("Keeping symlink %s (used by another package)", path);
     }
 
     g_free(fullpath);
@@ -174,7 +171,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     JSLN(ptr, pkg->files, path);
   }
 
-  _notice("removing directories...");
+  _notice("Removing directories...");
 
   memset(path, 0xff, sizeof(path)-1);
   path[sizeof(path)-1] = '\0';
@@ -190,39 +187,38 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     sys_ftype type = sys_file_type(fullpath, 0);
     if (type == SYS_ERR)
     {
-      _warning("can't determine file type, assuming it does not exist: %s", path);
+      _warning("File type check failed, assuming file does not exist. (%s)", path);
       type = SYS_NONE;
     }
 
     gint refs = db_filelist_get_file(path);
     if (refs == 0)
     {
-      _warning("directory is in package but not in filelist: %s", path);
+      _warning("Directory is in the package but not in filelist. (%s)", path);
     }
     else if (refs == 1)
     {
       if (type == SYS_DIR)
       {
-        _notice("removing directory: %s", path);
-        _debug("rmdir(%s)", fullpath);
+        _notice("Removing directory %s", path);
         if (!opts->dryrun)
         {
           if (rmdir(fullpath) < 0)
-            _warning("directory removal failed: %s: %s", path, strerror(errno));
+            _warning("Can't remove directory %s. (%s)", path, strerror(errno));
         }
       }
       else if (type == SYS_NONE)
       {
-        _warning("dir does not exist: %s", path);
+        _warning("Directory was already removed: %s", path);
       }
       else
       {
-        _warning("not a directory: %s", path);
+        _warning("Expecting directory, but getting something else. (%s)", path);
       }
     }
     else
     {
-      _notice("keeping directory: %s", path);
+      _notice("Keeping directory %s (used by another package)", path);
     }
 
     g_free(fullpath);
@@ -233,20 +229,20 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
 
   g_free(root);
 
-  _notice("removing files from filelist...");
+  _notice("Removing package files from the list of all installed files...");
   db_filelist_rem_pkg_files(pkg);
 
-  _notice("removing package from database...");
+  _notice("Removing package from the database...");
   if (!opts->dryrun)
   {
     if (db_rem_pkg(real_pkgname))
     {
-      e_set(E_ERROR, "can't remove package from database (%s)", real_pkgname);
+      e_set(E_ERROR, "Can't remove package from the database. (%s)", real_pkgname);
       goto err2;
     }
   }
 
-  _notice("finished");
+  _notice("Removal finished!");
 
   db_free_pkg(pkg);
   g_free(real_pkgname);
@@ -257,7 +253,6 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
  err1:
   g_free(real_pkgname);
  err0:
-  e_set(E_ERROR,"package removal terimanted (%s)", pkgname);
-  _notice("removal failed");
+  e_set(E_ERROR,"Package removal failed!");
   return 1;
 }

@@ -15,10 +15,9 @@
 
 /** Setup messages.
  *
- * @param prefix textual prefix that will be printed before each message
  * @param verbosity verbosity level
  */
-extern void msg_setup(const gchar* prefix, gint verbosity);
+extern void msg_setup(gint verbosity);
 
 /** Print a message.
  *

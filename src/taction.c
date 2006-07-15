@@ -79,7 +79,7 @@ gint ta_initialize(gboolean dryrun, struct error* e)
 
   if (_ta.active)
   {
-    _e_set(e, E_ERROR|TA_ACTIVE, "another transaction is in progress");
+    _e_set(e, E_ERROR|TA_ACTIVE, "Can't start transaction while another transaction is still in progress.");
     return 1;
   }
   _ta.err = e;
@@ -158,7 +158,7 @@ gint ta_finalize()
 
   if (!_ta.active)
   {
-    e_set(E_ERROR|TA_NACTIVE, "transaction is not initialized");
+    e_set(E_ERROR|TA_NACTIVE, "Can't finalize transaction, because no transaction was started.");
     return 1;
   }
 
@@ -168,72 +168,78 @@ gint ta_finalize()
     struct action* a = l->data;
     if (a->on_finalize == MOVE)
     {
-      _notice("mv %s %s", a->path1, a->path2);
+      _notice("Moving %s -> %s", a->path1, a->path2);
       if (!_ta.dryrun)
       {
         if (rename(a->path1, a->path2) == -1)
         {
-          _warning("failed mv %s %s", a->path1, a->path2);
+          _warning("Failed to move %s -> %s (%s)", a->path1, a->path2, strerror(errno));
           continue;
         }
       }
     }
     else if (a->on_finalize == LINK)
     {
-      _notice("ln %s %s", a->path2, a->path1);
+      _notice("Creating hardlink %s -> %s", a->path1, a->path2);
       if (!_ta.dryrun)
       {
         if (link(a->path2, a->path1) == -1)
         {
-          _warning("failed ln %s %s", a->path2, a->path1);
+          _warning("Failed to create hardlink %s -> %s (%s)", a->path1, a->path2, strerror(errno));
           continue;
         }
       }
     }
     else if (a->on_finalize == FORCELINK)
     {
-      _notice("rm -rf %s", a->path1);
-      _notice("ln %s %s", a->path2, a->path1);
+      _notice("Removing path %s", a->path1);
       if (!_ta.dryrun)
       {
         if (sys_rm_rf(a->path1))
         {
-          _warning("failed rm -rf %s", a->path1);
+          _warning("Failed to remove path %s", a->path1);
           continue;
         }
+      }
+      _notice("Creating hardlink %s -> %s", a->path1, a->path2);
+      if (!_ta.dryrun)
+      {
         if (link(a->path2, a->path1) == -1)
         {
-          _warning("failed ln %s %s", a->path2, a->path1);
+          _warning("Failed to create hardlink %s -> %s (%s)", a->path1, a->path2, strerror(errno));
           continue;
         }
       }
     }
     else if (a->on_finalize == SYMLINK)
     {
-      _notice("ln -s %s %s", a->path2, a->path1);
+      _notice("Creating symlink %s -> %s", a->path1, a->path2);
       if (!_ta.dryrun)
       {
         if (symlink(a->path2, a->path1) == -1)
         {
-          _warning("failed ln -s %s %s", a->path2, a->path1);
+          _warning("Failed to create symlink %s -> %s (%s)", a->path1, a->path2, strerror(errno));
           continue;
         }
       }
     }
     else if (a->on_finalize == FORCESYMLINK)
     {
-      _notice("rm -rf %s", a->path1);
-      _notice("ln -s %s %s", a->path2, a->path1);
+      _notice("Removing path %s", a->path1);
       if (!_ta.dryrun)
       {
         if (sys_rm_rf(a->path1))
         {
-          _warning("failed rm -rf %s", a->path1);
+          _warning("Failed to remove path %s", a->path1);
           continue;
         }
+      }
+      _notice("Creating symlink %s -> %s", a->path1, a->path2);
+      if (!_ta.dryrun)
+      {
         if (symlink(a->path2, a->path1) == -1)
         {
-          _warning("failed ln -s %s %s", a->path2, a->path1);
+          _warning("Failed to create symlink %s -> %s (%s)", a->path1, a->path2, strerror(errno));
           continue;
         }
       }
@@ -241,21 +247,21 @@ gint ta_finalize()
     else if (a->on_finalize == CHPERM)
     {
       /* chmod */
-      _notice("chmod %04o %s", a->mode, a->path1);
+      _notice("Changing mode on %s to %04o", a->path1, a->mode);
       if (!_ta.dryrun)
       {
         if (chmod(a->path1, a->mode) == -1)
         {
-          _warning("failed chmod %04o %s: %s", a->mode, a->path1, strerror(errno));
+          _warning("Failed to cange mode on %s to %04o (%s)", a->path1, a->mode, strerror(errno));
         }
       }
       /* chown */
-      _notice("chown %d:%d %s", a->owner, a->group, a->path1);
+      _notice("Changing owner on %s to %d:%d", a->path1, a->owner, a->group);
       if (!_ta.dryrun)
       {
         if (chown(a->path1, a->owner, a->group) == -1)
         {
-          _warning("failed chown %d:%d %s: %s", a->owner, a->group, a->path1, strerror(errno));
+          _warning("Failed to cange owner on %s to %d:%d (%s)", a->path1, a->owner, a->group, strerror(errno));
         }
       }
     }
@@ -273,7 +279,7 @@ gint ta_rollback()
 
   if (!_ta.active)
   {
-    e_set(E_ERROR|TA_NACTIVE, "transaction is not initialized");
+    e_set(E_ERROR|TA_NACTIVE, "Can't rollback transaction, because no transaction was started.");
     return 1;
   }
 
@@ -284,24 +290,24 @@ gint ta_rollback()
     {
       if (a->is_dir)
       {
-        _notice("rmdir %s", a->path1);
+        _notice("Removing directory %s", a->path1);
         if (!_ta.dryrun)
         {
           if (rmdir(a->path1) == -1)
           {
-            _warning("failed rmdir %s", a->path1);
+            _warning("Failed to remove directory %s (%s)", a->path1, strerror(errno));
             continue;
           }
         }
       }
       else
       {
-        _notice("rm %s", a->path1);
+        _notice("Removing file %s", a->path1);
         if (!_ta.dryrun)
         {
           if (unlink(a->path1) == -1)
           {
-            _warning("failed rmdir %s", a->path1);
+            _warning("Failed to remove file %s (%s)", a->path1, strerror(errno));
             continue;
           }
         }
