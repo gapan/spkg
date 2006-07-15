@@ -43,7 +43,6 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
   */
 
   msg_setup(opts->verbosity);
-  _inform("Removing package %s...", pkgname);
 
   _safe_breaking_point(err0);
 
@@ -54,6 +53,8 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     e_set(E_ERROR, "Package not found. (%s)", pkgname);
     goto err0;
   }
+
+  _inform("Removing package %s...", real_pkgname);
   
   struct db_pkg* pkg = db_get_pkg(real_pkgname, DB_GET_FULL);
   if (pkg == NULL)
