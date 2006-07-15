@@ -73,13 +73,6 @@ extern gint sys_rm_rf(const gchar* path);
  */
 extern gint sys_mkdir_p(const gchar* path);
 
-/** Set cwd and return pwd.
- *
- * @param path new working directory. (0 if you want to get cwd)
- * @return 0 on failure, pointer to pwd on success
- */
-extern gchar* sys_setcwd(const gchar* path);
-
 /** Block all signals.
  *
  * @param sigs pointer to the place where will be stored original sigset_t

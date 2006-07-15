@@ -152,23 +152,6 @@ out:
   return retval;
 }
 
-gchar* sys_setcwd(const gchar* path)
-{
-  g_assert(path != 0);
-  gchar* pwd = g_get_current_dir();
-  if (!g_path_is_absolute(pwd))
-    return 0;
-    
-  if (path)
-  {
-    if (sys_file_type(path, 1) != SYS_DIR)
-      return 0;
-    if (chdir(path) == -1)
-      return 0;
-  }
-  return g_strdup(pwd);
-}
-
 void sys_sigblock(sigset_t* sigs)
 {
   g_assert(sigs != 0);
