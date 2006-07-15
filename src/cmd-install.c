@@ -515,7 +515,6 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   */
 
   msg_setup(opts->verbosity);
-  _inform("Installing package %s...", pkgfile);
 
   /* check if file exist and is regular file */
   if (sys_file_type(pkgfile,1) != SYS_REG)
@@ -533,27 +532,29 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     goto err1;
   }
 
+  _inform("Installing package %s...", name);
+
   _safe_breaking_point(err1);
 
   /* check if package is already in the database */  
-  gchar* installed_version = db_get_package_name(name);
-  if (installed_version)
+  gchar* installed_pkgname = db_get_package_name(name);
+  if (installed_pkgname)
   {
-    e_set(E_ERROR|CMD_EXIST, "Package is already installed. (%s)", installed_version);
-    g_free(installed_version);
+    e_set(E_ERROR|CMD_EXIST, "Package is already installed. (%s)", installed_pkgname);
+    g_free(installed_pkgname);
     goto err1;
   }
-  installed_version = db_get_package_name(shortname);
-  if (installed_version)
+  installed_pkgname = db_get_package_name(shortname);
+  if (installed_pkgname)
   {
-    e_set(E_ERROR|CMD_EXIST, "Different package with same short name is already installed. (%s)", installed_version);
-    g_free(installed_version);
+    e_set(E_ERROR|CMD_EXIST, "Different package with same short name is already installed. (%s)", installed_pkgname);
+    g_free(installed_pkgname);
     goto err1;
   }
 
   _safe_breaking_point(err1);
 
-  /*EXIT: free:name, free:shortname */
+  /* EXIT: free(name), free(shortname) */
 
   /* open package's tgz archive */
   struct untgz_state* tgz=0;
@@ -770,7 +771,6 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   g_free(name);
   g_free(shortname);
  err0:
-//  _notice("Package installation failed!");
   e_set(E_ERROR,"Package installation failed!");
   return 1;
 }
