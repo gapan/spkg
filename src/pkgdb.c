@@ -876,38 +876,54 @@ gchar* db_get_package_name(const gchar* namespec)
 
   gchar* pkgname = NULL;
   DIR* d = opendir(_db.pkgdir);
+  struct dirent* de;
   if (d == NULL)
   {
     e_set(E_FATAL, "can't open db directory");
     goto err_0;
   }
-  
-  struct dirent* de;
+
+  /* first search for exact match if namespec looks like full name */
+  gchar* searched_name = parse_pkgname(namespec, 5);
+  if (searched_name)
+  {
+    /* exact search */
+    while ((de = readdir(d)) != NULL)
+    {
+      if (!strcmp(de->d_name,".") || !strcmp(de->d_name,".."))
+        continue;
+      gchar* cur_name = de->d_name;
+      if (parse_pkgname(cur_name, 6) == 0)
+        continue;
+      if (!strcmp(searched_name, cur_name))
+      {
+        pkgname = searched_name;
+        goto done;
+      }
+    }
+    g_free(searched_name);
+  }
+
+  /* try to use namespec as shortname */
+  rewinddir(d);
   while ((de = readdir(d)) != NULL)
   {
     if (!strcmp(de->d_name,".") || !strcmp(de->d_name,".."))
       continue;
-
-    gchar* curname = de->d_name;
-    if (parse_pkgname(curname, 6) == 0)
+    gchar* cur_name = de->d_name;
+    gchar* cur_shortname = parse_pkgname(cur_name, 1);
+    if (cur_shortname == NULL)
       continue;
-
-    if (!strcmp(namespec, curname))
+    if (!strcmp(namespec, cur_shortname))
     {
-      pkgname = g_strdup(curname);
-      break;
-    }
-
-    gchar* shortname = parse_pkgname(curname, 1);
-    if (!strcmp(namespec, shortname))
-    {
-      pkgname = g_strdup(curname);
-      g_free(shortname);
-      break;
-    }
-    g_free(shortname);
+        pkgname = g_strdup(cur_name);
+        g_free(cur_shortname);
+        goto done;
+      }
+    g_free(cur_shortname);
   }
 
+ done:
   closedir(d);
   return pkgname;
  err_0:

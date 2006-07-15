@@ -158,9 +158,9 @@ extern void db_free_query(GSList* pkgs, db_query_type type);
 /** Get full name of the installed package from namespec.
  *
  * Namespec can be:
- * - kdebase
- * - kdebase-3.3-i486-1
- * - kdebase-3.3-i486-1.tgz
+ * - shortname: kdebase
+ * - name: kdebase-3.3-i486-1
+ * - file: kdebase-3.3-i486-1.tgz
  *
  * @param name Namespec.
  * @return Full package name.
