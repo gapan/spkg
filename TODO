@@ -1,16 +1,13 @@
 ---------------------------------------------------------------------
-before alpha2 |
---------------/
-
-[pkgdb] implement package search by shortname in installpkg,
-        remove .tgz from package name before searching db dir
-[error] rework internals of the error handling (use gslist for error stacking)
-
-[pkgtools] implement upgrade command
-
----------------------------------------------------------------------
 before beta |
 ------------/
+
+[pkgtools] implement upgrade command
+- check path[4096] arrays (cmd_remove, db, etc.)
+
+---------------------------------------------------------------------
+before rc |
+----------/
 
 [test] QA checklist
 [test] automatic testuite
