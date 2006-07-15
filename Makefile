@@ -4,12 +4,14 @@
 #|----------------------------------------------------------------------|#
 #|          No copy/usage restrictions are imposed on anybody.          |#
 #\----------------------------------------------------------------------/#
+#VERSION := $(shell git-describe --abbrev=4 | tr - _)
+VERSION := beta
+
 DESTDIR :=
 prefix := /usr/local
 DEBUG := no
 ASSERTS := yes
 BENCH := no
-VERSION := alpha1
 RELEASE := no
 STATIC := no
 
