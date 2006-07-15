@@ -73,7 +73,8 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
       goto skip1;
 
     gchar* fullpath = g_strdup_printf("%s%s", root, path);
-    sys_ftype type = sys_file_type(fullpath, 0);
+    struct stat st;
+    sys_ftype type = sys_file_type_stat(fullpath, 0, &st);
     if (type == SYS_ERR)
     {
       _warning("File type check failed, assuming file does not exist. (%s)", path);
@@ -97,6 +98,12 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
       }
       else
       {
+        if (st.st_mtime > pkg->time)
+        {
+          _warning("File was changed after installation: %s", path);
+          if (opts->safe)
+            goto skip1_free;
+        }
         _notice("Removing file %s", path);
         if (!opts->dryrun)
         {
@@ -110,6 +117,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
       _notice("Keeping file %s (used by another package)", path);
     }
 
+   skip1_free:
     g_free(fullpath);
 
    skip1:
