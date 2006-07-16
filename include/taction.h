@@ -89,6 +89,13 @@ extern void ta_forcesymlink_nothing(gchar* path, gchar* src_path);
  */
 extern void ta_chperm_nothing(gchar* path, gint mode, gint owner, gint group);
 
+/** Add action to the current transaction.
+ * 
+ * @param path path to the transactioned object
+ * @param is_dir if path points to a directory
+ */
+extern void ta_remove_nothing(gchar* path, gint is_dir);
+
 #endif
 
 /*! @} */
