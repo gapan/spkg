@@ -1,17 +1,13 @@
 ---------------------------------------------------------------------
-before beta |
-------------/
-
-[pkgtools] implement upgrade command
-- check path[4096] arrays (cmd_remove, db, etc.)
-
----------------------------------------------------------------------
 before rc |
 ----------/
 
+[security] check path[4096] arrays access, create MAXPATHSIZE macro
+[taction] transaction code documentation is crap, and code feels a bit messy.
 [test] QA checklist
 [test] automatic testuite
-[safe] check for suid binaries and other rights based checks for files
+[test] test, test, test, test, test, ....
+[--safe] check for suid binaries and other rights based checks for files
  (enforcing slackware policy)
 
 ---------------------------------------------------------------------
