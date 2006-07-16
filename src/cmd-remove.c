@@ -103,13 +103,13 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
       }
       else if (type == SYS_NONE)
       {
-        _warning("File was already removed: %s", path);
+        _warning("File was already removed. (%s)", path);
       }
       else
       {
         if (st.st_mtime > pkg->time)
         {
-          _warning("File was changed after installation: %s", path);
+          _warning("File was changed after installation. (%s)", path);
           if (opts->safe)
             goto skip1_free;
         }
@@ -168,7 +168,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
       }
       else if (type == SYS_NONE)
       {
-        _warning("Symlink was already removed: %s", path);
+        _warning("Symlink was already removed. (%s)", path);
       }
       else
       {
@@ -222,7 +222,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
       }
       else if (type == SYS_NONE)
       {
-        _warning("Directory was already removed: %s", path);
+        _warning("Directory was already removed. (%s)", path);
       }
       else
       {
