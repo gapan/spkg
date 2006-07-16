@@ -55,6 +55,7 @@ typedef enum {
 
 /** Path file type. */
 typedef enum {
+  DB_PATH_NONE = 0, /**< No such path. */
   DB_PATH_FILE,     /**< File. */
   DB_PATH_DIR,      /**< Directory. */
   DB_PATH_SYMLINK   /**< Symlink from the script. */
@@ -115,6 +116,14 @@ extern void db_free_pkg(struct db_pkg* pkg);
  * @param type Path type.
  */
 extern void db_pkg_add_path(struct db_pkg* pkg, const gchar* path, db_path_type type);
+
+/** Get path from the package.
+ *
+ * @param pkg [db_pkg] Package object.
+ * @param path Path.
+ * @return Path type.
+ */
+extern db_path_type db_pkg_get_path(struct db_pkg* pkg, const gchar* path);
 
 /** Add package to the database.
  *

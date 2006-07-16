@@ -389,6 +389,15 @@ void db_pkg_add_path(struct db_pkg* pkg, const gchar* path, db_path_type type)
   *ptr = type;
 }
 
+db_path_type db_pkg_get_path(struct db_pkg* pkg, const gchar* path)
+{
+  gint* ptr;
+  JSLG(ptr, pkg->paths, path);
+  if (ptr)
+    return *ptr;
+  return DB_PATH_NONE;
+}
+
 /* public - main database package operations
  ************************************************************************/
 
