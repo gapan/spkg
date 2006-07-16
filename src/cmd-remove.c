@@ -30,11 +30,10 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
   g_assert(e != 0);
 
   gchar path[4096];
-  void **ptr;
 
   /*
    - load package from db
-   - load list of all installed files
+   - load list of all installed paths
    - remove files that has ref == 1
    - remove symlinks that has ref == 1
    - remove dirs that has ref == 1
@@ -74,13 +73,12 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
 
   gchar* root = sanitize_root_path(opts->root);
 
+  gint* ptype;
   strcpy(path, "");
-  JSLF(ptr, pkg->files, path);
-  while (ptr != NULL)
+  JSLF(ptype, pkg->paths, path);
+  while (ptype != NULL)
   {
-    gint len = strlen(path);
-    /* skip links and dirs */
-    if ((len > 0 && path[len-1] == '/') || (*ptr != 0))
+    if (*ptype != DB_PATH_FILE)
       goto skip1;
 
     gchar* fullpath = g_strdup_printf("%s%s", root, path);
@@ -92,7 +90,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
       type = SYS_NONE;
     }
 
-    gint refs = db_filelist_get_file(path);
+    gint refs = db_filelist_get_path_refs(path);
     if (refs == 0)
     {
       _warning("File is in the package but not in the filelist. (%s)", path);
@@ -132,18 +130,16 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     g_free(fullpath);
 
    skip1:
-    JSLN(ptr, pkg->files, path);
+    JSLN(ptype, pkg->paths, path);
   }
 
   _notice("Removing symlinks...");
 
   strcpy(path, "");
-  JSLF(ptr, pkg->files, path);
-  while (ptr != NULL)
+  JSLF(ptype, pkg->paths, path);
+  while (ptype != NULL)
   {
-    gint len = strlen(path);
-    /* skip links and regular files */
-    if ((len > 0 && path[len-1] == '/') || (*ptr == 0))
+    if (*ptype != DB_PATH_SYMLINK)
       goto skip2;
 
     gchar* fullpath = g_strdup_printf("%s%s", root, path);
@@ -154,7 +150,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
       type = SYS_NONE;
     }
 
-    gint refs = db_filelist_get_link(path);
+    gint refs = db_filelist_get_path_refs(path);
     if (refs == 0)
     {
       _warning("Symlink is in the package but not in filelist. (%s)", path);
@@ -187,19 +183,17 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     g_free(fullpath);
 
    skip2:
-    JSLN(ptr, pkg->files, path);
+    JSLN(ptype, pkg->paths, path);
   }
 
   _notice("Removing directories...");
 
   memset(path, 0xff, sizeof(path)-1);
   path[sizeof(path)-1] = '\0';
-  JSLL(ptr, pkg->files, path);
-  while (ptr != NULL)
+  JSLL(ptype, pkg->paths, path);
+  while (ptype != NULL)
   {
-    gint len = strlen(path);
-    /* skip links and regular files */
-    if ((len > 0 && path[len-1] != '/') || (*ptr != 0))
+    if (*ptype != DB_PATH_DIR)
       goto skip3;
 
     gchar* fullpath = g_strdup_printf("%s%s", root, path);
@@ -210,7 +204,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
       type = SYS_NONE;
     }
 
-    gint refs = db_filelist_get_file(path);
+    gint refs = db_filelist_get_path_refs(path);
     if (refs == 0)
     {
       _warning("Directory is in the package but not in filelist. (%s)", path);
@@ -243,13 +237,13 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     g_free(fullpath);
 
    skip3:
-    JSLP(ptr, pkg->files, path);
+    JSLP(ptype, pkg->paths, path);
   }
 
   g_free(root);
 
   _notice("Removing package files from the list of all installed files...");
-  db_filelist_rem_pkg_files(pkg);
+  db_filelist_rem_pkg_paths(pkg);
 
   _notice("Removing package from the database...");
   if (!opts->dryrun)

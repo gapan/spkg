@@ -33,8 +33,7 @@ struct db_state {
   gchar* pkgdir; /* /var/log/packages/ */
   gchar* scrdir; /* /var/log/scripts/ */
   struct error* err;
-  void* files;
-  void* links;
+  void* paths;
   gint fd_lock;
 };
 
@@ -151,8 +150,7 @@ void db_close()
   sys_lock_del(_db.fd_lock);
 
   gint used;
-  JSLFA(used, _db.files);
-  JSLFA(used, _db.links);
+  JSLFA(used, _db.paths);
 
   g_free(_db.topdir);
   g_free(_db.pkgdir);
@@ -169,57 +167,48 @@ void db_close()
   print_timer(9, "[pkgdb] files: read");
 }
 
-void db_filelist_rem_pkg_files(const struct db_pkg* pkg)
+/* public - filelist
+ ************************************************************************/
+
+void db_filelist_rem_pkg_paths(const struct db_pkg* pkg)
 {
   gchar path[4096];
   gint rc;
   void **p1, **p2;
+
   strcpy(path, "");
-  JSLF(p1, pkg->files, path);
+  JSLF(p1, pkg->paths, path);
   while (p1 != NULL)
   {
-    if (*p1 == 0) // not link
+    JSLG(p2, _db.paths, path);
+    if (p2)
     {
-      JSLG(p2, _db.files, path);
-      if (p2 && (gint)*p2 == 1)
+      gint* refs = (gint*)p2;
+      if (*refs == 1)
       {
-        JSLD(rc, _db.files, path);
+        JSLD(rc, _db.paths, path);
       }
       else
-        (*p2)--;
-    }
-    else
-    {
-      JSLG(p2, _db.links, path);
-      if (p2 && (gint)*p2 == 1)
       {
-        JSLD(rc, _db.links, path);
+        (*refs)--;
       }
-      else
-        (*p2)--;
     }
-    JSLN(p1, pkg->files, path);
+    JSLN(p1, pkg->paths, path);
   }
 }
 
-void db_filelist_add_pkg_files(const struct db_pkg* pkg)
+void db_filelist_add_pkg_paths(const struct db_pkg* pkg)
 {
   gchar path[4096];
   void **p1, **p2;
+
   strcpy(path, "");
-  JSLF(p1, pkg->files, path);
+  JSLF(p1, pkg->paths, path);
   while (p1 != NULL)
   {
-    if (*p1 == 0)
-    {
-      JSLI(p2, _db.files, path);
-    }
-    else
-    {
-      JSLI(p2, _db.links, path);
-    }
+    JSLI(p2, _db.paths, path);
     (*p2)++;
-    JSLN(p1, pkg->files, path);
+    JSLN(p1, pkg->paths, path);
   }
 }
 
@@ -233,7 +222,7 @@ gint db_filelist_load(gboolean force_reload)
   DIR* d = opendir(_db.pkgdir);
   if (d == NULL)
   {
-    e_set(E_FATAL, "can't open db directory");
+    e_set(E_FATAL, "Can't open db directory. (%s)", strerror(errno));
     goto err_0;
   }
   gchar sbuf[1024*128];
@@ -242,50 +231,63 @@ gint db_filelist_load(gboolean force_reload)
 
   gchar* line = 0;
   gint size = 0;
-  
+  void** ptr;
   struct dirent* de;
+
+  /* for each package database entry */
   while ((de = readdir(d)) != NULL)
   {
     gchar* name = de->d_name;
+    /* is this valid package database entry file? */
     if (parse_pkgname(name, 6) == 0)
       continue;
-
+    
+    /* open it */
     gchar* tmpstr = g_strdup_printf("%s/%s", _db.pkgdir, name);
     FILE* f = fopen(tmpstr, "r");
     g_free(tmpstr);
     if (f == NULL) /* main package entry can't be open */
     {
-      e_set(E_ERROR, "can't open package entry file: %s: %s", name, strerror(errno));
+      e_set(E_ERROR, "Can't open package database file %s. (%s)", name, strerror(errno));
       goto err_1;
     }
+    /* set bigger buffer */
     setvbuf(f, sbuf, _IOFBF, sizeof(sbuf));
+
+    /* for each line */
     gint linelen;
     gint files = 0;
     while ((linelen = getline(&line, &size, f)) >= 0)
     {
+      /* remove new line character from the end of the line */
       if (linelen > 0 && line[linelen-1] == '\n')
         line[linelen-1] = '\0', linelen--;
+      /* if we are in the files section, add path to the list */
       if (files)
       {
-        void** ptr;
-        JSLI(ptr, _db.files, line);
+        /* remove trailing / character from the end of the line */
+        if (linelen > 0 && line[linelen-1] == '/')
+          line[linelen-1] = '\0', linelen--;
+        JSLI(ptr, _db.paths, line);
         (*ptr)++;
       }
       else if (LINEMATCH("FILE LIST:"))
-      {
         files++;
-      }
 	}
     fclose(f);
 
+    /* open and parse installation script for symbolic links */
     tmpstr = g_strdup_printf("%s/%s", _db.scrdir, name);
     f = fopen(tmpstr, "r");
     g_free(tmpstr);
     if (f == NULL) /* script package entry can't be open */
       continue; /* ignore if can't be open (may not exist) XXX: check if errno is NOTEX */
     setvbuf(f, sbuf, _IOFBF, sizeof(sbuf));
+
+    /* for each line */
     while ((linelen = getline(&line, &size, f)) >= 0)
     {
+      /* remove new line character from the end of the line */
       if (linelen > 0 && line[linelen-1] == '\n')
         line[linelen-1] = '\0', linelen--;
 
@@ -294,14 +296,15 @@ gint db_filelist_load(gboolean force_reload)
       if (parse_createlink(line, &dir, &link, &target))
       {
         gchar* path = g_strdup_printf("%s/%s", dir, link);
+        gchar* sane_path = path_simplify(path);
+        g_free(path);
         g_free(dir);
         g_free(link);
         g_free(target);
         /* add */
-        void** ptr;
-        JSLI(ptr, _db.links, path);
+        JSLI(ptr, _db.paths, sane_path);
         (*ptr)++;
-        g_free(path);
+        g_free(sane_path);
       }
 	}
     fclose(f);
@@ -320,19 +323,10 @@ gint db_filelist_load(gboolean force_reload)
   return 1;
 }
 
-gint db_filelist_get_file(const gchar* path)
+gint db_filelist_get_path_refs(const gchar* path)
 {
   void **ptr;
-  JSLG(ptr, _db.files, path);
-  if (ptr == NULL)
-    return 0;
-  return (gint)*ptr;
-}
-
-gint db_filelist_get_link(const gchar* path)
-{
-  void **ptr;
-  JSLG(ptr, _db.links, path);
+  JSLG(ptr, _db.paths, path);
   if (ptr == NULL)
     return 0;
   return (gint)*ptr;
@@ -341,8 +335,7 @@ gint db_filelist_get_link(const gchar* path)
 void db_filelist_free()
 {
   guint used;
-  JSLFA(used, _db.files);
-  JSLFA(used, _db.links);
+  JSLFA(used, _db.paths);
   _db.filelist_loaded = FALSE;
 }
 
@@ -371,22 +364,11 @@ struct db_pkg* db_alloc_pkg(gchar* name)
 void db_free_pkg(struct db_pkg* pkg)
 {
   continue_timer(6);
-  guint freed;
-  void** ptr;
-  gchar path[4096];
-
   if (pkg == 0)
     return;
 
-  strcpy(path, "");
-  JSLF(ptr, pkg->files, path);
-  while (ptr != NULL)
-  {
-    g_free(*ptr);
-    JSLN(ptr, pkg->files, path);
-  }
-  JSLFA(freed, pkg->files);
-
+  guint freed;
+  JSLFA(freed, pkg->paths);
   g_free(pkg->name);
   g_free(pkg->shortname);
   g_free(pkg->version);
@@ -400,11 +382,11 @@ void db_free_pkg(struct db_pkg* pkg)
   stop_timer(6);
 }
 
-void db_add_file(struct db_pkg* pkg, const gchar* path, const gchar* link_target)
+void db_pkg_add_path(struct db_pkg* pkg, const gchar* path, db_path_type type)
 {
-  const void** ptr;
-  JSLI(ptr, pkg->files, path);
-  *ptr = link_target;
+  gint* ptr;
+  JSLI(ptr, pkg->paths, path);
+  *ptr = type;
 }
 
 /* public - main database package operations
@@ -422,9 +404,9 @@ gint db_add_pkg(struct db_pkg* pkg)
   _db_open_check(1)
 
   /* check if pkg contains everthing required */
-  if (pkg == 0 || pkg->name == 0 || pkg->files == 0)
+  if (pkg == 0 || pkg->name == 0 || pkg->paths == 0)
   {
-    e_set(E_BADARG, "incomplete package structure");
+    e_set(E_BADARG, "Incomplete package structure.");
     goto err_0;
   }
 
@@ -467,14 +449,16 @@ gint db_add_pkg(struct db_pkg* pkg)
 
   /* construct filelist */
   gchar path[4096];
-  void** ptr;
+  gint* ptr;
   strcpy(path, "");
-  JSLF(ptr, pkg->files, path);
+  JSLF(ptr, pkg->paths, path);
   while (ptr != NULL)
   {
-    if (*ptr == 0)
+    if (*ptr == DB_PATH_FILE)
       fprintf(pf, "%s\n", path);
-    JSLN(ptr, pkg->files, path);
+    else if (*ptr == DB_PATH_DIR)
+      fprintf(pf, "%s/\n", path);
+    JSLN(ptr, pkg->paths, path);
   }
 
   ret = 0;
@@ -638,11 +622,14 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
 
   while ((linelen = getline(&line, &size, fp)) >= 0)
   {
+    gint* ptr;
+    db_path_type type = DB_PATH_FILE;
     if (linelen > 0 && line[linelen-1] == '\n')
-	  line[linelen-1] = '\0';
-    void** ptr;
-    JSLI(ptr, p->files, line);
-    *ptr = 0;
+	  line[linelen-1] = '\0', linelen--;
+    if (linelen > 0 && line[linelen-1] == '/')
+	  line[linelen-1] = '\0', linelen--, type = DB_PATH_DIR;
+    JSLI(ptr, p->paths, line);
+    *ptr = type;
   }
 
   if (fs == NULL)
@@ -657,12 +644,16 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
     if (parse_createlink(line, &dir, &link, &target))
     {
       gchar* path = g_strdup_printf("%s/%s", dir, link);
+      gchar* sane_path = path_simplify(path);
+      g_free(path);
       g_free(dir);
       g_free(link);
-      void** ptr;
-      JSLI(ptr, p->files, path);
-      *ptr = target;
-      g_free(path);
+      g_free(target);
+      /* add */
+      gint* ptr;
+      JSLI(ptr, p->paths, sane_path);
+      *ptr = DB_PATH_SYMLINK;
+      g_free(sane_path);
     }
   }
 

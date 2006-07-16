@@ -53,6 +53,13 @@ typedef enum {
   DB_QUERY_NAMES               /**< query list of package names */
 } db_query_type;
 
+/** Path file type. */
+typedef enum {
+  DB_PATH_FILE,     /**< File. */
+  DB_PATH_DIR,      /**< Directory. */
+  DB_PATH_SYMLINK   /**< Symlink from the script. */
+} db_path_type;
+
 /** Package information structure. */
 struct db_pkg {
   /* name */
@@ -70,8 +77,8 @@ struct db_pkg {
   gchar* desc;       /**< cleaned (i.e. without rubbish :) package description [O] */
   gchar* doinst;     /**< complete doinst.sh script contents [O] */
 
-  /* internals */  
-  void* files;       /**< [JudySL] list of the files in the package [O] */
+  /* file list */  
+  void* paths;       /**< [JudySL->db_path_type] list of normalized paths in the package [O] */
 };
 
 /** Open package database.
@@ -101,13 +108,13 @@ extern struct db_pkg* db_alloc_pkg(gchar* name);
  */
 extern void db_free_pkg(struct db_pkg* pkg);
 
-/** Add file or link to the package.
+/** Add path to the package.
  *
  * @param pkg [db_pkg] Package object.
- * @param path File path.
- * @param link_target Link target.
+ * @param path Path.
+ * @param type Path type.
  */
-extern void db_add_file(struct db_pkg* pkg, const gchar* path, const gchar* link_target);
+extern void db_pkg_add_path(struct db_pkg* pkg, const gchar* path, db_path_type type);
 
 /** Add package to the database.
  *
@@ -179,31 +186,24 @@ extern gint db_filelist_load(gboolean force_reload);
  */
 extern void db_filelist_free();
 
-/** Lookup file in filelist.
+/** Lookup path refs in the filelist.
  *
- * @param path File path.
- * @return Number of references.
+ * @param path Path.
+ * @return Number of references to the path in various packages.
  */
-extern gint db_filelist_get_file(const gchar* path);
+extern gint db_filelist_get_path_refs(const gchar* path);
 
-/** Lookup symlink in filelist.
- *
- * @param path Symlink path.
- * @return Number of references.
- */
-extern gint db_filelist_get_link(const gchar* path);
-
-/** Add files and symlinks from the package to the filelist.
+/** Add paths from the package to the filelist.
  *
  * @param pkg Package object.
  */
-extern void db_filelist_add_pkg_files(const struct db_pkg* pkg);
+extern void db_filelist_add_pkg_paths(const struct db_pkg* pkg);
 
-/** Remove files and symlinks from the package from the filelist.
+/** Remove paths from the package from the filelist.
  *
  * @param pkg Package object.
  */
-extern void db_filelist_rem_pkg_files(const struct db_pkg* pkg);
+extern void db_filelist_rem_pkg_paths(const struct db_pkg* pkg);
 
 #endif
 

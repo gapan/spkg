@@ -153,7 +153,7 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
       }
 
       _notice("Symlink detected: %s -> %s", sane_link_path, link_target);
-      db_add_file(pkg, sane_link_path, link_target); /* target is freed by db_free_pkg() */
+      db_pkg_add_path(pkg, sane_link_path, DB_PATH_SYMLINK); /* target is freed by db_free_pkg() */
       sys_ftype ex_type = sys_file_type_stat(link_fullpath, 0, &ex_stat);
 
       if (ex_type == SYS_ERR)
@@ -260,14 +260,7 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
   /* EXIT: free(fullpath), free(temppath) */
 
   /* add file to the package */
-  if (tgz->f_type == UNTGZ_DIR)
-  {
-    gchar* path = g_strdup_printf("%s/", sane_path);
-    db_add_file(pkg, path, NULL);
-    g_free(path);
-  }
-  else
-    db_add_file(pkg, sane_path, NULL);
+  db_pkg_add_path(pkg, sane_path, tgz->f_type == UNTGZ_DIR ? DB_PATH_DIR : DB_PATH_FILE);
 
   /* Here we must check interaction of following conditions:
    *
@@ -607,7 +600,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     /* check for ./ */
     if (sane_path[0] == '\0')
     {
-      db_add_file(pkg, "./", 0);
+      db_pkg_add_path(pkg, ".", DB_PATH_DIR);
       continue;
     }
 
@@ -673,7 +666,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   }
 
   /* update filelist */
-//  db_filelist_add_pkg_files(pkg);
+//  db_filelist_add_pkg_paths(pkg);
 
   /* finalize transaction */
   _notice("Finalizing transaction...");
