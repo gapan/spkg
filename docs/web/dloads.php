@@ -1,23 +1,23 @@
 <?php require "common.php"; ?>
 <?php head("spkg - downloads page"); ?>
 
- <h1>Downloads</h1>
+ <h2>Downloads</h2>
 
   <p>On this page you can get the lastest version of the spkg: <b>spkg-@VER@</b></p>
 
- <h2>Binary packages</h2>
+ <h3>Binary packages</h3>
 
   <p>I recommend you, to build spkg yourself. It's very easy, see 
   building section on this page. You can also download binary package
   <a href="dl/spkg-@VER@-i486-1.tgz">here</a>.</p>
 
- <h2>Source code</h2>
+ <h3>Source code</h3>
 
   <p>Source code is distributed as an ordinary <a
   href="dl/spkg-@VER@.tar.gz">tarball</a>. Patches and bugfixes to the
   latest version can be found <a href="dl/patches/@VER@/">here</a>.</p>
 
- <h1>Building</h1>
+ <h2>Building</h2>
 
   <p>Prerequisites for building spkg are:</p>
 

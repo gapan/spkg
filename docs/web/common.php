@@ -20,10 +20,10 @@
 
 <div id="all">
 
- <div id="top">
-  <div class="subtitle">The Unofficial Slackware Linux Package Manager</div>
-  <div class="title"><span style="color:red;">s</span>pkg</div>
- </div>
+ <h1 id="top">
+  <span class="title">spkg</span>
+  <span class="subtitle">The Unofficial Slackware Linux Package Manager</span>
+ </h1>
 
  <div id="topmenu">
   <a href="index.php">home</a> |

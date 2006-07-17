@@ -9,7 +9,7 @@
   <p><b>Spkg is now feature complete and under heavy testing by yours
   truly.</b></p>
 
- <h1>Features</h1>
+ <h2>Features</h2>
 
   <ul>
     <li>Extreme symplicity. Just like pkgtools.</li>
@@ -31,13 +31,12 @@
     <li>PyGtk based GUI.</li>
   </ul>
 
- <h1>News</h1>
+ <h2>News</h2>
 
-<h2>Spkg beta released (2006-07-17)</h2>
+<h3>Spkg beta released (2006-07-17)</h3>
      <ul>
 <li>Spkg is feature complete!</li>
-<li>Less screwed website design. I've got some advice from
-the <a href="http://jurahu.net">expert</a>.</li>
+<li>Less screwed website design.</li>
 <li>Upgrade command implemented. It is not tested very much.
     I've just tested it on the samba package from the slackware
     current and it works same as upgradepkg from pkgtools.
@@ -61,7 +60,7 @@ the <a href="http://jurahu.net">expert</a>.</li>
 <li>Improved package name guessing algorithm.</li>
      </ul>
 
-<h2>What's comming</h2>
+<h3>What's comming</h3>
      <ul>
 <li>There will be refactoring of the transaction code. (it's
     not broken, but it's not quit readable too)</li>
