@@ -3,20 +3,23 @@
 
  <h1>Downloads</h1>
 
-  <p>On this page you can get the lastest version of the spkg.</p>
+  <p>On this page you can get the lastest version of the spkg: <b>spkg-@VER@</b></p>
 
  <h2>Binary packages</h2>
 
   <p>I recommend you, to build spkg yourself. It's very easy, see 
-  building section on this page. You can download latest binary package
-  of <a href="dl/spkg-@VER@-i486-1.tgz">spkg</a> for slackware-current
-  <a href="dl/">here</a>.</p>
+  building section on this page. You can also download binary package
+  <a href="dl/spkg-@VER@-i486-1.tgz">here</a>.</p>
 
  <h2>Source code</h2>
 
   <p>Source code is distributed as an ordinary <a
-  href="dl/spkg-@VER@.tar.gz">tarball</a>. Prerequisites for building
-  spkg are:</p>
+  href="dl/spkg-@VER@.tar.gz">tarball</a>. Patches and bugfixes to the
+  latest version can be found <a href="dl/patches/@VER@/">here</a>.</p>
+
+ <h1>Building</h1>
+
+  <p>Prerequisites for building spkg are:</p>
 
   <ul>
    <li><a href="http://judy.sourceforge.net">Judy-1.0.3</a> - Judy arrays (heavily optimized arrays)</li>
@@ -24,8 +27,6 @@
    <li><a href="ftp://ftp.rpm.org/pub/rpm/dist">popt-1.10.2</a> - command line parser</li>
    <li><a href="http://www.zlib.net">zlib-1.2.3</a> - zlib (de)compression library</li>
   </ul>
-
- <h1>Building</h1>
 
   <p>Installing spkg is very easy. Just extract source code package
   and run  this command:</p>
