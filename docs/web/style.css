@@ -1,10 +1,12 @@
+/* global structure */
+
 body {
   font-family: verdana;
   font-size: 80%;
 }
 #all {
-  margin: 5px;
-  width: 800px;
+  margin: auto;
+  width: 750px;
   border: 1px solid green;
 }
 #top {
@@ -15,9 +17,16 @@ body {
   padding-bottom: 2px;
   padding-left: 4px;
 }
+#topmenu a {
+  color: red;
+  text-decoration: none;
+  font-weight: bold;
+}
+#topmenu a:hover {
+  text-decoration: underline;
+}
 #main {
-  padding: 5px;
-  min-height: 550px;
+  padding: 15px 5px 45px 5px;
 }
 #botmenu {
   border-top: 1px solid green;
@@ -39,7 +48,7 @@ body {
   color: darkblue;
 }
 .subtitle { 
-  color: darkred;
+  color: red;
   text-align: right;
   font-weight: bold;
   float: right;
@@ -49,68 +58,44 @@ div {
   background-color: lightyellow;
 }
 
+/* content style */
+
 h1 {
-  color: darkred;
-  padding: 0 0 0 1ex;
+  color: red;
+  padding: 0 0 0 20px;
   margin: 0.5ex 0 0 0;
   font-size: 160%;
 }
-p, dl, ul, code, table {
+h2 {
+  color: #224422;
+  padding: 0 0 0 30px;
+  margin: 0.5ex 0 0 0;
+  font-size: 120%;
+}
+p, ul, code {
   color: #224422;
   padding: 0;
-  margin: 0.7ex 0 0 50px;
-  line-height: 2.7ex;
+  margin: 1ex 40px 0 40px;
 }
-dl, ul {
-  padding-left: 1em;
-}
-dt {
-  font-weight: bold;
-  font-style: italic;
-  color: darkgreen;
-}
-dd {
-  margin-left: 1em;
-}
-li {
-  list-style: square;
-  list-style-position: inside;
-  font-style: italic;
+ul {
+  padding-left: 25px;
 }
 code {
-  border: 1px solid yellow;
+  border: 1px solid green;
   background: white;
   color: black;
   font-family: verdana;
   font-weight: bold;
-  padding: 6px;
+  padding: 5px;
   display: block;
 }
-tr, th, td {
-  border-top: 1px dashed gray;
-  border-left: 1px dashed gray;
-  padding: 6px;
-}
-th { color: darkgreen; }
-tr.f { color: white; background: red; font-weight: bold; }
-tr.p { color: darkgreen; background: lightgreen; }
 
-#main strong {
-  color: green;
-}
-
-#topmenu a {
-  color: red;
-  text-decoration: none;
-  font-weight: bold;
-}
-#topmenu a:hover {
-  text-decoration: underline;
-}
 #main a {
-  color: green;
-  font-style: italic;
+  color: red;
 }
 #main a:hover {
   text-decoration: none;
+}
+#main a:visited {
+  color: green;
 }

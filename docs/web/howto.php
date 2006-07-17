@@ -1,11 +1,11 @@
 <?php require "common.php"; ?>
 <?php head("spkg - howto page"); ?>
 
- <h1>@SPKG@ HOWTO</h1>
+ <h1>Spkg HOWTO</h1>
 
-  <p>This page explains how to get started with @SPKG@.</p>
+  <p>This page explains how to get started with spkg.</p>
 
- <h1>Quick start</h1>
+ <h2>Quick start</h2>
 
   <p>After successful installation you can start installing and removing
   packages using following commands:</p>

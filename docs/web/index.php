@@ -1,36 +1,22 @@
 <?php require "common.php"; ?>
 <?php head("spkg - main page"); ?>
 
-  <p style="font-size:130%;font-weight:bold;color:red;padding:4px;
-  border:1px solid yellow;background:white;text-align:center;">
-  @SPKG@-@VER@ "The Speedbringer" was released!</p>
+  <p>Welcome to the official website of spkg, the unofficial <a
+  href="http://slackware.com">Slackware Linux</a> package manager. spkg
+  is implemented in C and optimized for speed. The latest version
+  is: <b>spkg-@VER@</b>.</p>
 
- <h1>Intro</h1>
-
-  <p>Welcome to the official website of @SPKG@, the unofficial
-  <a href="http://slackware.com">Slackware Linux</a> package manager
-  implementation.</p>
-
-  <p>@SPKG@ is implemented in C and optimized for <strong>speed</strong>.</p>
-
-  <p>See <a href="status.php">status</a> page for the current status
-  and the roadmap of the @SPKG@ development.</p>
-
-  <p style="border:1px solid yellow; background:white; padding: 4px;">
-  <b>NOTE (2006-07-10):</b> spkg project developement was stalled for a year, but now
-  I'm back continuing on it. What happened was, that I have got my first job
-  exactly a year ago, partially thanks to my work on @SPKG@, I guess. :-)
-  Some developement continued last summer in silence without release.
-  Now I'm releasing alpha1 version of @SPKG@. This version features fully
-  functional install and remove commands. More is comming soon! (hmm,
-  hopefully sooner than next summer :-))</p>
+  <p><b>Spkg is now feature complete and under heavy testing by yours
+  truly.</b></p>
 
  <h1>Features</h1>
 
   <ul>
     <li>Extreme symplicity. Just like pkgtools.</li>
-    <li>Fast installation (approx. 10% faster than <strong>tar xzf</strong>)</li>
-    <li>Fast unistallation (faster than <strong>rm -rf</strong>)</li>
+    <li>Fast installation (approx. 5% faster than <b>tar xzf</b>)</li>
+    <li>Fast uninstallation (faster than <b>rm -rf</b>)</li>
+    <li>Fast upgrade too, I guess... :-)</li>
+    <li>Command to list information about installed packages.</li>
     <li>Robust implementation. (nearly all error conditions are checked)</li>
     <li>Rollback functionality. (no file left behind policy ;-))</li>
     <li>Full compatibility with legacy Slackware package database.</li>
@@ -39,41 +25,59 @@
     <li>Easy access to the package database thanks to libification.</li>
   </ul>
 
-  <p><b>Planned features are:</b></p>
-
+  <p><b>Planned features are (comming after version 1.0.0):</b></p>
   <ul>
-    <li>Fast upgrade, I guess... :-)</li>
     <li>Python bindings.</li>
     <li>PyGtk based GUI.</li>
   </ul>
 
  <h1>News</h1>
 
-  <dl>
-   <dt>2006-07-14</dt>
-    <dd>I started publishing patches to the alpha1 version of @SPKG@
-    in the <a href="dl/patches">patches</a> directory.</dd>
-   <dt>2006-07-10</dt>
-    <dd>Firtst alpha version released! This version implements install,
-    remove and list commands. See manpage for more information.
-    
-    Other new features include fully functional command line interface
-    with corresponding manpage and implementation of safe break points.
-    
-    You can safely break any command using some reasonable signal like
-    SIGINT and all changes made so far will be automatically rolled back.
-    
-    There are new command verbosity selection options too.
+<h2>Spkg beta released (2006-07-17)</h2>
+     <ul>
+<li>Spkg is feature complete!</li>
+<li>Less screwed website design. I've got some advice from
+the <a href="http://jurahu.net">expert</a>.</li>
+<li>Upgrade command implemented. It is not tested very much.
+    I've just tested it on the samba package from the slackware
+    current and it works same as upgradepkg from pkgtools.
+    It's based on the cmd_install() code though, so it should
+    work quit well. Time will tell. </li>
+<li>Install command refactoring: cmd_install() was split into
+    smaller and easilly manageable functions.</li>
+<li>Memory allocation audit. (confirmed by valgrind and glib
+    memory allocation profiler)</li>
+<li>Root path sanitization. (fixes double slashes when --root /)</li>
+<li>Improved and more consistent output from commands.</li>
+<li>Added more warnings where necessary. (permission diferences
+    between installed and existing directories, files changed
+    after installation, etc.)</li>
+<li>--dry-run should be now really DRY. :)</li>
+<li>Perform sanity checks on paths extracted from the doinst.sh
+    script.</li>
+<li>Added dep packages download script, for those who want
+    to build static verion of the spkg and don't want to search
+    whole day for popt-1.10.2 sources on the internet. ;-)</li>
+<li>Improved package name guessing algorithm.</li>
+     </ul>
 
-    I've put spkg on diet and completely dropped sqlite and filedb
-    database code. This results in fewer dependencies and little to
-    no performance impact. Filedb code was replaced with JudySL
-    arrays. See <a href="http://judy.sourceforge.net">this</a> page
-    for more info.
-    
-    Enjoy it!</dd>
+<h2>What's comming</h2>
+     <ul>
+<li>There will be refactoring of the transaction code. (it's
+    not broken, but it's not quit readable too)</li>
+<li>Then, I will write automated testsuite and create some really    
+    torturous packages to test as much code paths in spkg as
+    possible. And of course I will be running spkg in my normal
+    day to day use.</li>
+<li>Finally I would like to update documentation and make some
+    benchamrks on the brand new --upgrade command.</li>
+<li>Please, keep an eye on 
+    <a href="http://spkg.megous.com/dl/patches/beta/">http://spkg.megous.com/dl/patches/beta/</a>
+    for patches that will fix bugs found in this beta release.
+    I will be adding patches there as soon as each bug is fixed.
+    To date there are no known bugs in spkg.</li>
+     </ul>
 
-   <dt><a href="history.php">older news</a>...</dt>
-  </dl>
+ <p>See <a href="history.php">older news</a>...</p>
 
 <?php foot(); ?>
