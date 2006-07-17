@@ -1,3 +1,47 @@
+----------------------------------------------------------------
+spkg - Release Notes
+----------------------------------------------------------------
+2006-07-17: spkg beta
+
+  What's new:
+  - Spkg is feature complete!
+  - Upgrade command implemented. It is not tested very much.
+    I've just tested it on the samba package from the slackware
+    current and it works same as upgradepkg from pkgtools.
+    It's based on the cmd_install() code though, so it should
+    work quit well. Time will tell. 
+  - Install command refactoring: cmd_install() was split into
+    smaller and easilly manageable functions.
+  - Memory allocation audit. (confirmed by valgrind and glib
+    memory allocation profiler)
+  - Root path sanitization. (fixes double slashes when --root /)
+  - Improved and more consistent output from commands.
+  - Added more warnings where necessary. (permission diferences
+    between installed and existing directories, files changed
+    after installation, etc.)
+  - --dry-run should be now really DRY. :)
+  - Perform sanity checks on paths extracted from the doinst.sh
+    script.
+  - Added dep packages download script, for those who want
+    to build static verion of the spkg and don't want to search
+    whole day for popt-1.10.2 sources on the internet. ;-)
+  - Improved package name guessing algorithm.
+
+  What's comming:
+  - There will be refactoring of the transaction code. (it's
+    not broken, but it's not quit readable too)
+  - Then, I will write automated testsuite and create some really    
+    torturous packages to test as much code paths in spkg as
+    possible. And of course I will be running spkg in my normal
+    day to day use.
+  - Finally I would like to update documentation and make some
+    benchamrks on the brand new --upgrade command.
+  - Please, keep an eye on http://spkg.megous.com/dl/patches/beta/
+    for patches that will fix bugs found in this beta release.
+    I will be adding patches there as soon as each bug is fixed.
+    To date there are no known bugs in spkg.
+
+----------------------------------------------------------------
 2006-07-11: spkg alpha1
------------------------
-- first release
+
+  - First release!
