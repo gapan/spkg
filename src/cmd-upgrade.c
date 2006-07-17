@@ -173,7 +173,7 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
       }
       else
       {
-        if (orig_ptype == DB_PATH_NONE)
+        if (orig_ptype == DB_PATH_NONE) /* if this path was not in the original package */
         {
           if (opts->safe)
           {
@@ -378,18 +378,18 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
         }
         else
         {
-          if (opts->safe)
+          if (orig_ptype == DB_PATH_NONE) /* if this path was not in the original package */
           {
-            e_set(E_ERROR, "Can't create hardlink over existing %s. (%s)", ex_type == SYS_DIR ? "directory" : "file", sane_path);
-            g_free(linkpath);
-            goto extract_failed;
-          }
-          else
-          {
+            if (opts->safe)
+            {
+              e_set(E_ERROR, "Can't create hardlink over existing %s. (%s)", ex_type == SYS_DIR ? "directory" : "file", sane_path);
+              g_free(linkpath);
+              goto extract_failed;
+            }
             _warning("%s exists, where hardlink should be created. It will be removed.", ex_type == SYS_DIR ? "Directory" : "File");
-            ta_forcelink_nothing(fullpath, linkpath);
-            fullpath = NULL;
           }
+          ta_forcelink_nothing(fullpath, linkpath);
+          fullpath = NULL;
         }
       }
       else
@@ -433,7 +433,7 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
       }
       else /* file already exist there */
       {
-        if (orig_ptype == DB_PATH_NONE)
+        if (orig_ptype == DB_PATH_NONE) /* if this path was not in the original package */
         {
           if (opts->safe)
           {
