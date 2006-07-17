@@ -51,3 +51,10 @@ code {
     font-size: 70%;
     margin-top: 10px;
 }
+code {
+border: 1px dashed #00487D;
+color: #00487D;
+background-color: #F7FEFF;
+display: block;
+padding: 10px;
+}
