@@ -141,6 +141,7 @@ dist: docs
 	mkdir -p spkg-$(VERSION)
 	git tar-tree HEAD spkg-$(VERSION) | tar x
 	git log > spkg-$(VERSION)/ChangeLog
+	sed -i 's/^VERSION :=.*$$/VERSION := $(VERSION)/' spkg-$(VERSION)/Makefile
 	cp -a docs/html spkg-$(VERSION)/docs
 	tar czf spkg-$(VERSION).tar.gz spkg-$(VERSION)
 	rm -rf spkg-$(VERSION)
