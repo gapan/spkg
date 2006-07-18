@@ -2,6 +2,13 @@
 before rc |
 ----------/
 
+- rethink verbosity selection
+- cleanup error codes in install and upgrade commands
+- install if upgrade fails with no such package
+- force upgrade option (just like slack)
+
+- --check command
+
 [security] check path[4096] arrays access, create MAXPATHSIZE macro
 [taction] transaction code documentation is crap, and code feels a bit messy.
 [test] QA checklist
