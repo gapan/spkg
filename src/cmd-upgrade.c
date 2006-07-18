@@ -290,6 +290,7 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
   /* get information about installed file from filesystem and filedb */
   struct stat ex_stat;
   sys_ftype ex_type = sys_file_type_stat(fullpath, 0, &ex_stat);
+  sys_ftype ex_deref_type = sys_file_type(fullpath, 1);
 
   if (ex_type == SYS_ERR)
   {
@@ -313,6 +314,15 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
         {
           _notice("Direcory already exists %s", sane_path);
         }
+      }
+      else if (ex_type == SYS_SYM && ex_deref_type == SYS_DIR)
+      {
+        if (opts->safe)
+        {
+          e_set(E_ERROR, "Can't create directory over symlink. (%s)", sane_path);
+          goto extract_failed;
+        }
+        _warning("Direcory already exists %s (behind the symlink). Fix your package and upgrade it ASAP! This may not be tolerated in the future.", sane_path);
       }
       else if (ex_type == SYS_NONE)
       {
