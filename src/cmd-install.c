@@ -436,10 +436,13 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
         else if (tmp_type != SYS_NONE)
         {
           _warning("Temporary file already exists, removing %s", temppath);
-          if (unlink(temppath) < 0)
+          if (!opts->dryrun)
           {
-            e_set(E_ERROR, "Can't remove temporary file %s. (%s)", temppath, strerror(errno));
-            goto extract_failed;
+            if (unlink(temppath) < 0)
+            {
+              e_set(E_ERROR, "Can't remove temporary file %s. (%s)", temppath, strerror(errno));
+              goto extract_failed;
+            }
           }
         }
 
