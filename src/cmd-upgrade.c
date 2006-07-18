@@ -180,7 +180,7 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
             e_set(E_ERROR, "Can't create symlink over existing %s. (%s)", ex_type == SYS_DIR ? "directory" : "file", sane_link_path);
             goto parse_failed;
           }
-          _warning("%s exists, where symlink should be created. It will be removed.", ex_type == SYS_DIR ? "Directory" : "File");
+          _warning("%s exists, where symlink should be created. It will be removed. (%s)", ex_type == SYS_DIR ? "Directory" : "File", sane_link_path);
         }
         ta_forcesymlink_nothing(link_fullpath, g_strdup(link_target));
         link_fullpath = NULL;
@@ -375,7 +375,7 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
               g_free(linkpath);
               goto extract_failed;
             }
-            _warning("%s exists, where hardlink should be created. It will be removed.", ex_type == SYS_DIR ? "Directory" : "File");
+            _warning("%s exists, where hardlink should be created. It will be removed. (%s)", ex_type == SYS_DIR ? "Directory" : "File", sane_path);
           }
           ta_forcelink_nothing(fullpath, linkpath);
           fullpath = NULL;
