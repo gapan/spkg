@@ -420,7 +420,7 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
           goto extract_failed;
         }
 
-        _warning("File already exist %s", sane_path);
+        _warning("File already exist %s (it will be replaced)", sane_path);
 
         sys_ftype tmp_type = sys_file_type(temppath, 0);
         if (tmp_type == SYS_ERR)
