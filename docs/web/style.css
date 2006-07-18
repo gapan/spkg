@@ -28,6 +28,14 @@ h2 {
 }
 code {
     display: block;
+    border: 1px dashed #00487D;
+    color: #00487D;
+    background-color: #F7FEFF;
+    display: block;
+    padding: 10px;
+}
+img {
+    border: 0;
 }
 /*********************/
 #all {
@@ -51,10 +59,11 @@ code {
     font-size: 70%;
     margin-top: 10px;
 }
-code {
-border: 1px dashed #00487D;
-color: #00487D;
-background-color: #F7FEFF;
-display: block;
-padding: 10px;
+#lonmenu {
+    border-top: 1px solid black;
+    padding-top: 10px;
+    text-align: center;
+    font-size: 70%;
+    margin-top: 10px;
+    vertical-align: center;
 }
