@@ -173,7 +173,7 @@ int main(const int ac, const char* av[])
       verbose++;
     if (rc < -1)
     {
-      fprintf(stderr, "error[main]: invalid argument: %s (%s)\n",
+      fprintf(stderr, "ERROR: invalid argument: %s (%s)\n",
         poptStrerror(rc),
         poptBadOption(optCon, POPT_BADOPTION_NOALIAS));
       goto err_1;
@@ -239,7 +239,7 @@ int main(const int ac, const char* av[])
       if (command)
         goto got_command;
     }
-    fprintf(stderr, "error[main]: invalid argument: no command given\n");
+    fprintf(stderr, "ERROR: invalid argument: no command given\n");
     goto err_1;
   }
 
@@ -247,7 +247,7 @@ int main(const int ac, const char* av[])
   /* check verbosity options */
   if (verbose && quiet)
   {
-    fprintf(stderr, "error[main]: invalid argument: verbose or quiet?\n");
+    fprintf(stderr, "ERROR: invalid argument: verbose or quiet?\n");
     goto err_1;
   }
   if (verbose)
@@ -273,7 +273,7 @@ int main(const int ac, const char* av[])
     case CMD_LIST:
     break;
     default:
-      fprintf(stderr, "error[main]: invalid argument: schizofrenic command usage\n");
+      fprintf(stderr, "ERROR: invalid argument: schizofrenic command usage\n");
       goto err_1;
   }
 
@@ -366,6 +366,6 @@ int main(const int ac, const char* av[])
   e_print(err);
   goto out;
  err_nopackages:
-  fprintf(stderr, "error[main]: invalid argument: no packages given\n");
+  fprintf(stderr, "ERROR: invalid argument: no packages given\n");
   goto err_1;
 }
