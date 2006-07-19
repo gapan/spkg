@@ -32,11 +32,11 @@ extern void msg(const gint type, const gchar* fmt, ...);
 /** Print a notice. */
 #define _notice(fmt, args...) msg(3, fmt, ##args)
 
-/** Print an information. */
-#define _inform(fmt, args...) msg(2, fmt, ##args)
-
 /** Print a warning. */
-#define _warning(fmt, args...) msg(1, fmt, ##args)
+#define _warning(fmt, args...) msg(2, fmt, ##args)
+
+/** Print an information. */
+#define _inform(fmt, args...) msg(1, fmt, ##args)
 
 #endif
 

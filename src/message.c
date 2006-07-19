@@ -22,7 +22,7 @@ void msg(const gint type, const gchar* fmt, ...)
   g_assert(fmt != 0);
   if (_msg_verbosity < type)
     return;
-  if (type == 1)
+  if (type == 2)
     printf("WARNING: ");
   if (type == 3)
     printf(" --> ");

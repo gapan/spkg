@@ -51,7 +51,7 @@ POPT_TABLEEND
 static struct cmd_options cmd_opts = {
   .root = "/",
   .dryrun = 0,
-  .verbosity = 1,
+  .verbosity = 2,
   .safe = 0,
   .no_optsyms = 0,
   .no_scripts = 0,
@@ -81,14 +81,15 @@ static struct poptOption optsOptions[] = {
 },
 {
   "verbose", 'v', 0, 0, 1,
-  "Increase verbosity level. You may use this option multiple times to get "
-  "even more verbose output.", NULL
+  "Increase verbosity level. This option enables notices when used once. "
+  "When used twice it will also enable debug messages.", NULL
 },
 {
-  "quiet", 'q', 0, &quiet, 0,
-  "Set verbosity level to zero. Default verbosity level is 1 (show only "
-  "warnings). This option disables warnings. Please note, that error "
-  "messages can't be disabled.", NULL
+  "quiet", 'q', 0, 0, 2,
+  "Decrease verbosity level. Default verbosity level is 2 (show info "
+  "messages and warnings). This option disables warnings when used once. "
+  "When used twice it will completely disable output. "
+  "Please note, that error messages can't be disabled.", NULL
 },
 {
   "reinstall", 0, 0, &cmd_opts.reinstall, 0,
@@ -183,6 +184,8 @@ int main(const int ac, const char* av[])
   {
     if (rc == 1)
       verbose++;
+    else if (rc == 2)
+      quiet++;
     if (rc < -1)
     {
       fprintf(stderr, "ERROR: invalid argument: %s (%s)\n",
@@ -198,7 +201,7 @@ int main(const int ac, const char* av[])
     printf(
       "spkg " G_STRINGIFY(SPKG_VERSION) "\n"
       "\n"
-      "Written by Ondrej Jirman, 2005\n"
+      "Written by Ondrej Jirman, 2005-2006.\n"
       "\n"
       "This is free software. Not like a beer or like in a \"freedom\",\n"
       "but like in \"I don't care what you are going to do with it.\"\n"
@@ -262,10 +265,8 @@ int main(const int ac, const char* av[])
     fprintf(stderr, "ERROR: invalid argument: verbose or quiet?\n");
     goto err_1;
   }
-  if (verbose)
-    cmd_opts.verbosity = verbose+1;
-  if (quiet)
-    cmd_opts.verbosity = 0;
+  cmd_opts.verbosity += verbose;
+  cmd_opts.verbosity -= quiet;
 
   /* check command options */
   switch (command)
