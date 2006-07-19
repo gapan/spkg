@@ -70,14 +70,14 @@ static struct poptOption optsOptions[] = {
 },
 {
   "safe", 's', 0, &cmd_opts.safe, 0,
-  "Play it safe. Don't replace existing files on --install or --upgrade. "
+  "Play it safe. Don't replace existing files during --install or --upgrade. "
   "Don't run post-installation scripts. Don't remove changed files on "
   "--remove.", NULL
 },
 {
   "dry-run", 'n', 0, &cmd_opts.dryrun, 0,
   "Don't modify filesystem or database. This may be useful when used along "
-  "with -v option to check what exactly will given command do.", NULL
+  "with -v option to check what exactly would given command do.", NULL
 },
 {
   "verbose", 'v', 0, 0, 1,
@@ -98,8 +98,8 @@ static struct poptOption optsOptions[] = {
 },
 {
   "install-new", 0, 0, &install_new, 0,
-  "When upgrading package and package already exists in the database, "
-  "force reinstall.", NULL
+  "When upgrading package that does not yet exist in the database, "
+  "install it instead.", NULL
 },
 {
   "no-fast-symlinks", 0, 0, &cmd_opts.no_optsyms, 0,
