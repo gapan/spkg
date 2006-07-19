@@ -158,7 +158,11 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
       db_path_type orig_ptype = db_pkg_get_path(ipkg, sane_link_path);
 
       _notice("Symlink detected: %s -> %s", sane_link_path, link_target);
-      db_pkg_add_path(pkg, sane_link_path, DB_PATH_SYMLINK); /* target is freed by db_free_pkg() */
+      if (db_pkg_add_path(pkg, sane_link_path, DB_PATH_SYMLINK))
+      {
+        e_set(E_ERROR, "Can't add path to the package, it's too long. (%s)", sane_link_path);
+        goto parse_failed;
+      }
       sys_ftype ex_type = sys_file_type_stat(link_fullpath, 0, &ex_stat);
 
       if (ex_type == SYS_ERR)
@@ -266,7 +270,11 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
   /* EXIT: free(fullpath), free(temppath) */
 
   /* add file to the package */
-  db_pkg_add_path(pkg, sane_path, tgz->f_type == UNTGZ_DIR ? DB_PATH_DIR : DB_PATH_FILE);
+  if (db_pkg_add_path(pkg, sane_path, tgz->f_type == UNTGZ_DIR ? DB_PATH_DIR : DB_PATH_FILE))
+  {
+    e_set(E_ERROR, "Can't add path to the package, it's too long. (%s)", sane_path);
+    goto extract_failed;
+  }
 
   /* Here we must check interaction of following conditions:
    *
@@ -492,7 +500,7 @@ static void _delete_leftovers(struct db_pkg* pkg, struct db_pkg* ipkg,
                               const gchar* root, const struct cmd_options* opts,
                               struct error* e)
 {
-  gchar path[4096];
+  gchar path[MAXPATHLEN];
   gint* ptype;
   
   /* 

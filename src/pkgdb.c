@@ -172,7 +172,7 @@ void db_close()
 
 void db_filelist_rem_pkg_paths(const struct db_pkg* pkg)
 {
-  gchar path[4096];
+  gchar path[MAXPATHLEN];
   gint rc;
   void **p1, **p2;
 
@@ -199,7 +199,7 @@ void db_filelist_rem_pkg_paths(const struct db_pkg* pkg)
 
 void db_filelist_add_pkg_paths(const struct db_pkg* pkg)
 {
-  gchar path[4096];
+  gchar path[MAXPATHLEN];
   void **p1, **p2;
 
   strcpy(path, "");
@@ -268,6 +268,14 @@ gint db_filelist_load(gboolean force_reload)
         /* remove trailing / character from the end of the line */
         if (linelen > 0 && line[linelen-1] == '/')
           line[linelen-1] = '\0', linelen--;
+        /* check path size limit */
+        if (linelen >= MAXPATHLEN)
+        {
+          fclose(f);
+          strcpy(line+100, "...");
+          e_set(E_ERROR, "Path too long in the package database file %s. (%s)", name, line);
+          goto err_1;
+        }
         JSLI(ptr, _db.paths, line);
         (*ptr)++;
       }
@@ -302,6 +310,15 @@ gint db_filelist_load(gboolean force_reload)
         g_free(link);
         g_free(target);
         /* add */
+        /* check path size limit */
+        if (strlen(sane_path) >= MAXPATHLEN)
+        {
+          strcpy(sane_path+100, "...");
+          e_set(E_ERROR, "Path too long in the package database file %s. (%s)", name, line);
+          fclose(f);
+          g_free(sane_path);
+          goto err_1;
+        }
         JSLI(ptr, _db.paths, sane_path);
         (*ptr)++;
         g_free(sane_path);
@@ -382,11 +399,15 @@ void db_free_pkg(struct db_pkg* pkg)
   stop_timer(6);
 }
 
-void db_pkg_add_path(struct db_pkg* pkg, const gchar* path, db_path_type type)
+gint db_pkg_add_path(struct db_pkg* pkg, const gchar* path, db_path_type type)
 {
   gint* ptr;
+  /* check path size limit */
+  if (strlen(path) >= MAXPATHLEN)
+    return 1;
   JSLI(ptr, pkg->paths, path);
   *ptr = type;
+  return 0;
 }
 
 db_path_type db_pkg_get_path(struct db_pkg* pkg, const gchar* path)
@@ -457,7 +478,7 @@ gint db_add_pkg(struct db_pkg* pkg)
     fprintf(sf, "%s", pkg->doinst);
 
   /* construct filelist */
-  gchar path[4096];
+  gchar path[MAXPATHLEN];
   gint* ptr;
   strcpy(path, "");
   JSLF(ptr, pkg->paths, path);
@@ -637,6 +658,13 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
 	  line[linelen-1] = '\0', linelen--;
     if (linelen > 0 && line[linelen-1] == '/')
 	  line[linelen-1] = '\0', linelen--, type = DB_PATH_DIR;
+    /* check path size limit */
+    if (linelen >= MAXPATHLEN)
+    {
+      strcpy(line+100, "...");
+      e_set(E_ERROR, "Path too long in the package database file %s. (%s)", name, line);
+      goto err_1;
+    }
     JSLI(ptr, p->paths, line);
     *ptr = type;
   }
@@ -658,6 +686,14 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
       g_free(dir);
       g_free(link);
       g_free(target);
+      /* check path size limit */
+      if (strlen(sane_path) >= MAXPATHLEN)
+      {
+        strcpy(sane_path+100, "...");
+        e_set(E_ERROR, "Path too long in the package database script %s. (%s)", name, sane_path);
+        g_free(sane_path);
+        goto err_1;
+      }
       /* add */
       gint* ptr;
       JSLI(ptr, p->paths, sane_path);

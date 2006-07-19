@@ -29,7 +29,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
   g_assert(opts != 0);
   g_assert(e != 0);
 
-  gchar path[4096];
+  gchar path[MAXPATHLEN];
 
   /*
    - load package from db

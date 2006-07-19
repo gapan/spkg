@@ -40,6 +40,8 @@ These functions returns list of package names.
 #define DB_SQL     E(5) /**< sqlite error */
 #define DB_BLOCKED E(6) /**< db is open by another proccess */
 
+#define MAXPATHLEN 8192
+
 /** What to get when getting package from database. */
 typedef enum {
   DB_GET_FULL,         /**< get everything */
@@ -114,8 +116,9 @@ extern void db_free_pkg(struct db_pkg* pkg);
  * @param pkg [db_pkg] Package object.
  * @param path Path.
  * @param type Path type.
+ * @return 1 on failure (path too long), 0 on success.
  */
-extern void db_pkg_add_path(struct db_pkg* pkg, const gchar* path, db_path_type type);
+extern gint db_pkg_add_path(struct db_pkg* pkg, const gchar* path, db_path_type type);
 
 /** Get path from the package.
  *
