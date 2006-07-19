@@ -1,0 +1,52 @@
+<p>Spkg jsem předevčírem dostal do stavu, kdy jsou všchny důležité vlasntosti naimplementované a už chybělo jen testování na spoustě balíčků. No a už nechybí. :)</p>
+
+<break>
+
+<p>Upgrade a instalace potřebovaly znovu otestovat a tak jsem nainstaloval z DVD <i>Slackware-10.1</i> všechny balíčky z kategorií <i>a</i>, <i>ap</i>, <i>d</i>, <i>l</i> a <i>n</i>. To dává po instalaci 295 balíků zhruba 1GB dat (70 tisíc souborů). Instaloval jsem pomocí <code>installpkg</code> a <code>spkg -i</code> a následně porovnal výstup příkazu <code>tree -psufiga</code> a <code>find . -type f | xargs md5sum</code>. Na první pohled to nevypadalo moc nadějně. Instalace pomocí spkg vytvořila mnoho symlinků navíc oproti installpkg, ale to bylo způsobeno tím že v installpkg je chyba, protože ldconfig se nespouští pro adresář do kterého se instaluje (/root), ale vždy pro kořenový adresář. Což není moc platné. Po spuštění <code>ldconfig -r /root</code> a opětovném porovnání výstupu psufigy, už bylo vše pozitivnější.</p>
+
+<p>Defakto se pouze lišily velikosti adresářů, protože spkg při instalaci či upgrade, pokud již instalovaný soubor existuje, nejprve vytvoří dočasný soubor a až po dokončení zpracování tgz balíku všechny cílové soubory nahradí. Vytvářením dočasných souborů nám o něco nakynou adresáře ve kterých se tyto soubory vytvářejí. Pokud pak dojde k přerušení instalace/upgrade uživatelem, nebo nesplněním nějaké podmínky pak se prostě odstraní všechny soubory které byly do té doby vytvořeny a vše je jako před instalací. Čili je možně bezpečně přerušit dlouho trvající upgrade mnoha balíků bez obav o konzistenci zrovna upgradovaného balíku a prostě pokračovat později. Cílem vývoje samozřejmě nebylo aby si člověk mohl po zahájení upgrade v 8 hodin ho mohl ve 12 přerušit a pokračovat ráno, ale upgrade balíků výrazně zrychlit. :-)</p>
+
+<p>Upgrade test probíhal tak, že jsem provedl upgrade zmíněných kategorií z slackware-10.1 na slackware-10.2 přímo z DVD. V řeči příkazů, tedy:</p>
+
+<code>ROOT=/root1 upgradepkg {a,ap,d,l,n}/*.tgz</code>
+
+a pomocí spkg
+
+<code>spkg -u -v -r /root2 {a,ap,d,l,n}/*.tgz</code>
+
+<p>Poté jsem opět porovnal výstupy psufigy a md5sumu pro /root1 a /root2. Výstup těchto příkazů byl. bez neočekávaných rozdílů, kromě jednoho souboru, který je vytvářen instalačním skriptem bindu (/etc/rndc.key) a má být pro každou instalaci jiný.</p>
+
+<p>Nakonec jsem udělal remove test, abych ověřil že <code>spkg -d</code> funguje stejně jako <code>removepkg</code>. Opět s porovnáním stavu adresářů /root1 a /root2. Test spočíval v odstranění všech balíků ze skupiny <i>d</i>.</p>
+
+<p>Co nebylo stejné byly časy potřebné pro provedení potřebných operací. Tady jsou čísla:</p>
+
+<table>
+  <tr><th>Příkaz</th><th>REAL</th><th>USER</th><th>SYS</th></tr>
+  <tr><td><code>ROOT=/root1 installpkg {a,ap,d,l,n}/*.tgz</code></td><td>16m4s</td><td>7m42s</td><td>3m11s</td></tr>
+  <tr><td><code>spkg -i -v -r /root2 {a,ap,d,l,n}/*.tgz</code></td><td>3m41s</td><td>54s</td><td>38s</td></tr>
+  <tr><td><code>ROOT=/root1 upgradepkg {a,ap,d,l,n}/*.tgz</code></td><td>33m50s</td><td>18m30s</td><td>6m45s</td></tr>
+  <tr><td><code>spkg -u -v -r /root2 {a,ap,d,l,n}/*.tgz</code></td><td>4m39s</td><td>0m50s</td><td>0m40s</td></tr>
+  <tr><td><code>ROOT=/root1 removepkg `cat pkglist`</code></td><td>6m6s</td><td>3m43s</td><td>1m3s</td></tr>
+  <tr><td><code>spkg -d -v -r /root2 `cat pkglist`</code></td><td>11.8s</td><td>0.67s</td><td>1.18s</td></tr>
+</table>
+
+<p>Rozdíl oproti testům v mém předchozím příspěvku je v tom, že jsem tentokrát spouštěl instalaci z DVD, kde jsou přítomné soubory s popisem balíku, takže skripty installpkg a upgradepkg měly nyní o něco snažší práci než v předchozím případě, kdy jsem je spouštěl z mého mirroru slackware-current na disku, kde ony soubory nemám. A spkg měl o něco komplikovanější práci, protože jsem nepoužil parametr --no-ldconfig, takže ldconfig se spouštěl po každém nainstalovaném balíku. Spustit ldconfig trvá zhruba 100ms, takže to dává 30s zbytečně navíc pro jak installpkg tak spkg. Ovšem je rozdíl jestli je to 30s z 16m, nebo 30s z 3m40s. Při použití spkg DVD-ROM mechanika seekovala jak o život, takže by se někde v jejím okolí dalo hledat úzké herdlo. ;-)</p>
+
+<p>Malá poznámka na závěr pro ty co stále chtějí používat pkgtools. Spkg trpí stejným problémem jako pkgtools a to tím, že databáze balíčků čítá např. na mém systému 600 malých souborů. A z těchto 600 souborů je potřeba před zahájením upgrade načíst seznam souborů, které jsou v systému nainstalovány. To na mém systému, který už zažil upgrade zhruba 1400 balíčků trvá zhruba 12s, když ty soubory ještě nejsou v cache. Tento čas lze poměrně dobře srazit (u mě na 3s - z toho 800ms je dáno čistě zpracováním obsahu souborů - tj. omezeno výkonem procesoru, čili zrychlení se pohybuje někde v řádu 5x) pomocí drobné "defragmentace" adresářů /var/log/packages a /var/log/scripts. Zde je program defrag.sh:</p>
+<pre>
+#!/bin/sh -e
+rm -rf /var/log/packages~ /var/log/scripts~
+cp -a /var/log/packages /var/log/packages~
+cp -a /var/log/scripts /var/log/scripts~
+rm -rf /var/log/packages /var/log/scripts
+mv /var/log/packages~ /var/log/packages
+mv /var/log/scripts~ /var/log/scripts
+</pre>
+
+<p>Nechce k tomu někdo dopsat grafické rozhraní s kostičkama a progressbarem?</p>
+
+<p>Tímto se spkg velmi přiblížil k verzi 1.0. Ještě to budu nějaký čas používat kde budu moct, a mám v plánu vytvoření testsuite složené z mnoha speciálně vytvořených balíčků, které otestují co nejvíc cest v kódu. Dále je potřeba přidat pár drobných volitelných vlastností, jako je v pkgtools např. upgradepkg --install-new nebo --reinstall. A nakonec bude třeba zaktualizovat dokumentaci.</p>
+
+<p>Nemá někdo nápad na užitečnou vlastnost, která v pkgtools chybí? Napadá mě příkaz --check, který by zkontroloval dané blaíčky a zobrazil soubory, které byly změněny či odstraněny po instalaci balíčku.</p>
+
+Homepage projektu je: <a href="http://spkg.megous.com">http://spkg.megous.com</a>.
