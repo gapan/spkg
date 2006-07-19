@@ -62,10 +62,13 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     goto err1;
   }
 
-  _notice("Loading list of all installed files...");
-
   /* we will need filelist, so get it if it is not already loaded */
-  db_filelist_load(FALSE);
+  _notice("Loading list of all installed files...");
+  if (db_filelist_load(FALSE))
+  {
+    e_set(E_ERROR, "Can't load list of all installed files.");
+    goto err1;
+  }
 
   _safe_breaking_point(err2);
 

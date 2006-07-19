@@ -692,7 +692,11 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
 
   /* we will need filelist, so get it if it is not already loaded */
   _notice("Loading list of all installed files...");
-  db_filelist_load(FALSE);
+  if (db_filelist_load(FALSE))
+  {
+    e_set(E_ERROR, "Can't load list of all installed files.");
+    goto err2;
+  }
 
   /* EXIT: free(name), free(shortname), db_free_pkg(ipkg), untgz_close(tgz) */
 
