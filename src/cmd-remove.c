@@ -49,7 +49,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
   gchar* real_pkgname = db_get_package_name(pkgname);
   if (real_pkgname == NULL)
   {
-    e_set(E_ERROR, "Package not found. (%s)", pkgname);
+    e_set(E_ERROR|CMD_NOTEX, "Package not found. (%s)", pkgname);
     goto err0;
   }
 
@@ -58,7 +58,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
   struct db_pkg* pkg = db_get_pkg(real_pkgname, DB_GET_FULL);
   if (pkg == NULL)
   {
-    e_set(E_ERROR, "Can't get package from the database. (%s)", real_pkgname);
+    e_set(E_ERROR|CMD_NOTEX, "Can't get package from the database. (%s)", real_pkgname);
     goto err1;
   }
 
@@ -266,6 +266,6 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
  err1:
   g_free(real_pkgname);
  err0:
-  e_set(E_ERROR,"Package removal failed!");
+  e_set(E_PASS,"Package removal failed!");
   return 1;
 }

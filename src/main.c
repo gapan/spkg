@@ -55,11 +55,13 @@ static struct cmd_options cmd_opts = {
   .safe = 0,
   .no_optsyms = 0,
   .no_scripts = 0,
-  .no_ldconfig = 0
+  .no_ldconfig = 0,
+  .reinstall = 0
 };
 
 static gint verbose = 0;
 static gint quiet = 0;
+static gint install_new = 0;
 
 static struct poptOption optsOptions[] = {
 {
@@ -89,13 +91,23 @@ static struct poptOption optsOptions[] = {
   "messages can't be disabled.", NULL
 },
 {
-  "no-fast-symlinks", '\0', 0, &cmd_opts.no_optsyms, 0,
+  "reinstall", 0, 0, &cmd_opts.reinstall, 0,
+  "When upgrading package and package already exists in the database, "
+  "force reinstall.", NULL
+},
+{
+  "install-new", 0, 0, &install_new, 0,
+  "When upgrading package and package already exists in the database, "
+  "force reinstall.", NULL
+},
+{
+  "no-fast-symlinks", 0, 0, &cmd_opts.no_optsyms, 0,
   "Spkg by default parses doinst.sh for symlink creation code and removes "
   "it from the script. This improves execution times of doinst.sh. Use "
   "this option to disable such optimizations.", NULL
 },
 {
-  "no-scripts", '\0', 0, &cmd_opts.no_scripts, 0,
+  "no-scripts", 0, 0, &cmd_opts.no_scripts, 0,
   "Disable postinstallation script.", NULL
 },
 {
@@ -306,9 +318,22 @@ int main(const int ac, const char* av[])
       {
         if (cmd_upgrade(arg, &cmd_opts, err))
         {
-          e_print(err);
-          e_clean(err);
-          status = 2;
+          if (install_new && (e_errno(err) & CMD_NOTEX))
+          {
+            e_clean(err);
+            if (cmd_install(arg, &cmd_opts, err))
+            {
+              e_print(err);
+              e_clean(err);
+              status = 2;
+            }
+          }
+          else
+          {
+            e_print(err);
+            e_clean(err);
+            status = 2;
+          }
         }
       }
     }

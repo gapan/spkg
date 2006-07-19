@@ -17,12 +17,8 @@
 #include <glib.h>
 #include "error.h"
 
-#define CMD_EXIST   E(0) /**< package exist */
-#define CMD_NOTEX   E(1) /**< package not exist */
-#define CMD_BADNAME E(2) /**< package has invalid name */
-#define CMD_CORRUPT E(3) /**< package is corrupted */
-#define CMD_BADIO   E(4) /**< failed filesystem operation */
-#define CMD_DB      E(5) /**< package database error */
+#define CMD_EXIST   E(0) /**< package already exists */
+#define CMD_NOTEX   E(1) /**< package does not exist */
 
 /** Common package command options structure. */
 struct cmd_options {
@@ -33,6 +29,7 @@ struct cmd_options {
   gboolean no_scripts; /**< Turn off scripts (doinst.sh) execution. */
   gboolean no_optsyms; /**< Turn off symlink optimizations. */
   gboolean no_ldconfig; /**< Turn off ldconfig execution. */
+  gboolean reinstall;  /**< Reinstall package when it is already installed (for upgrade). */
 };
 
 /** Install package.

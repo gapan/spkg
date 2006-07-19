@@ -96,7 +96,7 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
       {
         if (untgz_write_file(tgz, fullpath))
         {
-          e_set(E_ERROR|CMD_BADIO, "Failed to extract file %s.", sane_path);
+          e_set(E_ERROR, "Failed to extract file %s.", sane_path);
           goto err0;
         }
       }
@@ -112,7 +112,7 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
   gsize len;
   if (untgz_write_data(tgz, &buf, &len))
   {
-    e_set(E_ERROR|CMD_BADIO, "Failed to read post-installation script into buffer.");
+    e_set(E_ERROR, "Failed to read post-installation script into buffer.");
     goto err0;
   }
 
@@ -223,7 +223,7 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
       }
       if (sys_write_buffer_to_file(fullpath, doinst_buf, doinst_len, e))
       {
-        e_set(E_ERROR|CMD_BADIO, "Can't write buffer to file %s.", sane_path);
+        e_set(E_ERROR, "Can't write buffer to file %s.", sane_path);
         g_free(doinst_buf);
         g_slist_foreach(doinst, (GFunc)g_free, 0);
         g_slist_free(doinst);
@@ -474,7 +474,7 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
   g_free(fullpath);
   return;
  extract_failed:
-  e_set(E_ERROR|CMD_BADIO, "Failed to extract file %s.", sane_path);
+  e_set(E_ERROR, "Failed to extract file %s.", sane_path);
   goto done;
 }
 
@@ -514,7 +514,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   /* check if file exist and is regular file */
   if (sys_file_type(pkgfile,1) != SYS_REG)
   {
-    e_set(E_ERROR|CMD_NOTEX, "Package file does not exist. (%s)", pkgfile);
+    e_set(E_ERROR, "Package file does not exist. (%s)", pkgfile);
     goto err0;
   }
 
@@ -523,7 +523,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   if ((name = parse_pkgname(pkgfile,5)) == 0 
       || (shortname = parse_pkgname(pkgfile,1)) == 0)
   {
-    e_set(E_ERROR|CMD_BADNAME, "Package name is invalid. (%s)", pkgfile);
+    e_set(E_ERROR, "Package name is invalid. (%s)", pkgfile);
     goto err1;
   }
 
@@ -556,7 +556,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   tgz = untgz_open(pkgfile, 0, e);
   if (tgz == 0)
   {
-    e_set(E_ERROR|CMD_NOTEX,"Can't open package file. (%s)", pkgfile);
+    e_set(E_ERROR,"Can't open package file. (%s)", pkgfile);
     goto err1;
   }
 
@@ -595,7 +595,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     if (sane_path == NULL || _unsafe_path(sane_path))
     {
       /* some damned fucker created this package to mess our system */
-      e_set(E_ERROR|CMD_CORRUPT,"Package contains file with unsafe path. (%s)", tgz->f_name);
+      e_set(E_ERROR,"Package contains file with unsafe path. (%s)", tgz->f_name);
       goto err3;
     }
 
@@ -611,7 +611,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     {
       if (tgz->f_size > 1024*4) /* 4K is enough */
       {
-        e_set(E_ERROR|CMD_CORRUPT, "Package description file is too big. (%d kB)", tgz->f_size / 1024);
+        e_set(E_ERROR, "Package description file is too big. (%d kB)", tgz->f_size / 1024);
         goto err3;
       }
       _read_slackdesc(tgz, pkg);
@@ -621,13 +621,13 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     {
       if (tgz->f_size > 1024*512) /* 512K is enough for all. :) */
       {
-        e_set(E_ERROR|CMD_CORRUPT, "Installation script is too big. (%d kB)", tgz->f_size / 1024);
+        e_set(E_ERROR, "Installation script is too big. (%d kB)", tgz->f_size / 1024);
         goto err3;
       }
       has_doinst = _read_doinst_sh(tgz, pkg, root, sane_path, opts, e);
       if (!e_ok(e))
       {
-        e_set(E_ERROR|CMD_CORRUPT, "Installation script processing failed.");
+        e_set(E_ERROR, "Installation script processing failed.");
         goto err3;
       }
       continue;
@@ -648,7 +648,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   /* error occured during extraction */
   if (!e_ok(e))
   {
-    e_set(E_ERROR|CMD_CORRUPT,"Package file is corrupted. (%s)", pkgfile);
+    e_set(E_ERROR,"Package file is corrupted. (%s)", pkgfile);
     goto err3;
   }
 
@@ -661,7 +661,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   {
     if (db_add_pkg(pkg))
     {
-      e_set(E_ERROR|CMD_DB,"Can't add package to the database.");
+      e_set(E_ERROR,"Can't add package to the database.");
       goto err3;
     }
     _safe_breaking_point(err4);
@@ -766,6 +766,6 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   g_free(name);
   g_free(shortname);
  err0:
-  e_set(E_ERROR,"Package installation failed!");
+  e_set(E_PASS,"Package installation failed!");
   return 1;
 }
