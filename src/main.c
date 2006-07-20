@@ -14,6 +14,8 @@
 #include "commands.h"
 #include "pkgdb.h"
 #include "sigtrap.h"
+#include "message.h"
+#include "misc.h"
 
 /* commands
  ************************************************************************/
@@ -328,6 +330,12 @@ int main(const int ac, const char* av[])
               e_clean(err);
               status = 2;
             }
+          }
+          else if (e_errno(err) & CMD_EXIST)
+          {
+            gchar* pkgname = parse_pkgname(arg, 5);
+            _inform("Skipping package %s (already installed)...", pkgname ? pkgname : arg);
+            g_free(pkgname);
           }
           else
           {
