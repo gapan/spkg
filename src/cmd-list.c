@@ -53,7 +53,7 @@ gint cmd_list(GSList* arglist, const struct cmd_options* opts, struct error* e)
   g_assert(opts != 0);
   g_assert(e != 0);
 
-  gint verbose = opts->verbosity > 1;
+  gint verbose = opts->verbosity > 2;
   db_query_type type = verbose ? DB_QUERY_PKGS_WITHOUT_FILES : DB_QUERY_NAMES;
 
   GSList* list = db_query((db_selector)_list_selector, arglist, type);
