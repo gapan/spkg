@@ -26,6 +26,8 @@ void msg(const gint type, const gchar* fmt, ...)
     printf("WARNING: ");
   if (type == 3)
     printf(" --> ");
+  if (type == 4)
+    printf("DEBUG: ");
   va_list ap;
   va_start(ap, fmt);
   vprintf(fmt, ap);
