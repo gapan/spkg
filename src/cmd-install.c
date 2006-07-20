@@ -535,8 +535,6 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     goto err1;
   }
 
-  _inform("Installing package %s...", name);
-
   _safe_breaking_point(err1);
 
   /* check if package is already in the database */  
@@ -556,6 +554,8 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   }
 
   _safe_breaking_point(err1);
+
+  _inform("Installing package %s...", name);
 
   /* EXIT: free(name), free(shortname) */
 
