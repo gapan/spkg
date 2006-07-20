@@ -6,8 +6,9 @@
 \*----------------------------------------------------------------------*/
 /** @defgroup pt_api Package Tools API
 
+Each of the folowing functions implement particular commad.
 
-*//*--------------------------------------------------------------------*/
+*/
 /** @addtogroup pt_api */
 /*! @{ */
 
@@ -41,7 +42,7 @@ struct cmd_options {
  */
 extern gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct error* e);
 
-/** Upgrade package <b>[not implemented]</b>.
+/** Upgrade package.
  * 
  * @param pkgfile Package file.
  * @param opts Options.

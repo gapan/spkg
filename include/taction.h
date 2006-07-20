@@ -4,7 +4,15 @@
 |*----------------------------------------------------------------------*|
 |*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
-/** @addtogroup other_api */
+/** @defgroup taction_api Filesystem transaction API
+
+This API is used to implement rollback functionality. First you initialize
+transaction using ta_initialize(), then you will build transaction using
+ta_[on_finalize]_[on_rollback]() functions. And finally you will call
+ta_finalize() or ta_rollback() to end transaction.
+
+*/
+/** @addtogroup taction_api */
 /*! @{ */
 
 #ifndef SPKG__TRANSACTION_H
@@ -13,86 +21,88 @@
 #include <glib.h>
 #include "error.h"
 
-#define TA_ACTIVE  E(0) /**< another transaction is still active */
-#define TA_NACTIVE E(1) /**< transaction is not active */
+#define TA_ACTIVE  E(0) /**< Another transaction is still active. */
+#define TA_NACTIVE E(1) /**< Transaction is not active. */
 
-/*XXX: these comments are total crap, fixem */
-
-/** Initialize current transaction.
+/** Initialize transaction.
  * 
- * @param dryrun don't touch filesystem
- * @param e error object
- * @return 0 on success, 1 on error
+ * @param dryrun Don't touch filesystem on ta_finalize() or ta_rollback().
+ * @param e Error object.
+ * @return 0 on success, 1 on error.
  */
 extern gint ta_initialize(gboolean dryrun, struct error* e);
 
-/** Finalize current transaction.
+/** Finalize current transaction. Registered actions will be performed
+ * in the registration order. (Except for ta_remove_nothing())
  * 
- * @return 0 on success, 1 on error
+ * @return 0 on success, 1 on error.
  */
 extern gint ta_finalize();
 
-/** Rollback current transaction.
+/** Rollback current transaction. Registered actions will be performed
+ * in the reverse registration order.
  * 
- * @return 0 on success, 1 on error
+ * @return 0 on success, 1 on error.
  */
 extern gint ta_rollback();
 
-/** Add action to the current transaction.
+/** Keep file on finalize, remove on rollback.
  * 
- * @param path path to the transactioned object
- * @param is_dir if path points to a directory
+ * @param path File/directory path.
+ * @param is_dir Path points to a directory.
  */
 extern void ta_keep_remove(gchar* path, gboolean is_dir);
 
-/** Add action to the current transaction.
+/** Rename file on finalize, remove on rollback.
  * 
- * @param path path to the transactioned object
- * @param fin_path destination path
+ * @param path File path.
+ * @param dst_path Destination file path.
  */
-extern void ta_move_remove(gchar* path, gchar* fin_path);
+extern void ta_move_remove(gchar* path, gchar* dst_path);
 
-/** Add action to the current transaction.
+/** Create hardlink on finalize, do nothing on rollback.
  * 
- * @param path path to the transactioned object
- * @param src_path link source path
+ * @param path Link path.
+ * @param tgt_path Link target path.
  */
-extern void ta_link_nothing(gchar* path, gchar* src_path);
+extern void ta_link_nothing(gchar* path, gchar* tgt_path);
 
-/** Add action to the current transaction.
+/** Forcibly create hardlink on finalize, do nothing on rollback.
  * 
- * @param path path to the transactioned object
- * @param src_path link source path
+ * @param path Link path.
+ * @param tgt_path Link target path.
  */
-extern void ta_forcelink_nothing(gchar* path, gchar* src_path);
+extern void ta_forcelink_nothing(gchar* path, gchar* tgt_path);
 
-/** Add action to the current transaction.
+/** Create symlink on finalize, do nothing on rollback.
  * 
- * @param path path to the transactioned object
- * @param src_path link source path
+ * @param path Link path.
+ * @param tgt_path Link target path.
  */
-extern void ta_symlink_nothing(gchar* path, gchar* src_path);
+extern void ta_symlink_nothing(gchar* path, gchar* tgt_path);
 
-/** Add action to the current transaction.
+/** Forcibly create symlink on finalize, do nothing on rollback.
  * 
- * @param path path to the transactioned object
- * @param src_path link source path
+ * @param path Link path.
+ * @param tgt_path Link target path.
  */
-extern void ta_forcesymlink_nothing(gchar* path, gchar* src_path);
+extern void ta_forcesymlink_nothing(gchar* path, gchar* tgt_path);
 
-/** Add action to the current transaction.
+/** Change permissions on finalize, do nothing on rollback.
  * 
- * @param path path to the transactioned object
- * @param mode new mode of the object
- * @param owner new owner of the object
- * @param group new group of the object
+ * @param path File/directory path.
+ * @param mode Mode.
+ * @param owner Owner.
+ * @param group Group.
  */
 extern void ta_chperm_nothing(gchar* path, gint mode, gint owner, gint group);
 
-/** Add action to the current transaction.
+/** Remove file/directory on finalize, do nothing on rollback.
+ * If path is directory, it removal will be done in the reverse order
+ * at the end of the transaction. This helps to simplify upgrade command.
  * 
- * @param path path to the transactioned object
- * @param is_dir if path points to a directory
+ * @param path File/directory path.
+ * @param is_dir Path points to a directory.
  */
 extern void ta_remove_nothing(gchar* path, gint is_dir);
 

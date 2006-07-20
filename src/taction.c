@@ -102,49 +102,49 @@ void ta_keep_remove(gchar* path, gboolean is_dir)
   a->is_dir = is_dir;
 }
 
-void ta_move_remove(gchar* path, gchar* fin_path)
+void ta_move_remove(gchar* path, gchar* dst_path)
 {
   g_assert(path != 0);
-  g_assert(fin_path != 0);
+  g_assert(dst_path != 0);
   struct action* a = _ta_insert(&_ta.list, MOVE, REMOVE);
   a->path1 = path;
-  a->path2 = fin_path;
+  a->path2 = dst_path;
 }
 
-void ta_link_nothing(gchar* path, gchar* src_path)
+void ta_link_nothing(gchar* path, gchar* tgt_path)
 {
   g_assert(path != 0);
-  g_assert(src_path != 0);
+  g_assert(tgt_path != 0);
   struct action* a = _ta_insert(&_ta.list, LINK, NOTHING);
   a->path1 = path;
-  a->path2 = src_path;
+  a->path2 = tgt_path;
 }
 
-void ta_symlink_nothing(gchar* path, gchar* src_path)
+void ta_symlink_nothing(gchar* path, gchar* tgt_path)
 {
   g_assert(path != 0);
-  g_assert(src_path != 0);
+  g_assert(tgt_path != 0);
   struct action* a = _ta_insert(&_ta.list, SYMLINK, NOTHING);
   a->path1 = path;
-  a->path2 = src_path;
+  a->path2 = tgt_path;
 }
 
-void ta_forcesymlink_nothing(gchar* path, gchar* src_path)
+void ta_forcesymlink_nothing(gchar* path, gchar* tgt_path)
 {
   g_assert(path != 0);
-  g_assert(src_path != 0);
+  g_assert(tgt_path != 0);
   struct action* a = _ta_insert(&_ta.list, FORCESYMLINK, NOTHING);
   a->path1 = path;
-  a->path2 = src_path;
+  a->path2 = tgt_path;
 }
 
-void ta_forcelink_nothing(gchar* path, gchar* src_path)
+void ta_forcelink_nothing(gchar* path, gchar* tgt_path)
 {
   g_assert(path != 0);
-  g_assert(src_path != 0);
+  g_assert(tgt_path != 0);
   struct action* a = _ta_insert(&_ta.list, FORCELINK, NOTHING);
   a->path1 = path;
-  a->path2 = src_path;
+  a->path2 = tgt_path;
 }
 
 void ta_chperm_nothing(gchar* path, gint mode, gint owner, gint group)

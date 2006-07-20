@@ -8,7 +8,7 @@
 
 This is common error handling API for all parts of spkg.
 
-*//*--------------------------------------------------------------------*/
+*/
 /** @addtogroup err_api */
 /*! @{ */
 

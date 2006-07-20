@@ -18,7 +18,7 @@
 These functions returns list of package names.
 \li \ref db_query
 
-*//*--------------------------------------------------------------------*/
+*/
 /** @addtogroup pkgdb_api */
 /*! @{ */
 
@@ -32,15 +32,14 @@ These functions returns list of package names.
 /** Directory where the package database is stored. */
 #define PKGDB_DIR "var/log"
 
-#define DB_NOPEN   E(0) /**< database is not open */
-#define DB_OPEN    E(1) /**< database is already open (when opening) */
-#define DB_CORRUPT E(2) /**< database is corrupted */
-#define DB_NOTEX   E(3) /**< package not exist in database */
-#define DB_EXIST   E(4) /**< package already in database */
-#define DB_SQL     E(5) /**< sqlite error */
-#define DB_BLOCKED E(6) /**< db is open by another proccess */
+#define DB_NOPEN   E(0) /**< Database is not open. */
+#define DB_OPEN    E(1) /**< Database is already open (when opening). */
+#define DB_CORRUPT E(2) /**< Database is corrupted. */
+#define DB_NOTEX   E(3) /**< Package not exist in database. */
+#define DB_EXIST   E(4) /**< Package already in database. */
+#define DB_BLOCKED E(6) /**< DB is open by another proccess. */
 
-#define MAXPATHLEN 8192
+#define MAXPATHLEN 8192 /**< Maximum length of the path. */
 
 /** What to get when getting package from database. */
 typedef enum {
@@ -150,7 +149,7 @@ extern struct db_pkg* db_get_pkg(gchar* name, db_get_type type);
  */
 extern gint db_rem_pkg(gchar* name);
 
-/** Replace package @b origname with package @pkg.
+/** Replace package @b origname with package @b pkg.
  *
  * @param origname Original package name (something like: blah-1.0-i486-1)
  * @param pkg [db_pkg] Package object.
