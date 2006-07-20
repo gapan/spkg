@@ -801,12 +801,7 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
   _notice("Updating package database...");
   if (!opts->dryrun)
   {
-    if (db_rem_pkg(ipkg->name))
-    {
-      /* should not ever happen, but check it anyway */
-      _warning("Can't remove package from the database. (%s)", ipkg->name);
-    }
-    if (db_add_pkg(pkg))
+    if (db_replace_pkg(ipkg->name, pkg))
     {
       e_set(E_ERROR,"Can't add package to the database.");
       goto err3;
