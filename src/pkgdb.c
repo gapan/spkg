@@ -408,7 +408,7 @@ db_path_type db_pkg_get_path(struct db_pkg* pkg, const gchar* path)
 /* public - main database package operations
  ************************************************************************/
 
-gint db_add_pkg(struct db_pkg* pkg)
+static gint _db_add_pkg(struct db_pkg* pkg, gchar* origname)
 {
   FILE *pf, *sf;
   gchar *ppath, *spath, *ppath_tmp, *spath_tmp;
@@ -509,6 +509,15 @@ gint db_add_pkg(struct db_pkg* pkg)
     fclose(sf);
   }
 
+  if (origname)
+  {
+    if (db_rem_pkg(origname))
+    {
+      e_set(E_FATAL, "Can't remove original package from the database. (%s)", origname);
+      goto err_1;
+    }
+  }
+
   /* finally put package and script files into place */
   if (rename(ppath_tmp, ppath) < 0)
   {
@@ -546,6 +555,16 @@ gint db_add_pkg(struct db_pkg* pkg)
   g_free(spath_tmp);
  err_0:
   return 1;
+}
+
+gint db_add_pkg(struct db_pkg* pkg)
+{
+  return _db_add_pkg(pkg, NULL);
+}
+
+gint db_replace_pkg(gchar* origname, struct db_pkg* pkg)
+{
+  return _db_add_pkg(pkg, origname);
 }
 
 struct db_pkg* db_get_pkg(gchar* name, db_get_type type)

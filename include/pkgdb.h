@@ -150,6 +150,14 @@ extern struct db_pkg* db_get_pkg(gchar* name, db_get_type type);
  */
 extern gint db_rem_pkg(gchar* name);
 
+/** Replace package @b origname with package @pkg.
+ *
+ * @param origname Original package name (something like: blah-1.0-i486-1)
+ * @param pkg [db_pkg] Package object.
+ * @return 0 on success, 1 on error
+ */
+extern gint db_replace_pkg(gchar* origname, struct db_pkg* pkg);
+
 /** Package selector callback function.
  *
  * @param pkg filled package structure
