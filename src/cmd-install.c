@@ -64,7 +64,7 @@ static void _read_slackdesc(struct untgz_state* tgz, struct db_pkg* pkg)
   gint i;
   for (i=0;i<11;i++)
   {
-    _inform("| %s", desc[i]);
+    _inform("| %s", desc[i] ? desc[i] : "");
     g_free(desc[i]);
   }  
 }
