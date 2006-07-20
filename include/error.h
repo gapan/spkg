@@ -17,6 +17,8 @@ This is common error handling API for all parts of spkg.
 
 #include <glib.h>
 
+G_BEGIN_DECLS
+
 #define E_OK      0 /**< all ok */
 #define E_ERROR   1 /**< nonfatal error */
 #define E_BADARG  2 /**< invalid function arguments */
@@ -68,7 +70,7 @@ extern void e_add(
   gint errnum,
   gchar* errfmt,
   ...
-);
+) G_GNUC_PRINTF (5, 6);
 
 /** Clean error.
  * 
@@ -88,6 +90,8 @@ extern void e_print(struct error* e);
  * @return true if ok.
  */
 extern gint e_ok(struct error* e);
+
+G_END_DECLS
 
 #endif
 

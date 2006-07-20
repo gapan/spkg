@@ -80,6 +80,8 @@ int main(int ac, char* av[])
 
 #include "error.h"
 
+G_BEGIN_DECLS
+
 #define UNTGZ_CORRUPT E(0) /**< archive is corrupt */
 #define UNTGZ_BLOCKED E(1) /**< untgz is blocked because of corrupt archive */
 #define UNTGZ_BADIO E(2) /**< can't open/write/create/update/whatever file */
@@ -179,6 +181,8 @@ extern gint untgz_write_data(struct untgz_state* s, gchar** buf, gsize* len);
  * @return 0 on success, 1 if file was already written, -1 on error.
  */
 extern gint untgz_write_file(struct untgz_state* s, gchar* altname);
+
+G_END_DECLS
 
 #endif
 

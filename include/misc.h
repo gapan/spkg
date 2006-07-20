@@ -12,6 +12,8 @@
 
 #include <glib.h>
 
+G_BEGIN_DECLS
+
 /** Parse package name into parts.
  *
  * @param path Package path.
@@ -25,7 +27,7 @@
  *  @li 6 check (returns -1 if ok)
  * @return Requested package name element (g_malloced), 0 on error.
  */
-extern gchar* parse_pkgname(const gchar* path, guint elem);
+extern gchar* parse_pkgname(const gchar* path, guint elem) G_GNUC_MALLOC;
 
 /** Parse slack-desc file from buffer into parts.
  *
@@ -42,7 +44,7 @@ extern gint parse_slackdesc(const gchar* slackdesc, const gchar* sname, gchar* d
  * @param desc Array of prased slack-desc lines.
  * @return 0 on error, slack-desc string
  */
-extern gchar* gen_slackdesc(const gchar* sname, gchar* desc[11]);
+extern gchar* gen_slackdesc(const gchar* sname, gchar* desc[11]) G_GNUC_MALLOC;
 
 /** Parse link line in the doinst_sh file.
  *
@@ -97,6 +99,8 @@ extern gint iter_str_lines(gchar** b, gchar** e, gchar** n, gchar** ln);
  * @endcode
  */
 extern gint iter_buf_lines(gchar** b, gchar** e, gchar** n, gchar* eof, gchar** ln);
+
+G_END_DECLS
 
 #endif
 

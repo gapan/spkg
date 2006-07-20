@@ -22,6 +22,8 @@ Misc utility functions.
 
 #include "error.h"
 
+G_BEGIN_DECLS
+
 /** File type. */
 typedef enum { 
   SYS_ERR=0, /**< can't determine type */
@@ -126,6 +128,8 @@ extern void sys_lock_del(gint fd);
  * @return 1 on failure, 0 on success
  */
 extern gint sys_write_buffer_to_file(const gchar* file, const gchar* buf, gsize len, struct error* e);
+
+G_END_DECLS
 
 #endif
 

@@ -18,6 +18,8 @@ Each of the folowing functions implement particular commad.
 #include <glib.h>
 #include "error.h"
 
+G_BEGIN_DECLS
+
 #define CMD_EXIST   E(0) /**< package already exists */
 #define CMD_NOTEX   E(1) /**< package does not exist */
 
@@ -68,6 +70,8 @@ extern gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, str
  * @return 0 on success, 1 on error
  */
 extern gint cmd_list(GSList* arglist, const struct cmd_options* opts, struct error* e);
+
+G_END_DECLS
 
 #endif
 

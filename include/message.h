@@ -13,6 +13,8 @@
 #include <glib.h>
 #include "error.h"
 
+G_BEGIN_DECLS
+
 /** Setup messages.
  *
  * @param verbosity verbosity level
@@ -24,7 +26,9 @@ extern void msg_setup(gint verbosity);
  * @param type verbosity level of message
  * @param fmt just like printf
  */
-extern void msg(const gint type, const gchar* fmt, ...);
+extern void msg(const gint type, const gchar* fmt, ...) G_GNUC_PRINTF (2, 3);
+
+G_END_DECLS
 
 /** Print a debug message. */
 #define _debug(fmt, args...) msg(4, fmt, ##args)

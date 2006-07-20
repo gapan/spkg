@@ -21,6 +21,8 @@ ta_finalize() or ta_rollback() to end transaction.
 #include <glib.h>
 #include "error.h"
 
+G_BEGIN_DECLS
+
 #define TA_ACTIVE  E(0) /**< Another transaction is still active. */
 #define TA_NACTIVE E(1) /**< Transaction is not active. */
 
@@ -105,6 +107,8 @@ extern void ta_chperm_nothing(gchar* path, gint mode, gint owner, gint group);
  * @param is_dir Path points to a directory.
  */
 extern void ta_remove_nothing(gchar* path, gint is_dir);
+
+G_END_DECLS
 
 #endif
 

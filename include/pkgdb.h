@@ -29,6 +29,8 @@ These functions returns list of package names.
 #include <time.h>
 #include "error.h"
 
+G_BEGIN_DECLS
+
 /** Directory where the package database is stored. */
 #define PKGDB_DIR "var/log"
 
@@ -223,6 +225,8 @@ extern void db_filelist_add_pkg_paths(const struct db_pkg* pkg);
  * @param pkg Package object.
  */
 extern void db_filelist_rem_pkg_paths(const struct db_pkg* pkg);
+
+G_END_DECLS
 
 #endif
 

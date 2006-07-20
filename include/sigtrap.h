@@ -13,6 +13,8 @@
 #include <glib.h>
 #include "error.h"
 
+G_BEGIN_DECLS
+
 /** Will be true if process received breaking signal. */
 extern gboolean sig_break;
 
@@ -22,6 +24,8 @@ extern gboolean sig_break;
  * @return 0 on success, 1 on error
  */
 extern gint sig_trap(struct error* e);
+
+G_END_DECLS
 
 #endif
 
