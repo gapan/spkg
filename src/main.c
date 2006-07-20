@@ -171,7 +171,7 @@ int main(const int ac, const char* av[])
   unsetenv("LD_LIBRARY_PATH");
   if (getuid() != 0)
   {
-    fprintf(stderr, "You need root privileges to run this program. Sorry.\n");
+    fprintf(stderr, "ERROR: You need root privileges to run this program. Sorry.\n");
     exit(1);
   }
 
@@ -188,7 +188,7 @@ int main(const int ac, const char* av[])
       quiet++;
     if (rc < -1)
     {
-      fprintf(stderr, "ERROR: invalid argument: %s (%s)\n",
+      fprintf(stderr, "ERROR: Invalid argument: %s (%s)\n",
         poptStrerror(rc),
         poptBadOption(optCon, POPT_BADOPTION_NOALIAS));
       goto err_1;
@@ -254,7 +254,7 @@ int main(const int ac, const char* av[])
       if (command)
         goto got_command;
     }
-    fprintf(stderr, "ERROR: invalid argument: no command given\n");
+    fprintf(stderr, "ERROR: No command given.\n");
     goto err_1;
   }
 
@@ -262,7 +262,7 @@ int main(const int ac, const char* av[])
   /* check verbosity options */
   if (verbose && quiet)
   {
-    fprintf(stderr, "ERROR: invalid argument: verbose or quiet?\n");
+    fprintf(stderr, "ERROR: Verbose or quiet?\n");
     goto err_1;
   }
   cmd_opts.verbosity += verbose;
@@ -286,7 +286,7 @@ int main(const int ac, const char* av[])
     case CMD_LIST:
     break;
     default:
-      fprintf(stderr, "ERROR: invalid argument: schizofrenic command usage\n");
+      fprintf(stderr, "ERROR: Schizofrenic command usage.\n");
       goto err_1;
   }
 
@@ -392,6 +392,6 @@ int main(const int ac, const char* av[])
   e_print(err);
   goto out;
  err_nopackages:
-  fprintf(stderr, "ERROR: invalid argument: no packages given\n");
+  fprintf(stderr, "ERROR: No packages specified.\n");
   goto err_1;
 }
