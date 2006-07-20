@@ -709,6 +709,8 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
 
   /* alloc package object */
   pkg = db_alloc_pkg(name);
+  if (pkg == NULL)
+    goto err2;
   pkg->location = g_strdup(pkgfile);
 
   gboolean has_doinst = 0;

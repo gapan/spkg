@@ -37,14 +37,14 @@ struct db_state {
   gint fd_lock;
 };
 
-static struct db_state _db = {0};
+static struct db_state _db = { 0 };
 
 #define e_set(n, fmt, args...) e_add(_db.err, "pkgdb", __func__, n, fmt, ##args)
 
 #define _db_open_check(v) \
   if (!_db.is_open) \
   { \
-    e_set(E_ERROR|DB_NOPEN, "package database is NOT open"); \
+    e_set(E_ERROR|DB_NOPEN, "Package database is NOT open."); \
     return v; \
   }
 
@@ -58,17 +58,14 @@ gint db_open(const gchar* root, struct error* e)
 {
   gchar** d;
   gchar* checkdirs[] = { "packages", "scripts", "removed_packages",
-    "removed_scripts", "setup", 0 };
+    "removed_scripts", "setup", NULL };
 
-  g_assert(e != 0);
+  g_assert(e != NULL);
   _db.err = e;
-  
-  reset_timers();
-  continue_timer(0);
   
   if (_db.is_open)
   {
-    e_set(E_ERROR|DB_OPEN, "package database is already open");
+    e_set(E_ERROR|DB_OPEN, "Package database is already open.");
     goto err_0;
   }
   
@@ -86,7 +83,7 @@ gint db_open(const gchar* root, struct error* e)
   g_free(sane_root);
 
   /* check db dirs */
-  for (d = checkdirs; *d != 0; d++)
+  for (d = checkdirs; *d != NULL; d++)
   {
     gchar* tmpdir = g_strdup_printf("%s/%s", _db.topdir, *d);
     /* if it is not a directory, clean it and create it */
@@ -98,7 +95,7 @@ gint db_open(const gchar* root, struct error* e)
       /* if it is still not a directory, return with error */
       if (sys_file_type(tmpdir, 1) != SYS_DIR)
       {
-        e_set(E_FATAL, "%s should be an accessible directory", tmpdir);
+        e_set(E_FATAL, "Can't access package database directory. (%s)", tmpdir);
         g_free(tmpdir);
         goto err_1;
       }
@@ -112,18 +109,16 @@ gint db_open(const gchar* root, struct error* e)
   g_free(path_lock);
   if (_db.fd_lock == -1)
   {
-    e_set(E_FATAL, "locking failure");
+    e_set(E_FATAL, "Can't create lock.");
     goto err_1;
   }
   if (sys_lock_trywait(_db.fd_lock, 20, e))
   {
-    e_set(E_FATAL, "locking failure");
+    e_set(E_FATAL, "Can't lock package database.");
     goto err_2;
   }
 
   _db.is_open = 1;
-  stop_timer(0);
-
   return 0;
 
  err_2:
@@ -139,11 +134,9 @@ gint db_open(const gchar* root, struct error* e)
 
 void db_close()
 {
-  continue_timer(1);
-
   if (!_db.is_open)
   {
-    e_set(E_ERROR, "database is not open");
+    e_set(E_ERROR, "Package database is NOT open.");
     return;
   }
 
@@ -156,15 +149,6 @@ void db_close()
   g_free(_db.pkgdir);
   g_free(_db.scrdir);
   memset(&_db, 0, sizeof(_db));
-
-  stop_timer(1);
-
-  print_timer(0, "[pkgdb] db_open");
-  print_timer(1, "[pkgdb] db_close");
-  print_timer(2, "[pkgdb] db_get_pkg");
-  print_timer(3, "[pkgdb] db_add_pkg");
-  print_timer(8, "[pkgdb] files: judy");
-  print_timer(9, "[pkgdb] files: read");
 }
 
 /* public - filelist
@@ -229,7 +213,7 @@ gint db_filelist_load(gboolean force_reload)
 
   db_filelist_free();
 
-  gchar* line = 0;
+  gchar* line = NULL;
   gint size = 0;
   void** ptr;
   struct dirent* de;
@@ -239,7 +223,7 @@ gint db_filelist_load(gboolean force_reload)
   {
     gchar* name = de->d_name;
     /* is this valid package database entry file? */
-    if (parse_pkgname(name, 6) == 0)
+    if (parse_pkgname(name, 6) == NULL)
       continue;
     
     /* open it */
@@ -362,11 +346,15 @@ void db_filelist_free()
 struct db_pkg* db_alloc_pkg(gchar* name)
 {
   struct db_pkg* p;
-  g_assert(name != 0);
+  if (name == NULL)
+  {
+    e_set(E_ERROR, "Package name can't be NULL.");
+    return NULL;
+  }
   if (parse_pkgname(name, 6) != (gchar*)-1)
   {
-    e_set(E_ERROR, "invalid package name");
-    return 0;
+    e_set(E_ERROR, "Invalid package name. (%s)", name);
+    return NULL;
   }
   p = g_new0(struct db_pkg, 1);
   p->name = parse_pkgname(name, 5);
@@ -374,14 +362,13 @@ struct db_pkg* db_alloc_pkg(gchar* name)
   p->version = parse_pkgname(name, 2);
   p->arch = parse_pkgname(name, 3);
   p->build = parse_pkgname(name, 4);
-  p->time = time(0);
+  p->time = time(NULL);
   return p;
 }
 
 void db_free_pkg(struct db_pkg* pkg)
 {
-  continue_timer(6);
-  if (pkg == 0)
+  if (pkg == NULL)
     return;
 
   guint freed;
@@ -396,7 +383,6 @@ void db_free_pkg(struct db_pkg* pkg)
   g_free(pkg->doinst);
   memset(pkg, 0, sizeof(*pkg));
   g_free(pkg);
-  stop_timer(6);
 }
 
 gint db_pkg_add_path(struct db_pkg* pkg, const gchar* path, db_path_type type)
@@ -424,17 +410,13 @@ db_path_type db_pkg_get_path(struct db_pkg* pkg, const gchar* path)
 
 gint db_add_pkg(struct db_pkg* pkg)
 {
-  FILE* pf;
-  FILE* sf;
-  gchar *ppath, *spath;
-  gint ret = 1;
-
-  continue_timer(5);
+  FILE *pf, *sf;
+  gchar *ppath, *spath, *ppath_tmp, *spath_tmp;
 
   _db_open_check(1)
 
   /* check if pkg contains everthing required */
-  if (pkg == 0 || pkg->name == 0 || pkg->paths == 0)
+  if (pkg == NULL || pkg->name == NULL || pkg->paths == NULL)
   {
     e_set(E_BADARG, "Incomplete package structure.");
     goto err_0;
@@ -442,28 +424,27 @@ gint db_add_pkg(struct db_pkg* pkg)
 
   ppath = g_strdup_printf("%s/%s", _db.pkgdir, pkg->name);
   spath = g_strdup_printf("%s/%s", _db.scrdir, pkg->name);
+  ppath_tmp = g_strdup_printf("%s/.%s", _db.pkgdir, pkg->name);
+  spath_tmp = g_strdup_printf("%s/.%s", _db.scrdir, pkg->name);
 
-  if (sys_file_type(ppath,0) != SYS_NONE)
+  /* check if package file exists */
+  if (sys_file_type(ppath, 1) != SYS_NONE)
   {
-    e_set(E_FATAL, "package is already in database (%s)", strerror(errno));
+    e_set(E_FATAL|DB_EXIST, "Package is already in the database %s. (%s)", ppath, strerror(errno));
     goto err_1;
   }
 
-  pf = fopen(ppath, "w");
-  if (pf == 0)
+  /* write package file (tmp) */
+  pf = fopen(ppath_tmp, "w");
+  if (pf == NULL)
   {
-    e_set(E_FATAL, "can't open package file (%s)", strerror(errno));
+    e_set(E_FATAL, "Can't open package file %s. (%s)", ppath_tmp, strerror(errno));
     goto err_1;
   }
-  sf = fopen(spath, "w");
-  if (sf == 0)
-  {
-    e_set(E_FATAL, "can't open script file");
-    goto err_2;
-  }
+  fchmod(fileno(pf), 0644);
 
   /* construct header */
-  fprintf(pf,
+  if (fprintf(pf,
     "PACKAGE NAME:              %s\n"
     "COMPRESSED PACKAGE SIZE:   %u K\n"
     "UNCOMPRESSED PACKAGE SIZE: %u K\n"
@@ -471,12 +452,13 @@ gint db_add_pkg(struct db_pkg* pkg)
     "PACKAGE DESCRIPTION:\n"
     "%s"
     "FILE LIST:\n",
-    pkg->name, pkg->csize, pkg->usize, pkg->location?pkg->location:"", pkg->desc?pkg->desc:""
-  );
+    pkg->name, pkg->csize, pkg->usize,
+    pkg->location ? pkg->location : "",
+    pkg->desc ? pkg->desc : "") < 0)
+  {
+    goto err_2;
+  }
   
-  if (pkg->doinst)
-    fprintf(sf, "%s", pkg->doinst);
-
   /* construct filelist */
   gchar path[MAXPATHLEN];
   gint* ptr;
@@ -485,31 +467,85 @@ gint db_add_pkg(struct db_pkg* pkg)
   while (ptr != NULL)
   {
     if (*ptr == DB_PATH_FILE)
-      fprintf(pf, "%s\n", path);
+    {
+      if (fprintf(pf, "%s\n", path) < 0)
+        goto err_2;
+    }
     else if (*ptr == DB_PATH_DIR)
-      fprintf(pf, "%s/\n", path);
+    {
+      if (fprintf(pf, "%s/\n", path) < 0)
+        goto err_2;
+    }
     JSLN(ptr, pkg->paths, path);
   }
 
-  ret = 0;
- err_3: 
-  fclose(sf);
- err_2:
+  /* close it */
   fclose(pf);
 
+  /* change mtime */
   struct utimbuf dt = { pkg->time, pkg->time };
-  if (utime(ppath, &dt) == -1)
+  if (utime(ppath_tmp, &dt) == -1)
   {
-    e_set(E_ERROR, "can't utime package entry: %s", strerror(errno));
-    goto err_3;
+    e_set(E_ERROR, "Can't utime package entry %s. (%s)", ppath_tmp, strerror(errno));
+    goto err_1;
   }
 
- err_1:
+  /* wirte script file if necessary */
+  if (pkg->doinst)
+  {
+    sf = fopen(spath_tmp, "w");
+    if (sf == NULL)
+    {
+      e_set(E_FATAL, "Can't open script file %s. (%s)", spath_tmp, strerror(errno));
+      goto err_1;
+    }
+    fchmod(fileno(sf), 0755);
+    if (fprintf(sf, "%s", pkg->doinst) < 0)
+    {
+      e_set(E_FATAL, "Can't write into script file %s. (%s)", spath_tmp, strerror(errno));
+      fclose(sf);
+      goto err_1;
+    }
+    fclose(sf);
+  }
+
+  /* finally put package and script files into place */
+  if (rename(ppath_tmp, ppath) < 0)
+  {
+    e_set(E_FATAL, "Can't finalize package file update %s. (%s)", ppath_tmp, strerror(errno));
+    goto err_1;
+  }
+
+  if (pkg->doinst)
+  {
+    if (rename(spath_tmp, spath) < 0)
+    {
+      e_set(E_FATAL, "Can't finalize script file update %s. (%s)", ppath_tmp, strerror(errno));
+      goto err_1;
+    }
+  }
+
   g_free(ppath);
   g_free(spath);
+  g_free(ppath_tmp);
+  g_free(spath_tmp);
+  return 0;
+
+ err_2:
+  e_set(E_FATAL, "Can't write into package file %s. (%s)", ppath_tmp, strerror(errno));
+  fclose(pf);
+ err_1:
+  /* just ingore errors here */
+  unlink(ppath_tmp);
+  unlink(spath_tmp);
+  unlink(ppath);
+  unlink(spath);
+  g_free(ppath);
+  g_free(spath);
+  g_free(ppath_tmp);
+  g_free(spath_tmp);
  err_0:
-  stop_timer(5);
-  return ret;
+  return 1;
 }
 
 struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
@@ -518,41 +554,39 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
   gchar *tmpstr;
   gchar stream_buf1[1024*128];
   gchar stream_buf2[1024*64];
-  struct db_pkg* p = 0;
+  struct db_pkg* p = NULL;
   
-  if (name == 0)
+  if (name == NULL)
   {
-    e_set(E_BADARG, "package name missing");
+    e_set(E_BADARG, "Package name can't be NULL.");
     goto err_0;
   }
   if (parse_pkgname(name, 6) != (gchar*)-1)
   {
-    e_set(E_ERROR, "invalid package name: %s", name);
+    e_set(E_ERROR, "Invalid package name. (%s)", name);
     goto err_0;
   }
   if (type != DB_GET_WITHOUT_FILES && type != DB_GET_FULL)
   {
-    e_set(E_BADARG, "invalid get type");
+    e_set(E_BADARG, "Invalid get type value. (must be DB_GET_WITHOUT_FILES or DB_GET_FULL)");
     goto err_0;
   }
 
-  _db_open_check(0)
-
-  continue_timer(4);
+  _db_open_check(NULL)
 
   /* open package db entries */  
   tmpstr = g_strdup_printf("%s/%s", _db.pkgdir, name);
   fp = fopen(tmpstr, "r");
-  time_t mtime = sys_file_mtime(tmpstr,0);
+  time_t mtime = sys_file_mtime(tmpstr, 1);
   g_free(tmpstr);
   if (fp == NULL) /* main package entry can't be open */
   {
-    e_set(E_ERROR | (errno == ENOENT ? DB_NOTEX : 0), "can't open main package entry file: %s", strerror(errno));
+    e_set(E_ERROR | (errno == ENOENT ? DB_NOTEX : 0), "Can't open package database entry file %s. (%s)", name, strerror(errno));
     goto err_0;
   }
   if (mtime == (time_t)-1) /* package time can't be retrieved */
   {
-    e_set(E_ERROR, "can't get main package entry file mtime: %s", strerror(errno));
+    e_set(E_ERROR, "Can't get package installation time for %s. (%s)", name, strerror(errno));
     goto err_0;
   }
   setvbuf(fp, stream_buf1, _IOFBF, sizeof(stream_buf1));
@@ -564,12 +598,9 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
   if (fs)
     setvbuf(fs, stream_buf2, _IOFBF, sizeof(stream_buf2));
 
-  p = g_new0(struct db_pkg, 1);
-  p->name = g_strdup(name);
-  p->shortname = parse_pkgname(p->name, 1);
-  p->version = parse_pkgname(p->name, 2);
-  p->arch = parse_pkgname(p->name, 3);
-  p->build = parse_pkgname(p->name, 4);
+  p = db_alloc_pkg(name);
+  if (p == NULL)
+    goto err_1;
   p->time = mtime;
 
   /* parse main package file */
@@ -577,10 +608,9 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
   gint m[5] = { 0 }; /* if particular line was matched it can't 
   occur anymore, so we cache info about already matched lines */
 
-  gchar* line = 0;
+  gchar* line = NULL;
   gint size = 0;
   gint linelen;
-  continue_timer(9);
   while ((linelen = getline(&line, &size, fp)) >= 0)
   {
     if (linelen > 0 && line[linelen-1] == '\n')
@@ -593,7 +623,7 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
       gchar* name = g_strstrip(line + LINESIZE("PACKAGE NAME:"));
 	  if (strcmp(name, p->name))
       {
-        e_set(E_ERROR, "package names don't match: %s", p->name);
+        e_set(E_ERROR, "Package file name doesn't match with package name. (%s != %s)", p->name, name);
         goto err_1;
       }
       /* skip whitespace */
@@ -604,7 +634,7 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
       gchar* size = line + LINESIZE("COMPRESSED PACKAGE SIZE:");
       if (sscanf(size, " %u ", &p->csize) != 1)
       {
-        e_set(E_ERROR, "can't read compressed package size");
+        e_set(E_ERROR, "Can't parse compressed package size. (%s)", size);
         goto err_1;
       }
       m[1] = 1;
@@ -614,7 +644,7 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
       gchar* size = line + LINESIZE("UNCOMPRESSED PACKAGE SIZE:");
       if (sscanf(size, " %u ", &p->usize) != 1)
       {
-        e_set(E_ERROR, "can't read compressed package size");
+        e_set(E_ERROR, "Can't parse uncompressed package size. (%s)", size);
         goto err_1;
       }
       m[2] = 1;
@@ -630,7 +660,7 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
 	}
     else if (strncmp(line, p->shortname, snl) == 0)
     {
-      gchar* desc = g_strconcat(p->desc ? p->desc : "", line, "\n", 0);
+      gchar* desc = g_strconcat(p->desc ? p->desc : "", line, "\n", NULL);
       g_free(p->desc);
       p->desc = desc;
     }
@@ -640,7 +670,7 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
 	}
     else
     {
-      e_set(E_ERROR, "corrupt package database");
+      e_set(E_ERROR, "Corrupt package database entry. (%s)", p->name);
       goto err_1;
     }
   }
@@ -706,7 +736,7 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
   guint script_size = ftell(fs);
   if (script_size > 512*1024)
   {
-    e_set(E_ERROR, "too big script file");
+    e_set(E_ERROR, "Script file is too big %s. (%u kB)", p->name, script_size / 1024);
     goto err_1;
   }
   if (script_size)
@@ -715,11 +745,10 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
     fseek(fs, 0, SEEK_SET);
     if (fread(p->doinst, script_size, 1, fs) != 1)
     {
-      e_set(E_ERROR, "can't read script file");
+      e_set(E_ERROR, "Can't read script file %s. (%s)", p->name, strerror(errno));
       goto err_1;
     }
   }
-
 
  fini:
   if (line)
@@ -728,7 +757,6 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
     fclose(fs);
   fclose(fp);
  err_0:
-  stop_timer(4);
   return p;
  err_1:
   db_free_pkg(p);
@@ -749,27 +777,39 @@ gint db_rem_pkg(gchar* name)
 {
   _db_open_check(1)
 
+  gint ret = 1;
+
+  if (name == NULL)
+  {
+    e_set(E_BADARG, "Package name can't be NULL.");
+    goto err_0;
+  }
+  if (parse_pkgname(name, 6) != (gchar*)-1)
+  {
+    e_set(E_ERROR, "Invalid package name. (%s)", name);
+    goto err_0;
+  }
+
   gchar* p = g_strdup_printf("%s/%s", _db.pkgdir, name);
   gchar* s = g_strdup_printf("%s/%s", _db.scrdir, name);
   gchar* rp = g_strdup_printf("%s/removed_packages/%s-removed-%s", _db.topdir, name, _get_date());
   gchar* rs = g_strdup_printf("%s/removed_scripts/%s-removed-%s", _db.topdir, name, _get_date());
 
-  gint ret = 1;
-  if (sys_file_type(p, 0) != SYS_REG)
+  if (sys_file_type(p, 1) != SYS_REG)
   {
-    e_set(E_ERROR|DB_NOTEX, "package is not in database");
+    e_set(E_ERROR|DB_NOTEX, "Package is not in the database. (%s)", name);
     goto err_1;
   }
-  if (rename(p, rp) == -1)
+  if (rename(p, rp) < 0)
   {
-    e_set(E_ERROR, "package removal failed: %s", strerror(errno));
+    e_set(E_ERROR, "Package file removal failed. (%s)", strerror(errno));
     goto err_1;
   }
-  if (sys_file_type(s, 0) == SYS_REG)
+  if (sys_file_type(s, 1) == SYS_REG)
   {
-    if (rename(s, rs) == -1)
+    if (rename(s, rs) < 0)
     {
-      e_set(E_ERROR, "script removal failed: %s", strerror(errno));
+      e_set(E_ERROR, "Script file removal failed. (%s)", strerror(errno));
       goto err_1;
     }
   }
@@ -780,6 +820,7 @@ gint db_rem_pkg(gchar* name)
   g_free(s);
   g_free(rp);
   g_free(rs);
+ err_0:
   return ret;
 }
 
@@ -804,50 +845,50 @@ static gint _query_compare(gconstpointer a, gconstpointer b, gpointer data)
 
 GSList* db_query(db_selector cb, void* data, db_query_type type)
 {
-  GSList *pkgs=0;
+  GSList *pkgs = NULL;
 
-  _db_open_check(0)
+  _db_open_check(NULL)
 
   if (type != DB_QUERY_PKGS_WITH_FILES &&
       type != DB_QUERY_PKGS_WITHOUT_FILES &&
       type != DB_QUERY_NAMES)
   {
-    e_set(E_BADARG, "invalid query type");
+    e_set(E_BADARG, "Invalid query type.");
     goto err_0;
   }
 
   DIR* d = opendir(_db.pkgdir);
   if (d == NULL)
   {
-    e_set(E_FATAL, "can't open db directory");
+    e_set(E_FATAL, "Can't open package database directory. (%s)", strerror(errno));
     goto err_0;
   }
   
   struct dirent* de;
   while ((de = readdir(d)) != NULL)
   {
-    if (!strcmp(de->d_name,".") || !strcmp(de->d_name,".."))
+    if (de->d_name[0] == '.')
       continue;
     struct db_pkg* p;
     gchar* name = de->d_name;
-    if (parse_pkgname(name, 6) == 0)
+    if (parse_pkgname(name, 6) == NULL)
       continue;
-    /* if cb == 0, then package matches */
-    if (cb != 0)
+    /* if cb == NULL, then package matches */
+    if (cb != NULL)
     {
       /* otherwise get package from database ask the selector if it 
          likes this package */
       p = db_get_pkg(name, DB_GET_WITHOUT_FILES);
-      if (p == 0)
+      if (p == NULL)
       {
-        e_set(E_ERROR, "can't get package from database");
+        e_set(E_ERROR, "Can't get package from the database.");
         goto err_1;
       }
       gint rs = cb(p, data);
       if (rs != 0 && rs != 1)
       {
         db_free_pkg(p);
-        e_set(E_ERROR, "db_selector returned with error");
+        e_set(E_ERROR, "Package database query filter returned error.");
         goto err_1;
       }
       else if (rs == 0)
@@ -864,9 +905,9 @@ GSList* db_query(db_selector cb, void* data, db_query_type type)
         get_type = DB_GET_FULL;
       case DB_QUERY_PKGS_WITHOUT_FILES:
         p = db_get_pkg(name, get_type);
-        if (p == 0)
+        if (p == NULL)
         {
-          e_set(E_ERROR, "can't get package from database");
+          e_set(E_ERROR, "Can't get package from the database.");
           goto err_1;
         }
         pkgs = g_slist_prepend(pkgs, p);
@@ -883,12 +924,12 @@ GSList* db_query(db_selector cb, void* data, db_query_type type)
   db_free_query(pkgs, type);
   closedir(d);
  err_0:
-  return 0;
+  return NULL;
 }
 
 void db_free_query(GSList* pkgs, db_query_type type)
 {
-  if (pkgs == 0)
+  if (pkgs == NULL)
     return;
 
   void (*data_free_func)(void*) = g_free;
@@ -896,7 +937,7 @@ void db_free_query(GSList* pkgs, db_query_type type)
       type == DB_QUERY_PKGS_WITHOUT_FILES)
     data_free_func = (void (*)(void*))db_free_pkg;
   
-  g_slist_foreach(pkgs, (GFunc)data_free_func, 0);
+  g_slist_foreach(pkgs, (GFunc)data_free_func, NULL);
   g_slist_free(pkgs);
 }
 
@@ -906,7 +947,7 @@ gchar* db_get_package_name(const gchar* namespec)
 
   if (namespec == NULL)
   {
-    e_set(E_FATAL, "namespec not set");
+    e_set(E_FATAL, "Namespec can't be NULL.");
     goto err_0;
   }
 
@@ -915,7 +956,7 @@ gchar* db_get_package_name(const gchar* namespec)
   struct dirent* de;
   if (d == NULL)
   {
-    e_set(E_FATAL, "can't open db directory");
+    e_set(E_FATAL, "Can't open package database directory. (%s)", strerror(errno));
     goto err_0;
   }
 
@@ -926,10 +967,10 @@ gchar* db_get_package_name(const gchar* namespec)
     /* exact search */
     while ((de = readdir(d)) != NULL)
     {
-      if (!strcmp(de->d_name,".") || !strcmp(de->d_name,".."))
+      if (de->d_name[0] == '.')
         continue;
       gchar* cur_name = de->d_name;
-      if (parse_pkgname(cur_name, 6) == 0)
+      if (parse_pkgname(cur_name, 6) == NULL)
         continue;
       if (!strcmp(searched_name, cur_name))
       {
@@ -944,7 +985,7 @@ gchar* db_get_package_name(const gchar* namespec)
   rewinddir(d);
   while ((de = readdir(d)) != NULL)
   {
-    if (!strcmp(de->d_name,".") || !strcmp(de->d_name,".."))
+    if (de->d_name[0] == '.')
       continue;
     gchar* cur_name = de->d_name;
     gchar* cur_shortname = parse_pkgname(cur_name, 1);
