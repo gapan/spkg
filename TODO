@@ -2,20 +2,9 @@
 before rc |
 ----------/
 
-- rethink verbosity selection
-- cleanup error codes in install and upgrade commands
-- install if upgrade fails with no such package
-- force upgrade option (just like slack)
-
-- --check command
-
-[security] check path[4096] arrays access, create MAXPATHSIZE macro
-[taction] transaction code documentation is crap, and code feels a bit messy.
 [test] QA checklist
 [test] automatic testuite
 [test] test, test, test, test, test, ....
-[--safe] check for suid binaries and other rights based checks for files
- (enforcing slackware policy)
 
 ---------------------------------------------------------------------
 before 1.0 |
@@ -29,6 +18,10 @@ Use it for a month or so instead of pkgtools everywhere.
 post 1.0 |
 ---------/
 
+- --check command
+- --verify command for checking validity of slack packages
+  (check for suid binaries and other rights based checks for files,
+  enforcing slackware packages policy)
 - python bindings
 - gui interface
 - backward comaptible script extending using special comments for
