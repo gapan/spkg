@@ -308,9 +308,19 @@ int main(const int ac, const char* av[])
       {
         if (cmd_install(arg, &cmd_opts, err))
         {
-          e_print(err);
-          e_clean(err);
-          status = 2;
+          if (e_errno(err) & CMD_EXIST)
+          {
+            gchar* pkgname = parse_pkgname(arg, 5);
+            _inform("Skipping package %s (already installed)...", pkgname ? pkgname : arg);
+            g_free(pkgname);
+            e_clean(err);
+          }
+          else
+          {
+            e_print(err);
+            e_clean(err);
+            status = 2;
+          }
         }
       }
     }
@@ -336,6 +346,7 @@ int main(const int ac, const char* av[])
             gchar* pkgname = parse_pkgname(arg, 5);
             _inform("Skipping package %s (already installed)...", pkgname ? pkgname : arg);
             g_free(pkgname);
+            e_clean(err);
           }
           else
           {
