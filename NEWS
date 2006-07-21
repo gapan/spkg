@@ -1,6 +1,27 @@
 ----------------------------------------------------------------
 spkg - Release Notes
 ----------------------------------------------------------------
+2006-07-20: spkg rc
+
+  This release was tested a lot. It can upgrade Slackware 10.1 to 10.2
+  without problems. (results are the same as with pkgtools) Everything
+  works as expected.
+
+  What's new:
+  - Spkg no longer changes permissions of already installed directories.
+  - Implement --reinstall and --install-new options to upgrade commad.
+  - Show information messages and warnings by default.
+  - Add/remove some warnings to make output more readable by human.
+  - Improve error messages and some warnings.
+  - Added some not so important error checks.
+  - Cleaned up package database code.
+  - Updated API documentation.
+  
+  Bugfixes:
+  - Add missing dry run check for temporary file deletion.
+  - When printing empty slack-desc lines, check for null strings.
+  
+----------------------------------------------------------------
 2006-07-17: spkg beta
 
   What's new:

@@ -1,18 +1,14 @@
 ---------------------------------------------------------------------
-before rc |
-----------/
-
-[test] QA checklist
-[test] automatic testuite
-[test] test, test, test, test, test, ....
-
----------------------------------------------------------------------
 before 1.0 |
 -----------/
 
-[doc] finish readmes, update manpage and web
+[doc] Update documentation
+[doc] Write article
+[doc] finish readmes, update manpage
+[test] automatic testuite
 
-Use it for a month or so instead of pkgtools everywhere.
+Use it for a month or so instead of pkgtools everywhere and push
+rcX releases after each bug is found and fixed.
 
 ---------------------------------------------------------------------
 post 1.0 |
