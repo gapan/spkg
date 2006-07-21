@@ -5,7 +5,7 @@
 #|          No copy/usage restrictions are imposed on anybody.          |#
 #\----------------------------------------------------------------------/#
 #VERSION := $(shell git-describe --abbrev=4 | tr - _)
-VERSION := beta
+VERSION := rc0
 
 DESTDIR :=
 prefix := /usr/local
@@ -17,7 +17,7 @@ STATIC := no
 
 ifeq ($(RELEASE),yes)
 DEBUG := no
-ASSERTS := yes # for alpha releases, this is good to be turned on
+ASSERTS := yes
 BENCH := no
 STATIC := yes
 prefix := /usr
@@ -29,7 +29,7 @@ docdir = $(prefix)/doc/spkg-$(VERSION)
 
 CC := gcc
 AR := ar
-CFLAGS := -pipe -Wall
+CFLAGS := -pipe -Wall -Wformat
 ifeq ($(STATIC),yes)
 CPPFLAGS := -Iinclude -Ilibs/zlib -Ilibs/glib -Ilibs/popt -Ilibs/judy
 LDFLAGS := libs/zlib/libz.a libs/glib/libglib-2.0.a libs/popt/libpopt.a libs/judy/libJudy.a
@@ -115,8 +115,8 @@ install-docs: docs
 	install -o root -g root -m 0644 docs/html/* $(DESTDIR)$(docdir)/html/
 
 uninstall:
-	rm -f $(DESTDIR)$(sbindir)/spkg
-	rm -f $(DESTDIR)$(mandir)/man8/spkg.8.gz
+	rm -f $(DESTDIR)$(sbindir)/{s,r,u,i,l}pkg
+	rm -f $(DESTDIR)$(mandir)/man8/{s,r,u,i,l}pkg.8.gz
 	rm -rf $(DESTDIR)$(docdir)
 
 # distribution
@@ -148,37 +148,19 @@ dist: docs
 
 # documentation
 ############################################################################
-.PHONY: docs web web-base web-docs web-dist
+.PHONY: docs
+
 docs:
 	rm -rf docs/html
 	doxygen docs/Doxyfile
 	rm -f docs/html/doxygen.png
 
-web: web-base web-docs web-dist
-
-web-base:
-	rm -rf .website
-	mkdir -p .website
-	cp -a docs/web/{*,.ht*} .website/
-	sed -i 's/@VER@/$(VERSION)/g ; s/@DATE@/$(shell LANG=C date)/g' .website/*.php
-	sed -i 's/@SPKG@/<strong style="color:darkblue;"><span style="color:red;">s<\/span>pkg<\/strong>/g' .website/*.php
-
-web-docs: docs
-	mkdir -p .website/dl/spkg-docs
-	cp -r docs/html/* .website/dl/spkg-docs
-	git log > .website/dl/ChangeLog
-	cp TODO .website/dl/TODO
-
-web-dist: docs dist slackpkg
-	( cd .website/dl ; tar czf spkg-docs.tar.gz spkg-docs )
-	mv spkg-$(VERSION).tar.gz .website/dl
-	mv $(PACKAGES) .website/dl
-        
 # cleanup
 ############################################################################
 .PHONY: clean mrproper 
+
 clean: tests-clean
 	-rm -rf .build/*.o .build/*.a spkg build
 
 mrproper: clean
-	-rm -rf .build docs/html .website
+	-rm -rf .build docs/html
