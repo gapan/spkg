@@ -4,8 +4,7 @@
 #|----------------------------------------------------------------------|#
 #|          No copy/usage restrictions are imposed on anybody.          |#
 #\----------------------------------------------------------------------/#
-#VERSION := $(shell git-describe --abbrev=4 | tr - _)
-VERSION := rc0
+VERSION := $(shell git-describe --abbrev=4 | tr - _)
 
 DESTDIR :=
 prefix := /usr/local

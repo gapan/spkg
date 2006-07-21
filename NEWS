@@ -1,7 +1,7 @@
 ----------------------------------------------------------------
 spkg - Release Notes
 ----------------------------------------------------------------
-2006-07-20: spkg rc
+2006-07-20: spkg 1.0rc1
 
   This release was tested a lot. It can upgrade Slackware 10.1 to 10.2
   without problems. (results are the same as with pkgtools) Everything
