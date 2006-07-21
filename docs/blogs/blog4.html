@@ -1,27 +1,63 @@
-<p>Spkg jsem pÅ™edevÄÃ­rem dostal do stavu, kdy jsou vÅ¡chny dÅ¯leÅ¾itÃ© vlasntosti naimplementovanÃ© a uÅ¾ chybÄ›lo jen testovÃ¡nÃ­ na spoustÄ› balÃ­ÄkÅ¯. No a uÅ¾ nechybÃ­. :)</p>
+<p>Spkg jsem pøedevèírem dostal do stavu, kdy jsou v¹chny
+dùle¾ité vlasntosti naimplementované a u¾ chybìlo jen testování
+na spoustì balíèkù. No a u¾ nechybí. :)</p>
 
 <break>
 
-<p>Upgrade a instalace potÅ™ebovaly znovu otestovat a tak jsem nainstaloval z DVD <i>Slackware-10.1</i> vÅ¡echny balÃ­Äky z kategoriÃ­ <i>a</i>, <i>ap</i>, <i>d</i>, <i>l</i> a <i>n</i>. To dÃ¡vÃ¡ po instalaci 295 balÃ­kÅ¯ zhruba 1GB dat (70 tisÃ­c souborÅ¯). Instaloval jsem pomocÃ­ <code>installpkg</code> a <code>spkg -i</code> a nÃ¡slednÄ› porovnal vÃ½stup pÅ™Ã­kazu <code>tree -psufiga</code> a <code>find . -type f | xargs md5sum</code>. Na prvnÃ­ pohled to nevypadalo moc nadÄ›jnÄ›. Instalace pomocÃ­ spkg vytvoÅ™ila mnoho symlinkÅ¯ navÃ­c oproti installpkg, ale to bylo zpÅ¯sobeno tÃ­m Å¾e v installpkg je chyba, protoÅ¾e ldconfig se nespouÅ¡tÃ­ pro adresÃ¡Å™ do kterÃ©ho se instaluje (/root), ale vÅ¾dy pro koÅ™enovÃ½ adresÃ¡Å™. CoÅ¾ nenÃ­ moc platnÃ©. Po spuÅ¡tÄ›nÃ­ <code>ldconfig -r /root</code> a opÄ›tovnÃ©m porovnÃ¡nÃ­ vÃ½stupu psufigy, uÅ¾ bylo vÅ¡e pozitivnÄ›jÅ¡Ã­.</p>
+<p>Upgrade a instalace potøebovaly znovu otestovat a tak jsem
+nainstaloval z DVD <i>Slackware-10.1</i> v¹echny balíèky z kategorií
+<i>a</i>, <i>ap</i>, <i>d</i>, <i>l</i> a <i>n</i>. To dává po
+instalaci 295 balíkù zhruba 1GB dat (70 tisíc souborù). Instaloval
+jsem pomocí <code>installpkg</code> a <code>spkg -i</code> a následnì
+porovnal vıstup pøíkazu <code>tree -psufiga</code> a <code>find .
+-type f | xargs md5sum</code>. Na první pohled to nevypadalo moc
+nadìjnì. Instalace pomocí spkg vytvoøila mnoho symlinkù navíc
+oproti installpkg, ale to bylo zpùsobeno tím ¾e v installpkg je
+chyba, proto¾e ldconfig se nespou¹tí pro adresáø do kterého se
+instaluje (/root), ale v¾dy pro koøenovı adresáø. Co¾ není moc
+platné. Po spu¹tìní <code>ldconfig -r /root</code> a opìtovném
+porovnání vıstupu psufigy, u¾ bylo v¹e pozitivnìj¹í.</p>
 
-<p>Defakto se pouze liÅ¡ily velikosti adresÃ¡Å™Å¯, protoÅ¾e spkg pÅ™i instalaci Äi upgrade, pokud jiÅ¾ instalovanÃ½ soubor existuje, nejprve vytvoÅ™Ã­ doÄasnÃ½ soubor a aÅ¾ po dokonÄenÃ­ zpracovÃ¡nÃ­ tgz balÃ­ku vÅ¡echny cÃ­lovÃ© soubory nahradÃ­. VytvÃ¡Å™enÃ­m doÄasnÃ½ch souborÅ¯ nÃ¡m o nÄ›co nakynou adresÃ¡Å™e ve kterÃ½ch se tyto soubory vytvÃ¡Å™ejÃ­. Pokud pak dojde k pÅ™eruÅ¡enÃ­ instalace/upgrade uÅ¾ivatelem, nebo nesplnÄ›nÃ­m nÄ›jakÃ© podmÃ­nky pak se prostÄ› odstranÃ­ vÅ¡echny soubory kterÃ© byly do tÃ© doby vytvoÅ™eny a vÅ¡e je jako pÅ™ed instalacÃ­. ÄŒili je moÅ¾nÄ› bezpeÄnÄ› pÅ™eruÅ¡it dlouho trvajÃ­cÃ­ upgrade mnoha balÃ­kÅ¯ bez obav o konzistenci zrovna upgradovanÃ©ho balÃ­ku a prostÄ› pokraÄovat pozdÄ›ji. CÃ­lem vÃ½voje samozÅ™ejmÄ› nebylo aby si ÄlovÄ›k mohl po zahÃ¡jenÃ­ upgrade v 8 hodin ho mohl ve 12 pÅ™eruÅ¡it a pokraÄovat rÃ¡no, ale upgrade balÃ­kÅ¯ vÃ½raznÄ› zrychlit. :-)</p>
+<p>Defakto se pouze li¹ily velikosti adresáøù, proto¾e spkg pøi
+instalaci èi upgrade, pokud ji¾ instalovanı soubor existuje, nejprve
+vytvoøí doèasnı soubor a a¾ po dokonèení zpracování tgz balíku
+v¹echny cílové soubory nahradí. Vytváøením doèasnıch souborù
+nám o nìco nakynou adresáøe ve kterıch se tyto soubory
+vytváøejí. Pokud pak dojde k pøeru¹ení instalace/upgrade
+u¾ivatelem, nebo nesplnìním nìjaké podmínky pak se prostì
+odstraní v¹echny soubory které byly do té doby vytvoøeny a v¹e je
+jako pøed instalací. Èili je mo¾nì bezpeènì pøeru¹it dlouho
+trvající upgrade mnoha balíkù bez obav o konzistenci zrovna
+upgradovaného balíku a prostì pokraèovat pozdìji. Cílem vıvoje
+samozøejmì nebylo aby si èlovìk mohl po zahájení upgrade v 8 hodin
+ho mohl ve 12 pøeru¹it a pokraèovat ráno, ale upgrade balíkù
+vıraznì zrychlit. :-)</p>
 
-<p>Upgrade test probÃ­hal tak, Å¾e jsem provedl upgrade zmÃ­nÄ›nÃ½ch kategoriÃ­ z slackware-10.1 na slackware-10.2 pÅ™Ã­mo z DVD. V Å™eÄi pÅ™Ã­kazÅ¯, tedy:</p>
+<p>Upgrade test probíhal tak, ¾e jsem provedl upgrade zmínìnıch
+kategorií z slackware-10.1 na slackware-10.2 pøímo z DVD. V øeèi
+pøíkazù, tedy:</p>
 
 <code>ROOT=/root1 upgradepkg {a,ap,d,l,n}/*.tgz</code>
 
-a pomocÃ­ spkg
+a pomocí spkg
 
 <code>spkg -u -v -r /root2 {a,ap,d,l,n}/*.tgz</code>
 
-<p>PotÃ© jsem opÄ›t porovnal vÃ½stupy psufigy a md5sumu pro /root1 a /root2. VÃ½stup tÄ›chto pÅ™Ã­kazÅ¯ byl. bez neoÄekÃ¡vanÃ½ch rozdÃ­lÅ¯, kromÄ› jednoho souboru, kterÃ½ je vytvÃ¡Å™en instalaÄnÃ­m skriptem bindu (/etc/rndc.key) a mÃ¡ bÃ½t pro kaÅ¾dou instalaci jinÃ½.</p>
+<p>Poté jsem opìt porovnal vıstupy psufigy a md5sumu pro /root1 a
+/root2. Vıstup tìchto pøíkazù byl. bez neoèekávanıch rozdílù,
+kromì jednoho souboru, kterı je vytváøen instalaèním skriptem
+bindu (/etc/rndc.key) a má bıt pro ka¾dou instalaci jinı.</p>
 
-<p>Nakonec jsem udÄ›lal remove test, abych ovÄ›Å™il Å¾e <code>spkg -d</code> funguje stejnÄ› jako <code>removepkg</code>. OpÄ›t s porovnÃ¡nÃ­m stavu adresÃ¡Å™Å¯ /root1 a /root2. Test spoÄÃ­val v odstranÄ›nÃ­ vÅ¡ech balÃ­kÅ¯ ze skupiny <i>d</i>.</p>
+<p>Nakonec jsem udìlal remove test, abych ovìøil ¾e <code>spkg
+-d</code> funguje stejnì jako <code>removepkg</code>. Opìt s
+porovnáním stavu adresáøù /root1 a /root2. Test spoèíval v
+odstranìní v¹ech balíkù ze skupiny <i>d</i>.</p>
 
-<p>Co nebylo stejnÃ© byly Äasy potÅ™ebnÃ© pro provedenÃ­ potÅ™ebnÃ½ch operacÃ­. Tady jsou ÄÃ­sla:</p>
+<p>Co nebylo stejné byly èasy potøebné pro provedení potøebnıch
+operací. Tady jsou èísla:</p>
 
 <table>
-  <tr><th>PÅ™Ã­kaz</th><th>REAL</th><th>USER</th><th>SYS</th></tr>
+  <tr><th>Pøíkaz</th><th>REAL</th><th>USER</th><th>SYS</th></tr>
   <tr><td><code>ROOT=/root1 installpkg {a,ap,d,l,n}/*.tgz</code></td><td>16m4s</td><td>7m42s</td><td>3m11s</td></tr>
   <tr><td><code>spkg -i -v -r /root2 {a,ap,d,l,n}/*.tgz</code></td><td>3m41s</td><td>54s</td><td>38s</td></tr>
   <tr><td><code>ROOT=/root1 upgradepkg {a,ap,d,l,n}/*.tgz</code></td><td>33m50s</td><td>18m30s</td><td>6m45s</td></tr>
@@ -30,9 +66,32 @@ a pomocÃ­ spkg
   <tr><td><code>spkg -d -v -r /root2 `cat pkglist`</code></td><td>11.8s</td><td>0.67s</td><td>1.18s</td></tr>
 </table>
 
-<p>RozdÃ­l oproti testÅ¯m v mÃ©m pÅ™edchozÃ­m pÅ™Ã­spÄ›vku je v tom, Å¾e jsem tentokrÃ¡t spouÅ¡tÄ›l instalaci z DVD, kde jsou pÅ™Ã­tomnÃ© soubory s popisem balÃ­ku, takÅ¾e skripty installpkg a upgradepkg mÄ›ly nynÃ­ o nÄ›co snaÅ¾Å¡Ã­ prÃ¡ci neÅ¾ v pÅ™edchozÃ­m pÅ™Ã­padÄ›, kdy jsem je spouÅ¡tÄ›l z mÃ©ho mirroru slackware-current na disku, kde ony soubory nemÃ¡m. A spkg mÄ›l o nÄ›co komplikovanÄ›jÅ¡Ã­ prÃ¡ci, protoÅ¾e jsem nepouÅ¾il parametr --no-ldconfig, takÅ¾e ldconfig se spouÅ¡tÄ›l po kaÅ¾dÃ©m nainstalovanÃ©m balÃ­ku. Spustit ldconfig trvÃ¡ zhruba 100ms, takÅ¾e to dÃ¡vÃ¡ 30s zbyteÄnÄ› navÃ­c pro jak installpkg tak spkg. OvÅ¡em je rozdÃ­l jestli je to 30s z 16m, nebo 30s z 3m40s. PÅ™i pouÅ¾itÃ­ spkg DVD-ROM mechanika seekovala jak o Å¾ivot, takÅ¾e by se nÄ›kde v jejÃ­m okolÃ­ dalo hledat ÃºzkÃ© herdlo. ;-)</p>
+<p>Rozdíl oproti testùm v mém pøedchozím pøíspìvku je v tom, ¾e
+jsem tentokrát spou¹tìl instalaci z DVD, kde jsou pøítomné soubory
+s popisem balíku, tak¾e skripty installpkg a upgradepkg mìly nyní o
+nìco sna¾¹í práci ne¾ v pøedchozím pøípadì, kdy jsem je
+spou¹tìl z mého mirroru slackware-current na disku, kde ony soubory
+nemám. A spkg mìl o nìco komplikovanìj¹í práci, proto¾e jsem
+nepou¾il parametr --no-ldconfig, tak¾e ldconfig se spou¹tìl po
+ka¾dém nainstalovaném balíku. Spustit ldconfig trvá zhruba 100ms,
+tak¾e to dává 30s zbyteènì navíc pro jak installpkg tak spkg.
+Ov¹em je rozdíl jestli je to 30s z 16m, nebo 30s z 3m40s. Pøi
+pou¾ití spkg DVD-ROM mechanika seekovala jak o ¾ivot, tak¾e by se
+nìkde v jejím okolí dalo hledat úzké herdlo. ;-)</p>
 
-<p>MalÃ¡ poznÃ¡mka na zÃ¡vÄ›r pro ty co stÃ¡le chtÄ›jÃ­ pouÅ¾Ã­vat pkgtools. Spkg trpÃ­ stejnÃ½m problÃ©mem jako pkgtools a to tÃ­m, Å¾e databÃ¡ze balÃ­ÄkÅ¯ ÄÃ­tÃ¡ napÅ™. na mÃ©m systÃ©mu 600 malÃ½ch souborÅ¯. A z tÄ›chto 600 souborÅ¯ je potÅ™eba pÅ™ed zahÃ¡jenÃ­m upgrade naÄÃ­st seznam souborÅ¯, kterÃ© jsou v systÃ©mu nainstalovÃ¡ny. To na mÃ©m systÃ©mu, kterÃ½ uÅ¾ zaÅ¾il upgrade zhruba 1400 balÃ­ÄkÅ¯ trvÃ¡ zhruba 12s, kdyÅ¾ ty soubory jeÅ¡tÄ› nejsou v cache. Tento Äas lze pomÄ›rnÄ› dobÅ™e srazit (u mÄ› na 3s - z toho 800ms je dÃ¡no ÄistÄ› zpracovÃ¡nÃ­m obsahu souborÅ¯ - tj. omezeno vÃ½konem procesoru, Äili zrychlenÃ­ se pohybuje nÄ›kde v Å™Ã¡du 5x) pomocÃ­ drobnÃ© "defragmentace" adresÃ¡Å™Å¯ /var/log/packages a /var/log/scripts. Zde je program defrag.sh:</p>
+<p>Malá poznámka na závìr pro ty co stále chtìjí pou¾ívat
+pkgtools. Spkg trpí stejnım problémem jako pkgtools a to tím, ¾e
+databáze balíèkù èítá napø. na mém systému 600 malıch
+souborù. A z tìchto 600 souborù je potøeba pøed zahájením upgrade
+naèíst seznam souborù, které jsou v systému nainstalovány. To na
+mém systému, kterı u¾ za¾il upgrade zhruba 1400 balíèkù trvá
+zhruba 12s, kdy¾ ty soubory je¹tì nejsou v cache. Tento èas lze
+pomìrnì dobøe srazit (u mì na 3s - z toho 800ms je dáno èistì
+zpracováním obsahu souborù - tj. omezeno vıkonem procesoru, èili
+zrychlení se pohybuje nìkde v øádu 5x) pomocí drobné
+"defragmentace" adresáøù /var/log/packages a /var/log/scripts. Zde je
+program defrag.sh:</p>
+
 <pre>
 #!/bin/sh -e
 rm -rf /var/log/packages~ /var/log/scripts~
@@ -43,10 +102,20 @@ mv /var/log/packages~ /var/log/packages
 mv /var/log/scripts~ /var/log/scripts
 </pre>
 
-<p>Nechce k tomu nÄ›kdo dopsat grafickÃ© rozhranÃ­ s kostiÄkama a progressbarem?</p>
+<p>Nechce k tomu nìkdo dopsat grafické rozhraní s kostièkama a
+progressbarem?</p>
 
-<p>TÃ­mto se spkg velmi pÅ™iblÃ­Å¾il k verzi 1.0. JeÅ¡tÄ› to budu nÄ›jakÃ½ Äas pouÅ¾Ã­vat kde budu moct, a mÃ¡m v plÃ¡nu vytvoÅ™enÃ­ testsuite sloÅ¾enÃ© z mnoha speciÃ¡lnÄ› vytvoÅ™enÃ½ch balÃ­ÄkÅ¯, kterÃ© otestujÃ­ co nejvÃ­c cest v kÃ³du. DÃ¡le je potÅ™eba pÅ™idat pÃ¡r drobnÃ½ch volitelnÃ½ch vlastnostÃ­, jako je v pkgtools napÅ™. upgradepkg --install-new nebo --reinstall. A nakonec bude tÅ™eba zaktualizovat dokumentaci.</p>
+<p>Tímto se spkg velmi pøiblí¾il k verzi 1.0. Je¹tì to budu
+nìjakı èas pou¾ívat kde budu moct, a mám v plánu vytvoøení
+testsuite slo¾ené z mnoha speciálnì vytvoøenıch balíèkù, které
+otestují co nejvíc cest v kódu. Dále je potøeba pøidat pár
+drobnıch volitelnıch vlastností, jako je v pkgtools napø. upgradepkg
+--install-new nebo --reinstall. A nakonec bude tøeba zaktualizovat
+dokumentaci.</p>
 
-<p>NemÃ¡ nÄ›kdo nÃ¡pad na uÅ¾iteÄnou vlastnost, kterÃ¡ v pkgtools chybÃ­? NapadÃ¡ mÄ› pÅ™Ã­kaz --check, kterÃ½ by zkontroloval danÃ© blaÃ­Äky a zobrazil soubory, kterÃ© byly zmÄ›nÄ›ny Äi odstranÄ›ny po instalaci balÃ­Äku.</p>
+<p>Nemá nìkdo nápad na u¾iteènou vlastnost, která v pkgtools
+chybí? Napadá mì pøíkaz --check, kterı by zkontroloval dané
+blaíèky a zobrazil soubory, které byly zmìnìny èi odstranìny po
+instalaci balíèku.</p>
 
 Homepage projektu je: <a href="http://spkg.megous.com">http://spkg.megous.com</a>.
