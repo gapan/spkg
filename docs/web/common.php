@@ -1,9 +1,25 @@
-<?php function head($title) { ?>
+<?php
+
+if (file_exists("dl/releases/LATEST"))
+{
+  $st = stat("dl/releases/LATEST");
+  $vf = file("dl/releases/LATEST");
+  $version = $vf[0];
+  $reldate = date("Y-m-d H:M", $st["mtime"]);
+}
+else
+{
+  $version = "rc0";
+  $reldate = "2006-07-21";
+}
+
+?>
+<?php function head() { ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
 <head>
-<title><?php echo $title; ?></title>
+<title>Slackware Linux Package Manager (spkg)</title>
 
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-2" />
 <meta name="Keywords" content="spkg, pkgtools, package manager, slackware, linux, C, fast, implementation" />
@@ -42,7 +58,7 @@
 
  <div id="botmenu">
  Written by Ondřej Jirman, 2005 - 2006<br/>
- Last update: @DATE@<br/>
+ Last update: <?php echo $reldate; ?><br/>
  Contact: <a href="mailto:megous@megous.com">Ondřej Jirman</a> (<a href="http://megous.com">megous.com</a>)<br/>
  </div>
  <div id="lonmenu">
@@ -55,4 +71,4 @@
 </div>
 </body>
 </html>
-<?php } ?>
+<?php } head(); ?>

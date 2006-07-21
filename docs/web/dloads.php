@@ -1,21 +1,26 @@
 <?php require "common.php"; ?>
-<?php head("spkg - downloads page"); ?>
 
  <h2>Downloads</h2>
 
-  <p>On this page you can get the lastest version of the spkg: <b>spkg-@VER@</b></p>
+  <p>On this page you can get the lastest version of the spkg:
+  <b>spkg-<?php echo $version; ?></b></p>
 
  <h3>Binary packages</h3>
 
   <p>I recommend you, to build spkg yourself. It's very easy, see 
-  building section on this page. You can also download binary package
-  <a href="dl/spkg-@VER@-i486-1.tgz">here</a>.</p>
+  building section on this page. You can also download the latest binary
+  package: <a href="dl/releases/spkg-<?php echo $version; ?>-i486-1.tgz">
+  spkg-<?php echo $version; ?>-i486-1.tgz</a>.</p>
 
  <h3>Source code</h3>
 
-  <p>Source code is distributed as an ordinary <a
-  href="dl/spkg-@VER@.tar.gz">tarball</a>. Patches and bugfixes to the
-  latest version can be found <a href="dl/patches/@VER@/">here</a>.</p>
+  <p>Source code is distributed as an ordinary tarball. Tarball for
+  the latest version is: <a href="dl/releases/spkg-<?php echo $version; ?>.tar.gz">
+  spkg-<?php echo $version; ?>.tar.gz</a>.</p>
+
+ <h3>More files</h3>
+
+  <p>You can find more files in <a href="dl">this</a> directory.</p>
 
  <h2>Building</h2>
 
@@ -29,7 +34,7 @@
   </ul>
 
   <p>Installing spkg is very easy. Just extract source code package
-  and run  this command:</p>
+  and run this command (you will need at least to have Judy first):</p>
   <code># make install</code>
 
   <p>To uninstall spkg, do:</p>

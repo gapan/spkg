@@ -1,5 +1,4 @@
 <?php require "common.php"; ?>
-<?php head("spkg - documentation page"); ?>
 
  <h2>Documentation</h2>
 

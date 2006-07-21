@@ -1,5 +1,4 @@
 <?php require "common.php"; ?>
-<?php head("spkg - howto page"); ?>
 
  <h2>Spkg HOWTO</h2>
 
@@ -7,8 +6,8 @@
 
  <h3>Quick start</h3>
 
-  <p>After successful installation you can start installing and removing
-  packages using following commands:</p>
+  <p>After successful <a href="dload.php">installation</a> you can start
+  installing and removing packages using following commands:</p>
   <code># spkg --install some-package-1.0-i486-1.tgz</code>
   
   <p>If you are a lazy typer, previous command can be rewritten to:</p>
