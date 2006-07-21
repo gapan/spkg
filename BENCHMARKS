@@ -1,0 +1,88 @@
+BENCHMARK no.1
+==============
+
+This benchmark compares spkg with pkgtools and plain tar.
+
+Hardware setup used:
+
+CPU: Athlon Thunderbird 1GHz
+MEM: 512MB SDRAM 133MHz
+HDD1: Seagate Baracuda 7200.9 80GB
+HDD2: Samsung SP2002H 20GB 7200 rpm
+OS: 'vanilla' linux 2.6.17.2, slackware-current
+
+Benchmarking methods:
+
+Before each 'install' benchmark clean ext2 filesystem will be created on
+HDD2 using following command:
+  mke2fs /dev/hdb
+
+Before each benchmarks caches will be flushed using:
+  echo 2 > /proc/sys/vm/drop_caches
+
+All services that could affect result of benchmarks will be stopped.
+
+Install speed
+~~~~~~~~~~~~~
+Install/extract all official slackware-current (2006-07-11) packages
+from the installation packages on HDD1 to the root directory on HDD2.
+
+1)
+  spkg -r /data -i */*.tgz
+
+2)
+  installpkg -root /data */*.tgz
+
+3) 
+  for f in */*.tgz ; do
+    tar xf $f -C /data
+  done
+
+Remove speed
+~~~~~~~~~~~~
+Remove all 'kde*' packages from the system. ;-)
+
+1)
+  spkg -r /data -d `spkg -r /data -l 'kde*'`
+
+2)
+  ROOT=/data removepkg `spkg -r /data -l 'kde*'`
+
+Results
+~~~~~~~
+
+Install speed:
+  1) real 12m 36s, user 2m 3s, sys 51s
+  2) real 23m 41s, user 15m 31s, 5m 28s
+  3) real 13m 17s, user 1m 46s, sys 56s
+
+Remove speed:
+  1) real 1m 29s, user 3.4s, sys 3.9s
+  2) real 27m 49s, user 19m 46s, sys 6m 30s
+
+BENCHMARK no.2
+==============
+
+Install Slackware 10.1.0
+
+cmd: ipkg -r /root {a,ap,d,l,n}/*.tgz
+time: 3m41s, 54s, 38s
+
+cmd: installpkg -root /root {a,ap,d,l,n}/*.tgz
+time: 16m4s, 7m42s, 3m11s
+
+Upgrade to Slackware 10.2.0
+
+cmd: upkg -r /root {a,ap,d,l,n}/*.tgz
+time: 4m39s, 0m50s, 0m40s
+
+cmd: ROOT=/root upgradepkg {a,ap,d,l,n}/*.tgz
+time: 33m50s, 18m30s, 6m45s
+
+Remove d series packages
+
+cmd: ROOT=/root removepkg `cat d-list`
+time: 6m6s, 3m43s, 1m3s
+
+cmd: rpkg -r /root `cat pkglist`
+time: 11.8s, 0.67s, 1.18s
