@@ -1,36 +1,45 @@
-.TH SPKG 8 "April 2005" "spkg"
+.TH SPKG 8 "July 2006" "spkg"
 .SH NAME
 spkg \- The Unofficial \fISlackware Linux\fR Package Manager
 .SH SYNOPSIS
 .B spkg
 [\fB-i\fR|\fB--install\fR]
-[\fB-d\fR|\fB--remove\fR]
 [\fB-u\fR|\fB--upgrade\fR]
+[\fB-d\fR|\fB--remove\fR]
 [\fB-l\fR|\fB--list\fR]
 [\fB-r\fR|\fB--root\fR \fIROOT\fR]
 [\fB-n\fR|\fB--dry-run\fR]
+[\fB-s\fR|\fB--safe\fR] 
+[\fB--reinstall\fR] 
+[\fB--install-new\fR] 
+[\fB--no-fast-symlinks\fR] 
+[\fB--no-scripts\fR] 
+[\fB--no-ldconfigs\fR] 
 [\fB-q\fR|\fB--quiet\fR] 
 [\fB-v\fR|\fB--verbose\fR]
 [\fIpackages...\fR]
 .CM ===========================================================================
 .SH DESCRIPTION
-\fBspkg\fR is fast and robust tool for package management that is compatible 
-with \fISlackware Linux\fR.
+\fBspkg\fR is fast and robust tool for \fISlackware Linux\fR package management.
 .CM ===========================================================================
 .SH COMMAND LINE ARGUMENTS
 .SS Commands
 .TP
 \fB-i\fR, \fB--install\fR
-Install packages.
-.TP
-\fB-d\fR, \fB--remove\fR
-Remove packages.
+Install given packages.
 .TP
 \fB-u\fR, \fB--upgrade\fR
-Upgrade packages.
+Upgrade given packages.
+.TP
+\fB-d\fR, \fB--remove\fR
+Remove given packages. You may use shortname, full name or package file name
+to specify packages to be removed.
 .TP
 \fB-l\fR, \fB--list\fR
-List packages.
+List names of all installed packages. You may use -v option to show package
+details too. Adding package shortname on the command line will make list
+limited to that specific packages. You may use glob matching to specify
+package names. For example to list all kde packages use 'spkg -l *kde*'.
 .CM ===========================================================================
 .SS Options
 .TP
@@ -38,24 +47,42 @@ List packages.
 Set altrernate root directory for package operations. (default: "/")
 .TP
 \fB-v\fR | \fB--verbose\fR
-Increase verbosity level. You may use this option multiple times to get even 
-more verbose output.
+Increase verbosity level. This option enables notices when used once.
+When used twice it will also enable debug messages.
 .TP
 \fB-q\fR | \fB--quiet\fR
-Set verbosity level to zero. Default verbosity level is 1 (show only warnings).
-This option disables warnings. Please note, that error messages can't be disabled.
+Decrease verbosity level. Default verbosity level is 2 (show info
+messages and warnings). This option disables warnings when used once.
+When used twice it will completely disable output.
+Please note, that error messages can't be disabled.
 .TP
 \fB-n\fR | \fB--dry-run\fR
-Don't modify filesystem or database. This may be useful when used along with -v 
-option to check what exactly will given command do.
+Don't modify filesystem or database. This may be useful when used along
+with -v option to check what exactly would given command do.
+.TP
+\fB-s\fR | \fB--safe\fR
+Play it safe. Don't replace existing files during --install or --upgrade.
+Don't run post-installation scripts. Don't remove changed files on
+--remove.
+.TP
+\fB--reinstall\fR
+When upgrading package and package already exists in the database,
+force reinstall.
+.TP
+\fB--install-new\fR
+When upgrading package that does not yet exist in the database,
+install it instead.
 .TP
 \fB--no-fast-symlinks\fR
-Spkg by default parses doinst.sh for symlink creation code and removes it from
-the script. This improves execution times of doinst.sh. Use this option to
-disable such optimizations.
+Spkg by default parses doinst.sh for symlink creation code and removes
+it from the script. This improves execution times of doinst.sh. Use
+this option to disable such optimizations.
 .TP
 \fB--no-scripts\fR
 Disable postinstallation script.
+.TP
+\fB--no-ldconfig\fR
+Don't execute ldconfig after installation and upgrade.
 .CM ===========================================================================
 .SS Help
 .TP
@@ -63,13 +90,13 @@ Disable postinstallation script.
 Display brief usage message.
 .TP
 \fB-h\fR, \fB--help\fR
-Show this help message.
+Show long help.
 .TP
 \fB-V\fR, \fB--version\fR
 Display spkg version.
 .CM ===========================================================================
 .SH FILES
-.IP "var/log/{packages,scripts}"
+.IP "/var/log/{packages,scripts}"
 Package database.
 .SH EXAMPLES
 .TP
