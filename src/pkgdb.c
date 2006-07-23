@@ -428,10 +428,13 @@ static gint _db_add_pkg(struct db_pkg* pkg, gchar* origname)
   spath_tmp = g_strdup_printf("%s/.%s", _db.scrdir, pkg->name);
 
   /* check if package file exists */
-  if (sys_file_type(ppath, 1) != SYS_NONE)
+  if (origname == NULL)
   {
-    e_set(E_FATAL|DB_EXIST, "Package is already in the database %s. (%s)", ppath, strerror(errno));
-    goto err_1;
+    if (sys_file_type(ppath, 1) != SYS_NONE)
+    {
+      e_set(E_FATAL|DB_EXIST, "Package is already in the database %s. (%s)", ppath, strerror(errno));
+      goto err_1;
+    }
   }
 
   /* write package file (tmp) */
@@ -521,7 +524,7 @@ static gint _db_add_pkg(struct db_pkg* pkg, gchar* origname)
   /* finally put package and script files into place */
   if (rename(ppath_tmp, ppath) < 0)
   {
-    e_set(E_FATAL, "Can't finalize package file update %s. (%s)", ppath_tmp, strerror(errno));
+    e_set(E_FATAL, "Can't finalize package database update. Rename failed %s. You'll need to fix package database by hand. (%s)", ppath_tmp, strerror(errno));
     goto err_1;
   }
 
@@ -529,7 +532,7 @@ static gint _db_add_pkg(struct db_pkg* pkg, gchar* origname)
   {
     if (rename(spath_tmp, spath) < 0)
     {
-      e_set(E_FATAL, "Can't finalize script file update %s. (%s)", ppath_tmp, strerror(errno));
+      e_set(E_FATAL, "Can't finalize package database update. Rename failed %s. You'll need to fix package database by hand. (%s)", spath_tmp, strerror(errno));
       goto err_1;
     }
   }
@@ -545,10 +548,6 @@ static gint _db_add_pkg(struct db_pkg* pkg, gchar* origname)
   fclose(pf);
  err_1:
   /* just ingore errors here */
-  unlink(ppath_tmp);
-  unlink(spath_tmp);
-  unlink(ppath);
-  unlink(spath);
   g_free(ppath);
   g_free(spath);
   g_free(ppath_tmp);
