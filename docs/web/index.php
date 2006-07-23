@@ -26,16 +26,18 @@
 
  <h2>News</h2>
 
-  <h3>Spkg 1.0.0 release process started</h3>
+  <h3>Spkg is heading towards 1.0</h3>
 
-   What this means is, that I've modified site to allow me to simply
-   roll out spkg-1.0.0 release candidates. So this means, that there
-   will be a lot of them. :-)
+   <p>What this means is, that I've modified site to allow me to easily
+   roll out spkg-1.0 release candidates. So this means, that there
+   will be a lot of them. :-)</p>
 
-   I've tested beta a lot and come up with some benchmarks you
+   <p>I've tested beta a lot and come up with some benchmarks you
    can find <a href="dl/BENCHMARKS">here</a>. Just a few numbers
    comparing pkgtools to spkg here: installation is at least 4x faster,
-   upgrade is 7x faster and remove is 30x faster on averange.
+   upgrade is 7x faster and remove is 30x faster on averange.</p>
+   
+   <p>See <a href="dl/NEWS">NEWS</a> file for more information.</p>
 
   <p>See <a href="history.php">older news</a>...</p>
 

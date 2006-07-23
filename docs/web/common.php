@@ -4,8 +4,8 @@ if (file_exists("dl/releases/LATEST"))
 {
   $st = stat("dl/releases/LATEST");
   $vf = file("dl/releases/LATEST");
-  $version = $vf[0];
-  $reldate = date("Y-m-d H:M", $st["mtime"]);
+  $version = str_replace("\n", "", $vf[0]);
+  $reldate = date("Y-m-d H:i", $st["mtime"]);
 }
 else
 {
@@ -52,7 +52,7 @@ else
  <div id="main">
 
 <?php } ?>
-<?php function foot() { ?>
+<?php function foot() { global $reldate; ?>
 
  </div>
 
