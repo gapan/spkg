@@ -109,9 +109,9 @@ install-docs: docs
 	ln -sf spkg.8.gz $(DESTDIR)$(mandir)/man8/upkg.8.gz
 	ln -sf spkg.8.gz $(DESTDIR)$(mandir)/man8/lpkg.8.gz
 	install -d -o root -g root -m 0755 $(DESTDIR)$(docdir)
-	install -d -o root -g root -m 0755 $(DESTDIR)$(docdir)/html
+	install -d -o root -g root -m 0755 $(DESTDIR)$(docdir)/api
 	install -o root -g root -m 0644 LICENSE README INSTALL BENCHMARKS NEWS TODO $(DESTDIR)$(docdir)/
-	install -o root -g root -m 0644 docs/html/* $(DESTDIR)$(docdir)/html/
+	install -o root -g root -m 0644 docs/api/* $(DESTDIR)$(docdir)/api/
 
 uninstall:
 	rm -f $(DESTDIR)$(sbindir)/{s,r,u,i,l}pkg
@@ -141,7 +141,7 @@ dist: docs
 	git tar-tree HEAD spkg-$(VERSION) | tar x
 	git log > spkg-$(VERSION)/ChangeLog
 	sed -i 's/^VERSION :=.*$$/VERSION := $(VERSION)/' spkg-$(VERSION)/Makefile
-	cp -a docs/html spkg-$(VERSION)/docs
+	cp -a docs/api spkg-$(VERSION)/docs
 	tar czf spkg-$(VERSION).tar.gz spkg-$(VERSION)
 	rm -rf spkg-$(VERSION)
 
@@ -150,9 +150,9 @@ dist: docs
 .PHONY: docs
 
 docs:
-	rm -rf docs/html
-	doxygen docs/Doxyfile
-	rm -f docs/html/doxygen.png
+	rm -rf docs/api
+	doxygen docs/devel/Doxyfile
+	rm -f docs/api/doxygen.png
 
 # cleanup
 ############################################################################
@@ -162,4 +162,4 @@ clean: tests-clean
 	-rm -rf .build/*.o .build/*.a spkg build
 
 mrproper: clean
-	-rm -rf .build docs/html
+	-rm -rf .build docs/api
