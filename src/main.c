@@ -11,6 +11,8 @@
 
 #include <popt.h>
 
+#include "config.h"
+
 #include "commands.h"
 #include "pkgdb.h"
 #include "sigtrap.h"
@@ -201,7 +203,7 @@ int main(const int ac, const char* av[])
   if (help)
   {
     printf(
-      "spkg " G_STRINGIFY(SPKG_VERSION) "\n"
+      PACKAGE_STRING "\n"
       "\n"
       "Written by Ondrej Jirman, 2005-2006.\n"
       "\n"
@@ -233,7 +235,7 @@ int main(const int ac, const char* av[])
   }
   if (version)
   {
-    printf("spkg-" G_STRINGIFY(SPKG_VERSION) "\n");
+    printf("%s\n", PACKAGE_STRING);
     goto out;
   }
 
