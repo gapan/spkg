@@ -34,13 +34,10 @@
   </ul>
 
   <p>Installing spkg is very easy. Just extract source code package
-  and run this command (you will need at least to have Judy first):</p>
-  <code># make install</code>
+  and run these commands (you will need to have Judy installed first):</p>
+  <code># ./configure && make && make install</code>
 
   <p>To uninstall spkg, do:</p>
   <code># make uninstall</code>
   
-  <p>If you want to create Slackware binary package, do:</p>
-  <code># make slackpkg</code>
-
 <?php foot(); ?>
