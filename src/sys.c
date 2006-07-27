@@ -258,3 +258,26 @@ gint sys_write_buffer_to_file(const gchar* file, const gchar* buf, gsize len, st
   fclose(f);
   return 0;
 }
+
+gint sys_read_file_to_buffer(const gchar* file, const gchar* buf, gsize len, struct error* e)
+{
+  g_assert(file != NULL);
+  g_assert(buf != NULL);
+  g_assert(len > 0);
+  g_assert(e != NULL);
+
+  FILE* f = fopen(file, "r");
+  if (f == NULL)
+  {
+    e_set(e, E_FATAL, "Can't open file for reading: %s (%s)", file, strerror(errno));
+    return 1;
+  }
+  if (1 != fread(buf, len, 1, f))
+  {
+    e_set(e, E_FATAL, "Can't read data from the file: %s (%s)", file, strerror(errno));
+    fclose(f);
+    return 1;
+  }
+  fclose(f);
+  return 0;
+}

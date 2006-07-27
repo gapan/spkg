@@ -129,6 +129,16 @@ extern void sys_lock_del(gint fd);
  */
 extern gint sys_write_buffer_to_file(const gchar* file, const gchar* buf, gsize len, struct error* e);
 
+/** Read buffer from a file.
+ *
+ * @param file file name
+ * @param buf pointer to a buffer
+ * @param len lenght of a buffer
+ * @param e error object
+ * @return 1 on failure, 0 on success
+ */
+extern gint sys_read_file_to_buffer(const gchar* file, const gchar* buf, gsize len, struct error* e);
+
 G_END_DECLS
 
 #endif
