@@ -4,7 +4,8 @@
   href="http://slackware.com">Slackware Linux</a> package manager. spkg
   is implemented in C and optimized for speed. The latest version
   relased on <?php echo $reldate; ?> is: <b><a href="dl/releases">
-  spkg-<?php echo $version; ?></a></b>.</p>
+  spkg-<?php echo $version; ?></a></b>. See <a href="dl/NEWS">NEWS</a>
+  file for more information about this release.</p>
 
   <p><b>Spkg is now feature complete and under heavy testing by yours
   truly.</b></p>
@@ -37,7 +38,6 @@
    comparing pkgtools to spkg here: installation is at least 4x faster,
    upgrade is 7x faster and remove is 30x faster on averange.</p>
    
-   <p>See <a href="dl/NEWS">NEWS</a> file for more information.</p>
 
   <p>See <a href="history.php">older news</a>...</p>
 
