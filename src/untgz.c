@@ -28,6 +28,9 @@
 #define BLOCKBUFSIZE (512*100)
 #define WRITEBUFSIZE (1024*16)
 
+#define COMPTYPE_GZIP 1
+#define COMPTYPE_LZMA 2
+
 struct untgz_state_internal {
   /* error handling */
   jmp_buf errjmp;
@@ -39,7 +42,9 @@ struct untgz_state_internal {
   gboolean written;/* current file was written to disk (or buffer) */
   gboolean eof;/* end of archive reached */
 
+  gint comptype;
   gzFile* gzf; /* gzio tar stream */
+  FILE* fp;    /* file stream */
   
   /* internal block buffer data */
   gchar bbuf[BLOCKBUFSIZE]; /* block buffer */
@@ -163,13 +168,25 @@ static union tar_block* read_next_block(struct untgz_state* s, gboolean is_heade
   if (i->bpos >= i->bend)
   { /* reload */
     continue_timer(6);
-    gint read = gzread(i->gzf, i->bbuf, BLOCKBUFSIZE);
+    gint read;
+
+    if (i->comptype == COMPTYPE_GZIP)
+      read = gzread(i->gzf, i->bbuf, BLOCKBUFSIZE);
+    else if (i->comptype == COMPTYPE_LZMA)
+      read = fread(i->bbuf, 1, BLOCKBUFSIZE, i->fp);
+
     stop_timer(6);
     if (read < BLOCKSIZE)
     {
-      if (read == 0 && !gzeof(i->gzf))
+      gint err;
+      if (i->comptype == COMPTYPE_GZIP)
+        err = (read == 0 && !gzeof(i->gzf));
+      else if (i->comptype == COMPTYPE_LZMA)
+        err = (read == 0 && !feof(i->fp));
+      if (err)
         e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] corrupted tgz archive (gzread failed)", i->blockid);
-      e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] corrupted tgz archive (early EOF)", i->blockid);
+      else
+        e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] corrupted tgz archive (early EOF)", i->blockid);
     }
     i->bpos = i->bbuf;
     i->bend = i->bbuf + read;
@@ -210,6 +227,7 @@ struct untgz_state* untgz_open(const gchar* tgzfile, struct error* e)
 {
   struct untgz_state* s=0;
   gzFile *gzf;
+  FILE* fp;
   struct stat st;
 
   continue_timer(0);
@@ -221,21 +239,63 @@ struct untgz_state* untgz_open(const gchar* tgzfile, struct error* e)
   if (stat(tgzfile, &st) == -1)
   {
     _e_set(e, E_ERROR, "can't stat file: %s", tgzfile);
-    return 0;
+    return NULL;
   }
-  
-  gzf = gzopen(tgzfile, "rb");
-  if (gzf == 0)
+
+  gint comptype;
+  guchar magic[64];
+  if (sys_read_file_to_buffer(tgzfile, magic, sizeof(magic), e))
   {
-    _e_set(e, E_ERROR, "can't gzopen file: %s", tgzfile);
-    return 0;
+    _e_set(e, E_ERROR, "Can't determine file compression type.");
+    return NULL;
   }
+
+  comptype = COMPTYPE_GZIP;
+  if (magic[0] < 0xE1 || (magic[0] == 0xFF && magic[1] == 'L' && magic[2] == 'Z' && magic[3] == 'M'))
+  {
+    if (magic[0] == 0xFF && magic[4] == 'A' && magic[5] == 0x00)
+      comptype = COMPTYPE_LZMA;
+    else if (magic[0] < 0xE1 && magic[4] < 0x20 &&
+      ((magic[10] == 0x00 && magic[11] == 0x00 &&
+        magic[12] == 0x00) ||
+       (magic[5] == 0xFF && magic[6] == 0xFF &&
+        magic[7] == 0xFF && magic[8] == 0xFF &&
+        magic[9] == 0xFF && magic[10] == 0xFF &&
+        magic[11] == 0xFF && magic[12] == 0xFF)))
+      comptype = COMPTYPE_LZMA;
+  }
+
+  if (comptype == COMPTYPE_GZIP)
+  {
+    gzf = gzopen(tgzfile, "rb");
+    if (gzf == NULL)
+    {
+      _e_set(e, E_ERROR, "can't gzopen file: %s", tgzfile);
+      return NULL;
+    }
+  }
+  else if (comptype == COMPTYPE_LZMA)
+  {
+    gchar* escaped = g_shell_quote(tgzfile);
+    gchar* cmd = g_strdup_printf("lzma -d -c %s", escaped);
+    fp = popen(cmd, "r");
+    g_free(escaped);
+    if (fp == NULL)
+    {
+      _e_set(e, E_ERROR, "can't popen command: %s", cmd);
+      g_free(cmd);
+      return NULL;
+    }
+    g_free(cmd);
+  }  
 
   s = g_new0(struct untgz_state,1);
   s->i = g_new0(struct untgz_state_internal,1);
   struct untgz_state_internal* i = s->i;
   s->tgzfile = g_strdup(tgzfile);
   i->gzf = gzf;
+  i->fp = fp;
+  i->comptype = comptype;
   s->csize = st.st_size;
   i->old_umask = umask(0);
   i->blockid = -1;
@@ -251,7 +311,12 @@ void untgz_close(struct untgz_state* s)
   continue_timer(2);
 
   struct untgz_state_internal* i = s->i;
-  gzclose(i->gzf);
+
+  if (i->comptype == COMPTYPE_GZIP)
+    gzclose(i->gzf);
+  else if (i->comptype == COMPTYPE_LZMA)
+    fclose(i->fp);
+
   umask(i->old_umask);
   g_free(s->f_name);
   g_free(s->f_link);
