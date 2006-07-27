@@ -343,6 +343,13 @@ int main(const int ac, const char* av[])
               status = 2;
             }
           }
+          else if (e_errno(err) & CMD_NOTEX)
+          {
+            gchar* pkgname = parse_pkgname(arg, 5);
+            _inform("Skipping package %s (not installed)...", pkgname ? pkgname : arg);
+            g_free(pkgname);
+            e_clean(err);
+          }
           else if (e_errno(err) & CMD_EXIST)
           {
             gchar* pkgname = parse_pkgname(arg, 5);
