@@ -561,7 +561,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
 
   /* open package's tgz archive */
   struct untgz_state* tgz=0;
-  tgz = untgz_open(pkgfile, 0, e);
+  tgz = untgz_open(pkgfile, e);
   if (tgz == 0)
   {
     e_set(E_ERROR,"Can't open package file. (%s)", pkgfile);

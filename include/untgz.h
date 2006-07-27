@@ -18,12 +18,6 @@ Following code shows typical \ref untgz_api usage.
 #include <stdio.h>
 #include "untgz.h"
 
-void status(struct untgz_state* tgz, gsize total, gsize current)
-{
-  printf("%d\n", 100*current/total);
-  fflush(stdout);
-}
-
 int main(int ac, char* av[])
 {
   gint i;
@@ -33,7 +27,7 @@ int main(int ac, char* av[])
   for (i=1;i<ac;i++)
   {
     // Open tgz file.
-    struct untgz_state* tgz = untgz_open(av[i], status, err);
+    struct untgz_state* tgz = untgz_open(av[i], err);
     if (tgz == 0)
     {
       e_print(err);
@@ -127,20 +121,13 @@ struct untgz_state {
   struct untgz_state_internal* i; /**< this is no-no for a library user */
 };
 
-/** Untgz status callback. */
-typedef void(*untgz_status_cb)(struct untgz_state* s, gsize total, gsize current);
-
 /** Open tgz archive.
  *
  * @param tgzfile Path to the tgz archive.
- * @param scb Status callback. If you don't need this, set it to zero.
- *            Note that if archive is corrupted, behavior is undefined.
- *            Also note, that use of callback is not possible on files
- *            where lseek is not posible.
  * @param e Error object.
  * @return Pointer to the \ref untgz_state object on success, 0 on error.
  */
-extern struct untgz_state* untgz_open(const gchar* tgzfile, untgz_status_cb scb, struct error* e);
+extern struct untgz_state* untgz_open(const gchar* tgzfile, struct error* e);
 
 /** Close archive and free \ref untgz_state object.
  *

@@ -8,12 +8,6 @@
 #include <stdio.h>
 #include "untgz.h"
 
-void status(struct untgz_state* tgz, gsize total, gsize current)
-{
-  printf("%d\n", 100*current/total);
-  fflush(stdout);
-}
-
 int main(int ac, char* av[])
 {
   gint i;
@@ -23,8 +17,7 @@ int main(int ac, char* av[])
   for (i=1;i<ac;i++)
   {
     // Open tgz file.
-//    struct untgz_state* tgz = untgz_open(av[i], status, err);
-    struct untgz_state* tgz = untgz_open(av[i], 0, err);
+    struct untgz_state* tgz = untgz_open(av[i], err);
     if (tgz == 0)
     {
       e_print(err);

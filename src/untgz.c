@@ -48,12 +48,6 @@ struct untgz_state_internal {
   gint blockid; /* block id (512*blockid == position of the block in the input file) */
 
   gchar wbuf[WRITEBUFSIZE]; /* write buffer */
-
-  /* status callback internal data */
-  untgz_status_cb scb;
-  gsize s_current;
-  gsize s_total;
-  gsize s_lastp;
 };
 
 /* private
@@ -180,30 +174,10 @@ static union tar_block* read_next_block(struct untgz_state* s, gboolean is_heade
     i->bpos = i->bbuf;
     i->bend = i->bbuf + read;
   }
-  /* report status */
-  if (i->scb)
-  {
-    i->s_current += BLOCKSIZE;
-    if (i->s_current >= i->s_total)
-    {
-      i->scb(s, i->s_current, i->s_current);
-      i->scb = 0; /* block another calls */
-    }
-    gint p = 100*i->s_current/i->s_total;
-    if (p - i->s_lastp >= 2)
-    {
-      i->scb(s, i->s_total, i->s_current);
-      i->s_lastp = p;
-    }
-  }
   if (is_header)
   {
     if (G_UNLIKELY(i->bpos[0] == 0))
-    {
-      if (i->scb)
-        i->scb(s, i->s_total, i->s_total);
       return 0;
-    }
     continue_timer(8);
     validate_header_csum(s);
     stop_timer(8);
@@ -232,7 +206,7 @@ static gchar* strnappend(gchar* dst, gchar* src, gsize size)
 /* public 
  ************************************************************************/
 
-struct untgz_state* untgz_open(const gchar* tgzfile, untgz_status_cb scb, struct error* e)
+struct untgz_state* untgz_open(const gchar* tgzfile, struct error* e)
 {
   struct untgz_state* s=0;
   gzFile *gzf;
@@ -248,32 +222,6 @@ struct untgz_state* untgz_open(const gchar* tgzfile, untgz_status_cb scb, struct
   {
     _e_set(e, E_ERROR, "can't stat file: %s", tgzfile);
     return 0;
-  }
-  
-  /* get total size of uncompressed data from gzipped file 
-     (read last four bytes in the file) */
-  guint32 size;
-  if (scb)
-  {
-    gint fd = open(tgzfile, O_RDONLY);
-    if (fd < 0)
-    {
-      _e_set(e, E_ERROR, "can't open file: %s (try not using callback)", tgzfile);
-      return 0;
-    }
-    if (lseek(fd, -4, SEEK_END) == (off_t)-1)
-    { 
-      _e_set(e, E_ERROR, "can't lseek file: %s (try not using callback)", tgzfile);
-      close(fd);
-      return 0;
-    }
-    if (read(fd, &size, 4) != 4)
-    {
-      _e_set(e, E_ERROR, "can't read file: %s (try not using callback)", tgzfile);
-      close(fd);
-      return 0;
-    }
-    close(fd);
   }
   
   gzf = gzopen(tgzfile, "rb");
@@ -293,11 +241,6 @@ struct untgz_state* untgz_open(const gchar* tgzfile, untgz_status_cb scb, struct
   i->blockid = -1;
   i->err = e;
 
-  if (scb)
-  {
-    i->scb = scb;
-    i->s_total = GUINT32_FROM_LE(size);
-  }
   stop_timer(1);
   return s;
 }
