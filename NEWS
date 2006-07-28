@@ -1,7 +1,30 @@
 ----------------------------------------------------------------
 spkg - Release Notes
 ----------------------------------------------------------------
-2006-07-26: spkg 1.0rc3
+2006-07-29: spkg 1.0rc4
+
+  Dropped requirement for minimum glib version down to 2.2.1, that is
+  version that comes with Slackware 9.0. Requirement for glib >= 2.10.0
+  was pretty tight and allowed spkg to be used only on
+  slackware-current. Thanks goes to johnga1 for pointing this out. 
+  
+  Added configure option for building only static version of spkg
+  (--enable-static-spkg=only). This is what I now use for binary package
+  on spkg.megous.com. This fixes problem that I did run into when
+  downgrading to glib-2.2.0 to test spkg against it. That is all goes
+  well until we add first action to the transaction, then suddenly
+  g_slice_new0 is needed and not found in any library and spkg
+  terminates. This happens for the first file in the installed package,
+  and can't break anything. If file aready existed on the filesystem it
+  will not be owerwritten when spkg is terminated by the system. No
+  problem here. :)
+  
+  Anyway, spkg is now binary comaptible with any glib from 2.2.0
+  to 2.12.x so this problem should not happen even when using
+  dynamically linked spkg binary.
+
+----------------------------------------------------------------
+2006-07-28: spkg 1.0rc3
 
   Ok, we are in the rc phase, but this is pretty small change
   code-wise, but a good to have feature. :-)
