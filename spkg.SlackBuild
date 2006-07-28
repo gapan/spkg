@@ -6,10 +6,12 @@ VERSION=1.0rc4
 rm -rf spkg-$VERSION
 tar xzvf spkg-$VERSION.tar.gz
 cd spkg-$VERSION
-./configure --prefix=/usr --enable-static-spkg
+./configure --prefix=/usr --enable-static-spkg=only
 make
 make install DESTDIR=$CWD/slack-pkg
 mkdir -p $CWD/slack-pkg/install
 cat slack-desc > $CWD/slack-pkg/install/slack-desc
 cd $CWD/slack-pkg
 makepkg -l y -c n $CWD/spkg-$VERSION-i486-1.tgz
+cd $CWD
+rm -rf spkg-$VERSION slack-pkg
