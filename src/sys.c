@@ -114,7 +114,7 @@ gint sys_mkdir_p(const gchar* path)
   
   simple_path = path_simplify(path);
   pathv = path_get_elements(simple_path);
-  pathv_len = g_strv_length(pathv);
+  pathv_len = g_strv_length_compat(pathv);
   tmp = tmp_end = g_malloc0(strlen(simple_path)+10);
   g_free(simple_path);
 
@@ -259,7 +259,7 @@ gint sys_write_buffer_to_file(const gchar* file, const gchar* buf, gsize len, st
   return 0;
 }
 
-gint sys_read_file_to_buffer(const gchar* file, const gchar* buf, gsize len, struct error* e)
+gint sys_read_file_to_buffer(const gchar* file, gchar* buf, gsize len, struct error* e)
 {
   g_assert(file != NULL);
   g_assert(buf != NULL);

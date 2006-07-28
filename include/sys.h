@@ -137,7 +137,7 @@ extern gint sys_write_buffer_to_file(const gchar* file, const gchar* buf, gsize 
  * @param e error object
  * @return 1 on failure, 0 on success
  */
-extern gint sys_read_file_to_buffer(const gchar* file, const gchar* buf, gsize len, struct error* e);
+extern gint sys_read_file_to_buffer(const gchar* file, gchar* buf, gsize len, struct error* e);
 
 G_END_DECLS
 

@@ -307,3 +307,12 @@ gint iter_buf_lines(gchar** b, gchar** e, gchar** n, gchar* eof, gchar** ln)
     *ln = g_strndup(*b, *e - *b);
   return 1;
 }
+
+guint g_strv_length_compat(gchar **str_array)
+{
+  guint i = 0;
+  g_return_val_if_fail (str_array != NULL, 0);
+  while (str_array[i])
+    ++i;
+  return i;
+}

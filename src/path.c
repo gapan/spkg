@@ -46,7 +46,7 @@ gchar* path_simplify(const gchar* path)
   gboolean absolute;
   
   pathv = path_get_elements(path); /* should free */
-  pathv_len = g_strv_length(pathv);
+  pathv_len = g_strv_length_compat(pathv);
   
   sane_pathv = g_malloc0((pathv_len + 1) * sizeof(gchar*));
   absolute = (pathv_len > 1 && **pathv == '\0');

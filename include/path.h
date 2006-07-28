@@ -20,7 +20,7 @@ G_BEGIN_DECLS
  * @param path path to be sanitizd.
  * @return sanitized path (always)
  */
-extern gchar* path_sanitize_slashes(const gchar* path) G_GNUC_MALLOC;
+extern gchar* path_sanitize_slashes(const gchar* path);
 
 /** Powerful path simplification function.
  *
@@ -28,14 +28,14 @@ extern gchar* path_sanitize_slashes(const gchar* path) G_GNUC_MALLOC;
  * @param path path to be simlified.
  * @return simplified path (always)
  */
-extern gchar* path_simplify(const gchar* path) G_GNUC_MALLOC;
+extern gchar* path_simplify(const gchar* path);
 
 /** Get path elements.
  *
  * @param path path to be splitted
  * @return string vector of path elements, must be freed using g_strfreev (always)
  */
-extern gchar** path_get_elements(const gchar* path) G_GNUC_MALLOC;
+extern gchar** path_get_elements(const gchar* path);
 
 /** Sanitize root path.
  *
@@ -47,7 +47,7 @@ extern gchar** path_get_elements(const gchar* path) G_GNUC_MALLOC;
  * @param root Root path.
  * @return sanitized root path, should be freed by the caller
  */
-extern gchar* sanitize_root_path(const gchar* root) G_GNUC_MALLOC;
+extern gchar* sanitize_root_path(const gchar* root);
 
 G_END_DECLS
 

@@ -61,7 +61,7 @@ static struct action* _ta_insert(
 )
 {
   g_assert(list != NULL);
-  struct action* a = g_slice_new0(struct action);
+  struct action* a = g_new0(struct action, 1);
   a->on_finalize = on_finalize;
   a->on_rollback = on_rollback;
   *list = g_slist_prepend(*list, a);
@@ -72,7 +72,7 @@ static void _ta_free_action(struct action* a)
 {
   g_free(a->path1);
   g_free(a->path2);
-  g_slice_free(struct action, a);
+  g_free(a);
 }
 
 /* public 
