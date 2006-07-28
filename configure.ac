@@ -1,5 +1,5 @@
 AC_PREREQ(2.57)
-AC_INIT([spkg], 1.0rc3, [megous@megous.com], spkg)
+AC_INIT([spkg], 1.0rc4, [megous@megous.com], spkg)
 AC_CONFIG_SRCDIR([Makefile.am])
 AM_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE([dist-bzip2])
@@ -12,7 +12,7 @@ AC_PROG_CC
 AC_PROG_LN_S
 
 # Checks for pkg-config packages
-GLIB_REQUIRED="glib-2.0 >= 2.8.0"
+GLIB_REQUIRED="glib-2.0 >= 2.10.0"
 PKG_CHECK_MODULES(SPKG, [$GLIB_REQUIRED])
 AC_SUBST(SPKG_CFLAGS)
 AC_SUBST(SPKG_LIBS)
