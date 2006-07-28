@@ -7,3 +7,8 @@ Installation instructions
   # ./configure
   # make
   # make install
+
+If you are creating package that you want to be usable on older systems
+i recomend to use --enable-static-spkg=only confiure option. Resulting
+binary will be a bit bloated (800kB), but you will be able to use it
+everywhere.

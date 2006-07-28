@@ -12,7 +12,7 @@ AC_PROG_CC
 AC_PROG_LN_S
 
 # Checks for pkg-config packages
-GLIB_REQUIRED="glib-2.0 >= 2.10.0"
+GLIB_REQUIRED="glib-2.0 >= 2.2.0"
 PKG_CHECK_MODULES(SPKG, [$GLIB_REQUIRED])
 AC_SUBST(SPKG_CFLAGS)
 AC_SUBST(SPKG_LIBS)
@@ -38,12 +38,15 @@ AC_CHECK_LIB(popt, poptGetArg, [true], AC_MSG_ERROR([spkg requires popt library]
 #  true
 #fi
 
+# Static spkg
 AC_ARG_ENABLE(static-spkg,
   AS_HELP_STRING([--enable-static-spkg],
-                 [Create static spkg executable.]),
+                 [Create static spkg executable. Use --enable-static-spkg=only for 
+                 creating only static spkg binary that will be used by default.]),
   [create_static=$enableval], [create_static=no])
 
 AM_CONDITIONAL([STATIC_SPKG],[test "x$create_static" = "xyes"])
+AM_CONDITIONAL([STATIC_SPKG_ONLY],[test "x$create_static" = "xonly"])
 
 # Output
 AC_OUTPUT([
