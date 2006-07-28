@@ -1,6 +1,24 @@
 ----------------------------------------------------------------
 spkg - Release Notes
 ----------------------------------------------------------------
+2006-07-26: spkg 1.0rc3
+
+  Ok, we are in the rc phase, but this is pretty small change
+  code-wise, but a good to have feature. :-)
+
+  Added support for .tlz (LZMA compressed) packages. You will
+  need to have lzma program in your path for this to work, unlike
+  traditional .tgz packages that could be installed with just only
+  spkg.static. I forgot to mention it, but you can use configure
+  option --enable-static-spkg to build spkg.static in adition
+  to the ordinary dynamic executable.
+  
+  Dropped support for progress callback from the untar module.
+  
+  Don't show raw error message when upgrade fails on not installed
+  package.
+
+----------------------------------------------------------------
 2006-07-26: spkg 1.0rc2
 
   Build system proted to autotools.
