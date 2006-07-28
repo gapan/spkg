@@ -1,6 +1,21 @@
 spkg - The Unofficial Slackware Linux Package Manager
 -----------------------------------------------------
 
+Dependencies
+------------
+
+  Judy >= 1.0.3         http://judy.sourceforge.net
+  glib >= 2.2.1         general purpose C library
+  popt >= 1.7           command line parser
+  zlib >= 1.1.4         zlib (de)compression library
+
+  Optional:
+  lzma >= 4.32.0beta3   lzma utils: http://tukaani.org/lzma
+
+  Lzma utils are not required on compile time. If you want to install
+  tlz packages just make sure you have lzma binary in your PATH.
+
+
 Installation instructions
 -------------------------
 
