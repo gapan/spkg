@@ -1,6 +1,19 @@
 ----------------------------------------------------------------
 spkg - Release Notes
 ----------------------------------------------------------------
+2006-08-02: spkg 1.0rc5
+
+  Implemented optimization to the ldconfig. If package does not contain
+  .so files (dynamic libraries), ldconfig will not be executed. I guess,
+  that only one third of the slackware packages contains .so libraries.
+  So this is quit a good thing to do performancewise.
+
+  Some fixes to the build system. I've run into problems while
+  integrating spkg into our SBO linux distribution.
+  
+  And there was a kind donation from Zonio s.r.o. (http://zonio.net).
+
+----------------------------------------------------------------
 2006-07-29: spkg 1.0rc4
 
   Dropped requirement for minimum glib version down to 2.2.1, that is

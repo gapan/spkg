@@ -6,12 +6,6 @@ before 1.0 |
 [doc] Write article
 [test] Automatic testuite
 
-Simpler CLI. Remove -i and -u commands and make default behavior
-of something like this: ./spkg pkg-1.0-i486-1.tgz
- - pkg does not exist in the package database: install
- - pkg does exist in the package database (not exact version): upgrade
- - pkg does exist in the package database (exact version): nothing (unless --reinstall)
-
 Use it for a month or so instead of pkgtools everywhere and push
 rcX releases after each bug is found and fixed.
 
