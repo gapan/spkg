@@ -713,6 +713,7 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
     goto err2;
   pkg->location = g_strdup(pkgfile);
 
+  gboolean need_ldconfig = 0;
   gboolean has_doinst = 0;
   gchar* sane_path = NULL;
   gchar* root = sanitize_root_path(opts->root);
@@ -746,6 +747,10 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
       db_pkg_add_path(pkg, ".", DB_PATH_DIR);
       continue;
     }
+    
+    /* check if package contains .so libraries */
+    if (!need_ldconfig && g_str_has_suffix(sane_path, ".so"))
+      need_ldconfig = 1;
 
     /* check for metadata files */
     if (!strcmp(sane_path, "install/slack-desc"))
@@ -854,7 +859,7 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
   }
 
   /* run ldconfig */
-  if (!opts->no_ldconfig)
+  if (need_ldconfig && !opts->no_ldconfig)
   {
     if (access("/sbin/ldconfig", X_OK) == 0)
     {
