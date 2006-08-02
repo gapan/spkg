@@ -21,13 +21,18 @@ SPKG_LIB_SRC = \
 	cmd-upgrade.c \
 	cmd-list.c
 
+# Library build reciepe
+libspkg_la_LIBADD = $(SPKG_LIBS) -lJudy -lz
+libspkg_la_LDFLAGS = -version-info 1:0:0 -no-undefined -z now
+libspkg_la_SOURCES = $(SPKG_LIB_SRC)
+
 # Build only static spkg as spkg
 if STATIC_SPKG_ONLY
 
 bin_PROGRAMS = spkg
 noinst_LTLIBRARIES = libspkg.la
 
-spkg_LDADD = libspkg.la -lpopt
+spkg_LDADD = libspkg.la -lpopt $(libspkg_la_LIBADD)
 spkg_SOURCES = main.c
 spkg_LDFLAGS = -all-static
 
@@ -42,7 +47,7 @@ lib_LTLIBRARIES = libspkg.la
 spkg_LDADD = libspkg.la -lpopt
 spkg_SOURCES = main.c
 
-spkg_static_LDADD = libspkg.la -lpopt
+spkg_static_LDADD = libspkg.la -lpopt $(libspkg_la_LIBADD)
 spkg_static_SOURCES = main.c
 spkg_static_LDFLAGS = -all-static
 
@@ -58,11 +63,6 @@ spkg_SOURCES = main.c
 endif
 
 endif
-
-# Library build reciepe
-libspkg_la_LIBADD = $(SPKG_LIBS) -lJudy -lz
-libspkg_la_LDFLAGS = -version-info 1:0:0 -no-undefined -z now
-libspkg_la_SOURCES = $(SPKG_LIB_SRC)
 
 install-exec-hook:
 	ln -snf spkg$(EXEEXT) $(DESTDIR)$(bindir)/ipkg$(EXEEXT)
