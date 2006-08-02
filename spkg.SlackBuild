@@ -1,7 +1,7 @@
 #!/bin/sh -e
 
 CWD=`pwd`
-VERSION=1.0rc4
+VERSION=1.0rc5
 
 rm -rf spkg-$VERSION
 tar xzvf spkg-$VERSION.tar.gz
