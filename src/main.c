@@ -228,9 +228,7 @@ int main(const int ac, const char* av[])
   }
   if (usage)
   {
-    printf(
-      "Usage: spkg [-i|-d|-l] [-r ROOT] [-n] [-s] [-q] [-v] [packages...]\n"
-    );
+    printf("Usage: spkg [-i|-u|-d|-l] [-r ROOT] [-n] [-s] [-q] [-v] [packages...]\n");
     goto out;
   }
   if (version)
@@ -258,7 +256,8 @@ int main(const int ac, const char* av[])
       if (command)
         goto got_command;
     }
-    fprintf(stderr, "ERROR: No command given.\n");
+    printf("Usage: spkg [-i|-u|-d|-l] [-r ROOT] [-n] [-s] [-q] [-v] [packages...]\n");
+    printf("For more help use --help command line option.\n");
     goto err_1;
   }
 
