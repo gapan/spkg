@@ -265,7 +265,7 @@ gint db_filelist_load(gboolean force_reload)
       }
       else if (LINEMATCH("FILE LIST:"))
         files++;
-	}
+    }
     fclose(f);
 
     /* open and parse installation script for symbolic links */
@@ -307,7 +307,7 @@ gint db_filelist_load(gboolean force_reload)
         (*ptr)++;
         g_free(sane_path);
       }
-	}
+    }
     fclose(f);
   }
 
@@ -632,14 +632,14 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
   while ((linelen = getline(&line, &size, fp)) >= 0)
   {
     if (linelen > 0 && line[linelen-1] == '\n')
-	{
-	  line[linelen-1] = '\0';
-	  linelen--;
-	}
+    {
+      line[linelen-1] = '\0';
+      linelen--;
+    }
     if (!m[0] && LINEMATCH("PACKAGE NAME:"))
     {
       gchar* name = g_strstrip(line + LINESIZE("PACKAGE NAME:"));
-	  if (strcmp(name, p->name))
+      if (strcmp(name, p->name))
       {
         e_set(E_ERROR, "Package file name doesn't match with package name. (%s != %s)", p->name, name);
         goto err_1;
@@ -673,9 +673,9 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
       m[3] = 1;
     }
     else if (!m[4] && LINEMATCH("PACKAGE DESCRIPTION:"))
-	{
+    {
       m[4] = 1;
-	}
+    }
     else if (strncmp(line, p->shortname, snl) == 0)
     {
       gchar* desc = g_strconcat(p->desc ? p->desc : "", line, "\n", NULL);
@@ -683,9 +683,9 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
       p->desc = desc;
     }
     else if (LINEMATCH("FILE LIST:"))
-	{
+    {
       goto parse_files;
-	}
+    }
     else
     {
       e_set(E_ERROR, "Corrupt package database entry. (%s)", p->name);
@@ -703,9 +703,9 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
     gint* ptr;
     db_path_type type = DB_PATH_FILE;
     if (linelen > 0 && line[linelen-1] == '\n')
-	  line[linelen-1] = '\0', linelen--;
+      line[linelen-1] = '\0', linelen--;
     if (linelen > 0 && line[linelen-1] == '/')
-	  line[linelen-1] = '\0', linelen--, type = DB_PATH_DIR;
+      line[linelen-1] = '\0', linelen--, type = DB_PATH_DIR;
     /* check path size limit */
     if (linelen >= MAXPATHLEN)
     {
@@ -723,7 +723,7 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
   while ((linelen = getline(&line, &size, fs)) >= 0)
   {
     if (linelen > 0 && line[linelen-1] == '\n')
-	  line[linelen-1] = '\0';
+      line[linelen-1] = '\0';
 
     gchar *dir, *link, *target;
     if (parse_createlink(line, &dir, &link, &target))
