@@ -1,7 +1,11 @@
-AM_CFLAGS= \
+AM_CFLAGS = \
 	-I$(top_srcdir)/include \
 	$(SPKG_CFLAGS) \
 	-D_GNU_SOURCE
+
+if ENABLE_ASSUME_BROKEN_PKGDB
+AM_CFLAGS += -DASSUME_BROKEN_PKGDB=1
+endif
 
 EXTRA_DIST = \
 	cmd-private.h

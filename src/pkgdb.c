@@ -272,7 +272,20 @@ gint db_filelist_load(gboolean force_reload)
           e_set(E_ERROR, "Path too long in the package database file %s. (%s)", name, line);
           goto err_1;
         }
+#if ASSUME_BROKEN_PKGDB == 1
+        gchar* sane_path = path_simplify(line);
+        if (sane_path[0] == '\0')
+        {
+          JSLI(refs, _db.paths, ".");
+        }
+        else
+        {
+          JSLI(refs, _db.paths, sane_path);
+        }
+        g_free(sane_path);
+#else
         JSLI(refs, _db.paths, line);
+#endif
         (*refs)++;
       }
       else if (LINEMATCH("FILE LIST:"))
@@ -731,7 +744,20 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
       e_set(E_ERROR, "Path too long in the package database file %s. (%s)", name, line);
       goto err_1;
     }
+#if ASSUME_BROKEN_PKGDB == 1
+    gchar* sane_path = path_simplify(line);
+    if (sane_path[0] == '\0')
+    {
+      JSLI(ptype, p->paths, ".");
+    }
+    else
+    {
+      JSLI(ptype, p->paths, sane_path);
+    }
+    g_free(sane_path);
+#else
     JSLI(ptype, p->paths, line);
+#endif
     *ptype = type;
   }
 

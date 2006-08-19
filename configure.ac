@@ -28,32 +28,31 @@ AC_CHECK_LIB(Judy, Judy1Next, [true], AC_MSG_ERROR([spkg requires Judy: http://j
 AC_CHECK_LIB(z, compress, [true], AC_MSG_ERROR([spkg requires zlib: http://www.zlib.net]))
 AC_CHECK_LIB(popt, poptGetArg, [true], AC_MSG_ERROR([spkg requires popt library]))
 
-# Debug
-#AC_ARG_ENABLE(debug,
-#  AS_HELP_STRING([--enable-debug],
-#                 [Compile with debugging information.]),
-#  [use_debug=$enableval], [use_debug=no])
-#
-#if test x$use_debug = xno ; then
-#  true
-#fi
+# Assume broken pkgdb 
+AC_ARG_ENABLE(assume-broken-pkgdb,AC_HELP_STRING([--enable-assume-broken-pkgdb],
+[Compile with support for broken package databases that may contain
+non-normalized paths with multiple slashes. This doubles time to load
+file database. To see if you need to enable this option, check your
+package database with 'grep // /var/log/packages/*' command.]))
+
+AM_CONDITIONAL(ENABLE_ASSUME_BROKEN_PKGDB, test "x$enable_assume_broken_pkgdb" = xyes)
 
 # Static spkg
 AC_ARG_ENABLE(static-spkg,
   AS_HELP_STRING([--enable-static-spkg],
                  [Create static spkg executable. Use --enable-static-spkg=only for 
                  creating only static spkg binary that will be used by default.]),
-  [create_static=$enableval], [create_static=no])
+                 [create_static=$enableval], [create_static=no])
 
 AM_CONDITIONAL([STATIC_SPKG],[test "x$create_static" = "xyes"])
 AM_CONDITIONAL([STATIC_SPKG_ONLY],[test "x$create_static" = "xonly"])
 
 # Output
 AC_OUTPUT([
-	Makefile
-	src/Makefile
-	include/Makefile
-	docs/Makefile
-	tests/Makefile
+    Makefile
+    src/Makefile
+    include/Makefile
+    docs/Makefile
+    tests/Makefile
     libspkg.pc
 ])
