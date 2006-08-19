@@ -85,15 +85,15 @@ static struct poptOption optsOptions[] = {
 },
 {
   "verbose", 'v', 0, 0, 1,
-  "Increase verbosity level. This option enables notices when used once. "
-  "When used twice it will also enable debug messages.", NULL
+  "Increase verbosity level. When used once, files and directories "
+  "that are affected by particular operation will be shown. When used "
+  "twice, everything that is done will be reported.", NULL
 },
 {
   "quiet", 'q', 0, 0, 2,
-  "Decrease verbosity level. Default verbosity level is 2 (show info "
-  "messages and warnings). This option disables warnings when used once. "
-  "When used twice it will completely disable output. "
-  "Please note, that error messages can't be disabled.", NULL
+  "Decrease verbosity level. Default is to show info messages and warnings. "
+  "This option disables warnings when used once. When used twice it will "
+  "completely disable output except for error messages.", NULL
 },
 {
   "reinstall", 0, POPT_ARGFLAG_ONEDASH, &cmd_opts.reinstall, 0,
