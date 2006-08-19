@@ -96,7 +96,7 @@ static struct poptOption optsOptions[] = {
   "Please note, that error messages can't be disabled.", NULL
 },
 {
-  "reinstall", 0, 0, &cmd_opts.reinstall, 0,
+  "reinstall", 0, POPT_ARGFLAG_ONEDASH, &cmd_opts.reinstall, 0,
   "When upgrading package and package already exists in the database, "
   "force reinstall.", NULL
 },
