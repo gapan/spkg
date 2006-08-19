@@ -59,7 +59,7 @@ gint cmd_list(GSList* arglist, const struct cmd_options* opts, struct error* e)
   GSList* list = db_query((db_selector)_list_selector, arglist, type);
   if (!e_ok(e))
   {
-    e_set(E_ERROR, "Package query failed!");
+    e_set(E_ERROR, "Package database query failed!");
     return 1;
   }
 

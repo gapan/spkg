@@ -119,12 +119,12 @@ gint db_open(const gchar* root, gboolean readonly, struct error* e)
     g_free(path_lock);
     if (_db.fd_lock == -1)
     {
-      e_set(E_FATAL, "Can't create lock.");
+      e_set(E_FATAL, "Can't lock package database. (lock creation failed)");
       goto err_1;
     }
     if (sys_lock_trywait(_db.fd_lock, 20, e))
     {
-      e_set(E_FATAL, "Can't lock package database.");
+      e_set(E_FATAL, "Can't lock package database. (database is already locked)");
       goto err_2;
     }
   }
@@ -949,14 +949,14 @@ GSList* db_query(db_selector cb, void* data, db_query_type type)
       p = db_get_pkg(name, DB_GET_WITHOUT_FILES);
       if (p == NULL)
       {
-        e_set(E_ERROR, "Can't get package from the database.");
+        e_set(E_ERROR, "Can't get package from the database. (%s)", name);
         goto err_1;
       }
       gint rs = cb(p, data);
       if (rs != 0 && rs != 1)
       {
         db_free_pkg(p);
-        e_set(E_ERROR, "Package database query filter returned error.");
+        e_set(E_ERROR, "Package database query filter returned error. (%s)", name);
         goto err_1;
       }
       else if (rs == 0)
@@ -975,7 +975,7 @@ GSList* db_query(db_selector cb, void* data, db_query_type type)
         p = db_get_pkg(name, get_type);
         if (p == NULL)
         {
-          e_set(E_ERROR, "Can't get package from the database.");
+          e_set(E_ERROR, "Can't get package from the database (%s).", name);
           goto err_1;
         }
         pkgs = g_slist_prepend(pkgs, p);
