@@ -482,22 +482,22 @@ static gint _db_add_pkg(struct db_pkg* pkg, gchar* origname)
   
   /* construct filelist */
   gchar path[MAXPATHLEN];
-  gint* ptr;
+  Word_t* ptype;
   strcpy(path, "");
-  JSLF(ptr, pkg->paths, path);
-  while (ptr != NULL)
+  JSLF(ptype, pkg->paths, path);
+  while (ptype != NULL)
   {
-    if (*ptr == DB_PATH_FILE)
+    if (*ptype == DB_PATH_FILE)
     {
       if (fprintf(pf, "%s\n", path) < 0)
         goto err_2;
     }
-    else if (*ptr == DB_PATH_DIR)
+    else if (*ptype == DB_PATH_DIR)
     {
       if (fprintf(pf, "%s/\n", path) < 0)
         goto err_2;
     }
-    JSLN(ptr, pkg->paths, path);
+    JSLN(ptype, pkg->paths, path);
   }
 
   /* close it */
@@ -718,7 +718,7 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
 
   while ((linelen = getline(&line, &size, fp)) >= 0)
   {
-    gint* ptr;
+    Word_t* ptype;
     db_path_type type = DB_PATH_FILE;
     if (linelen > 0 && line[linelen-1] == '\n')
       line[linelen-1] = '\0', linelen--;
@@ -731,8 +731,8 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
       e_set(E_ERROR, "Path too long in the package database file %s. (%s)", name, line);
       goto err_1;
     }
-    JSLI(ptr, p->paths, line);
-    *ptr = type;
+    JSLI(ptype, p->paths, line);
+    *ptype = type;
   }
 
   if (fs == NULL)
@@ -761,9 +761,9 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
         goto err_1;
       }
       /* add */
-      gint* ptr;
-      JSLI(ptr, p->paths, sane_path);
-      *ptr = DB_PATH_SYMLINK;
+      Word_t* ptype;
+      JSLI(ptype, p->paths, sane_path);
+      *ptype = DB_PATH_SYMLINK;
       g_free(sane_path);
     }
   }
