@@ -1,6 +1,44 @@
 ----------------------------------------------------------------
 spkg - Release Notes
 ----------------------------------------------------------------
+2006-08-20: spkg 1.0rc6
+
+  Fixed a lot of compiler warnings on (-Wall -Wextra level).
+
+  Fixed some incompatible pointer warnings on 64bit paltforms.
+  (thanks to Yair K)
+  
+  Incorporated lots of changes suggested by Yair K:
+  - Print usage string if no command was given.
+  - Implement readonly database access mode so that spkg doesn't
+    create package database in dryrun mode if it does not exist.
+  - Improve error reporting in db_query() function. Now when
+    spkg -l fails to read package database entry, it will show
+    it's name.
+  - Optional compile time selectable support for broken package
+    databases. (Created by emerde) See --enable-assume-broken-pkgdb
+    configure option.
+  - Catch -reinstall command line option typo. Otherwise it would
+    mean --root=einstall. That is probably not what you user wanted
+    in this case.
+  - We already had support for debug level messages, but it was
+    unused. Move some less useful messages to that debug level.
+    In -v mode we only show list of files affected by particular
+    command. Use -vv if you want to see everything.
+
+  Now that package database can be opened in readonly mode, spkg can run
+  under non-root user for some commands. These commands are: --list and
+  everything else in --dry-run mode.
+
+  It's month from first release candidate and everything seems to be
+  going well. At least for me. It seems to me that 1.0 is waiting right
+  behind the door. :)
+  
+  Please test this release and give some feedback if you want. If
+  nothing goes wrong I'll rerelease this version (plus some
+  documentation updates) as 1.0 on 2006-09-01.
+
+----------------------------------------------------------------
 2006-08-02: spkg 1.0rc5
 
   Implemented optimization to the ldconfig. If package does not contain
