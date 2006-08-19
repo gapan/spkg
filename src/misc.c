@@ -13,7 +13,7 @@
 
 gchar* parse_pkgname(const gchar* path, guint elem)
 {
-  gchar *tmp, *tmp2, *name, *retval=0;
+  gchar *tmp, *tmp2, *name = NULL, *retval = NULL;
 
   if (path == 0)
     return 0;
@@ -23,30 +23,30 @@ gchar* parse_pkgname(const gchar* path, guint elem)
   {
     case 0:
     {
-      if (tmp == 0)
+      if (tmp == NULL)
         return g_strdup(".");
       return g_strndup(path, tmp-path);
     }
     case 1: case 2: case 3: case 4: case 5: case 6:
     {
-      gint i=0,j=0;
-      tmp = tmp==0?(gchar*)path:tmp+1;
+      guint i = 0, j = 0;
+      tmp = tmp == NULL ? (gchar*)path : tmp+1;
       name = g_strndup(tmp, strlen(tmp) - (g_str_has_suffix(path, ".tgz") || g_str_has_suffix(path, ".tlz") ? 4 : 0));
       /* 3 dashes required */
-      for (tmp=name; *tmp!=0; tmp++)
+      for (tmp = name; *tmp != '\0'; tmp++)
         if (*tmp == '-') i++;
-      if (i<3)
+      if (i < 3)
         goto ret;
-      i=0;j=0;
+      i = j = 0;
       /* something between dashes required */
-      for (tmp2=tmp-1; tmp2!=name; tmp2--)
+      for (tmp2 = tmp-1; tmp2 != name; tmp2--)
       {
         j++; /* count characters from last dash */
         if (*tmp2 == '-')
         {
           if (j == 1) /* if only one char since last dash, err */
             goto ret;
-          j=0; /* reset character count */
+          j = 0; /* reset character count */
           i++; /* count dashes */
           if (i == 3) /* if third dash break it */
             break;
@@ -80,7 +80,7 @@ gchar* parse_pkgname(const gchar* path, guint elem)
       break;
     }
     default:
-      return 0;
+      return NULL;
   }
  ret:
   g_free(name);
