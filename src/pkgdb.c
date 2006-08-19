@@ -29,6 +29,7 @@
 struct db_state {
   gboolean is_open;
   gboolean filelist_loaded;
+  gboolean readonly;
   gchar* topdir;
   gchar* pkgdir; /* /var/log/packages/ */
   gchar* scrdir; /* /var/log/scripts/ */
@@ -62,6 +63,7 @@ gint db_open(const gchar* root, gboolean readonly, struct error* e)
 
   g_assert(e != NULL);
   _db.err = e;
+  _db.readonly = readonly;
   
   if (_db.is_open)
   {
@@ -89,6 +91,12 @@ gint db_open(const gchar* root, gboolean readonly, struct error* e)
     /* if it is not a directory, clean it and create it */
     if (sys_file_type(tmpdir, 1) != SYS_DIR)
     {
+      if (readonly)
+      {
+        e_set(E_FATAL, "Package database directory does not exist and can't be created in readonly mode. (%s)", tmpdir);
+        g_free(tmpdir);
+        goto err_1;
+      }
       sys_rm_rf(tmpdir);
       sys_mkdir_p(tmpdir);
       chmod(tmpdir, 0755);
@@ -103,19 +111,22 @@ gint db_open(const gchar* root, gboolean readonly, struct error* e)
     g_free(tmpdir);
   }
 
-  /* get lock */
-  gchar *path_lock = g_strdup_printf("%s/.lock", _db.pkgdir);
-  _db.fd_lock = sys_lock_new(path_lock, e);
-  g_free(path_lock);
-  if (_db.fd_lock == -1)
+  if (!readonly)
   {
-    e_set(E_FATAL, "Can't create lock.");
-    goto err_1;
-  }
-  if (sys_lock_trywait(_db.fd_lock, 20, e))
-  {
-    e_set(E_FATAL, "Can't lock package database.");
-    goto err_2;
+    /* get lock */
+    gchar *path_lock = g_strdup_printf("%s/.lock", _db.pkgdir);
+    _db.fd_lock = sys_lock_new(path_lock, e);
+    g_free(path_lock);
+    if (_db.fd_lock == -1)
+    {
+      e_set(E_FATAL, "Can't create lock.");
+      goto err_1;
+    }
+    if (sys_lock_trywait(_db.fd_lock, 20, e))
+    {
+      e_set(E_FATAL, "Can't lock package database.");
+      goto err_2;
+    }
   }
 
   _db.is_open = 1;
@@ -140,7 +151,8 @@ void db_close()
     return;
   }
 
-  sys_lock_del(_db.fd_lock);
+  if (!_db.readonly)
+    sys_lock_del(_db.fd_lock);
 
   Word_t used;
   JSLFA(used, _db.paths);
@@ -419,6 +431,12 @@ static gint _db_add_pkg(struct db_pkg* pkg, gchar* origname)
   if (pkg == NULL || pkg->name == NULL || pkg->paths == NULL)
   {
     e_set(E_BADARG, "Incomplete package structure.");
+    goto err_0;
+  }
+
+  if (_db.readonly)
+  {
+    e_set(E_FATAL, "Can't add packages to the database in the readonly mode.");
     goto err_0;
   }
 
@@ -805,6 +823,12 @@ gint db_rem_pkg(gchar* name)
   if (parse_pkgname(name, 6) != (gchar*)-1)
   {
     e_set(E_ERROR, "Invalid package name. (%s)", name);
+    goto err_0;
+  }
+
+  if (_db.readonly)
+  {
+    e_set(E_FATAL, "Can't remove packages from the database in the readonly mode.");
     goto err_0;
   }
 
