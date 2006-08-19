@@ -63,7 +63,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
   }
 
   /* we will need filelist, so get it if it is not already loaded */
-  _notice("Loading list of all installed files...");
+  _debug("Loading list of all installed files...");
   if (db_filelist_load(FALSE))
   {
     e_set(E_ERROR, "Can't load list of all installed files.");
@@ -72,7 +72,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
 
   _safe_breaking_point(err2);
 
-  _notice("Removing files...");
+  _debug("Removing files...");
 
   gchar* root = sanitize_root_path(opts->root);
 
@@ -136,7 +136,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     JSLN(ptype, pkg->paths, path);
   }
 
-  _notice("Removing symlinks...");
+  _debug("Removing symlinks...");
 
   strcpy(path, "");
   JSLF(ptype, pkg->paths, path);
@@ -189,7 +189,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     JSLN(ptype, pkg->paths, path);
   }
 
-  _notice("Removing directories...");
+  _debug("Removing directories...");
 
   memset(path, 0xff, sizeof(path)-1);
   path[sizeof(path)-1] = '\0';
@@ -245,10 +245,10 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
 
   g_free(root);
 
-  _notice("Removing package files from the list of all installed files...");
+  _debug("Removing package files from the list of all installed files...");
   db_filelist_rem_pkg_paths(pkg);
 
-  _notice("Removing package from the database...");
+  _debug("Removing package from the database...");
   if (!opts->dryrun)
   {
     if (db_rem_pkg(real_pkgname))
@@ -258,7 +258,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     }
   }
 
-  _notice("Removal finished!");
+  _debug("Removal finished!");
 
   db_free_pkg(pkg);
   g_free(real_pkgname);

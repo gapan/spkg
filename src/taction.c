@@ -190,7 +190,7 @@ gint ta_finalize()
     struct action* a = l->data;
     if (a->on_finalize == MOVE)
     {
-      _notice("Moving %s -> %s", a->path1, a->path2);
+      _debug("Moving %s -> %s", a->path1, a->path2);
       if (!_ta.dryrun)
       {
         if (rename(a->path1, a->path2) == -1)
@@ -212,7 +212,7 @@ gint ta_finalize()
     }
     else if (a->on_finalize == FORCELINK)
     {
-      _notice("Removing path %s", a->path1);
+      _debug("Removing path %s", a->path1);
       if (!_ta.dryrun)
       {
         if (sys_rm_rf(a->path1))
@@ -243,7 +243,7 @@ gint ta_finalize()
     }
     else if (a->on_finalize == FORCESYMLINK)
     {
-      _notice("Removing path %s", a->path1);
+      _debug("Removing path %s", a->path1);
       if (!_ta.dryrun)
       {
         if (sys_rm_rf(a->path1))
@@ -342,7 +342,7 @@ gint ta_rollback()
     {
       if (a->is_dir)
       {
-        _notice("Removing directory %s", a->path1);
+        _debug("Removing directory %s", a->path1);
         if (!_ta.dryrun)
         {
           if (rmdir(a->path1) == -1)
@@ -353,7 +353,7 @@ gint ta_rollback()
       }
       else
       {
-        _notice("Removing file %s", a->path1);
+        _debug("Removing file %s", a->path1);
         if (!_ta.dryrun)
         {
           if (unlink(a->path1) == -1)

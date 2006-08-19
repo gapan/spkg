@@ -82,7 +82,7 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
   /* optimization disabled, just extract doinst script */
   if (opts->no_optsyms || _blacklisted(pkg->shortname, _doinst_opt_blacklist))
   {
-    _notice("Symlink optimization is disabled.");
+    _debug("Symlink optimization is disabled.");
     if (opts->safe)
     {
       _warning("In safe mode, install script is not executed,"
@@ -121,7 +121,7 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
 
   /* EXIT: free(fullpath), free(buf) */
 
-  _notice("Extracting symlinks from the post-installation script...");
+  _debug("Extracting symlinks from the post-installation script...");
       
   /* optimize out symlinks creation from doinst.sh */
   GSList *doinst = NULL;
@@ -157,7 +157,7 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
 
       db_path_type orig_ptype = db_pkg_get_path(ipkg, sane_link_path);
 
-      _notice("Symlink detected: %s -> %s", sane_link_path, link_target);
+      _debug("Symlink detected: %s -> %s", sane_link_path, link_target);
       if (db_pkg_add_path(pkg, sane_link_path, DB_PATH_SYMLINK))
       {
         e_set(E_ERROR, "Can't add path to the package, it's too long. (%s)", sane_link_path);
@@ -215,7 +215,7 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
   /* write stripped down version of doinst.sh to a file */
   if (doinst != NULL)
   {
-    _notice("Saving optimized post-installation script...");
+    _debug("Saving optimized post-installation script...");
 
     if (!opts->dryrun)
     {
@@ -316,11 +316,11 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
         /* installed directory already exist */
         if (_mode_differ(tgz, &ex_stat) || _gid_or_uid_differ(tgz, &ex_stat))
         {
-          _notice("Directory already exists %s (permissions differ)", sane_path);
+          _warning("Directory already exists %s (but permissions differ)", sane_path);
         }
         else
         {
-          _notice("Direcory already exists %s", sane_path);
+          _debug("Direcory already exists %s", sane_path);
         }
       }
       else if (ex_type == SYS_SYM && ex_deref_type == SYS_DIR)
@@ -375,7 +375,7 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
       }
       else if (tgt_type == SYS_REG)
       {
-        _notice("Hardlink detected: %s -> %s", sane_path, tgz->f_link);
+        _debug("Hardlink detected: %s -> %s", sane_path, tgz->f_link);
 
         /* when creating hardlink, nothing must exist on created path */
         if (ex_type == SYS_NONE)
@@ -419,8 +419,6 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
     break;
     default: /* ordinary file */
     {
-      _notice("Creating file %s", sane_path);
-
       if (ex_type == SYS_DIR)
       {
         /* target path is a directory, bad! */
@@ -429,6 +427,7 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
       }
       else if (ex_type == SYS_NONE)
       {
+        _notice("Installing file %s", sane_path);
         if (!opts->dryrun)
         {
           if (untgz_write_file(tgz, fullpath))
@@ -440,6 +439,7 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
       }
       else /* file already exist there */
       {
+        _notice("Upgrading file %s", sane_path);
         if (orig_ptype == DB_PATH_NONE) /* if this path was not in the original package */
         {
           if (opts->safe)
@@ -549,7 +549,7 @@ static void _delete_leftovers(struct db_pkg* pkg, struct db_pkg* ipkg,
       }
       else
       {
-        _notice("Removing directory %s (postponed)", path);
+        _debug("Removing directory %s (postponed)", path);
         ta_remove_nothing(fullpath, TRUE);
         fullpath = NULL;
       }
@@ -572,7 +572,7 @@ static void _delete_leftovers(struct db_pkg* pkg, struct db_pkg* ipkg,
           if (opts->safe)
             goto skip_free;
         }
-        _notice("Removing file %s (postponed)", path);
+        _debug("Removing file %s (postponed)", path);
         ta_remove_nothing(fullpath, FALSE);
         fullpath = NULL;
       }
@@ -691,7 +691,7 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
   }
 
   /* we will need filelist, so get it if it is not already loaded */
-  _notice("Loading list of all installed files...");
+  _debug("Loading list of all installed files...");
   if (db_filelist_load(FALSE))
   {
     e_set(E_ERROR, "Can't load list of all installed files.");
@@ -803,7 +803,7 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
   pkg->csize = tgz->csize/1024;
 
   /* add package to the database */
-  _notice("Updating package database...");
+  _debug("Updating package database...");
   if (!opts->dryrun)
   {
     if (db_replace_pkg(ipkg->name, pkg))
@@ -825,7 +825,7 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
   db_filelist_add_pkg_paths(pkg);
 
   /* finalize transaction */
-  _notice("Finalizing transaction...");
+  _debug("Finalizing transaction...");
   ta_finalize();
 
   /* close tgz */
@@ -900,7 +900,7 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
   /* EXIT: free(name), free(shortname), free(root), db_free_pkg(pkg),
      db_free_pkg(ipkg) */
 
-  _notice("Package upgrade finished!");
+  _debug("Package upgrade finished!");
 
   db_free_pkg(ipkg);
   db_free_pkg(pkg);
@@ -912,7 +912,7 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
  err4:
   db_rem_pkg(name);
  err3:
-  _notice("Rolling back...");
+  _debug("Rolling back...");
   g_free(sane_path);
   g_free(root);
   ta_rollback();
