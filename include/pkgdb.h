@@ -88,10 +88,11 @@ struct db_pkg {
 /** Open package database.
  *
  * @param root root directory
+ * @param readonly open package database in redonly mode
  * @param e Error object.
  * @return 0 on success, 1 on error
  */
-extern gint db_open(const gchar* root, struct error* e);
+extern gint db_open(const gchar* root, gboolean readonly, struct error* e);
 
 /** Close package database. 
  */

@@ -158,6 +158,11 @@ POPT_TABLEEND
 /* main
  ************************************************************************/
 
+gboolean is_root()
+{
+  return getuid() == 0;
+}
+
 int main(const int ac, const char* av[])
 {
   poptContext optCon=0;
@@ -173,11 +178,6 @@ int main(const int ac, const char* av[])
   err = e_new();
   /* check if we have enough privileges */
   unsetenv("LD_LIBRARY_PATH");
-  if (getuid() != 0)
-  {
-    fprintf(stderr, "ERROR: You need root privileges to run this program. Sorry.\n");
-    exit(1);
-  }
 
   /* initialize popt context */
   optCon = poptGetContext("spkg", ac, av, opts, 0);
@@ -275,14 +275,20 @@ int main(const int ac, const char* av[])
   switch (command)
   {
     case CMD_INSTALL:
+      if (!cmd_opts.dryrun && !is_root())
+        goto err_noroot;
       if (poptPeekArg(optCon) == 0)
         goto err_nopackages;
     break;
     case CMD_UPGRADE:
+      if (!cmd_opts.dryrun && !is_root())
+        goto err_noroot;
       if (poptPeekArg(optCon) == 0)
         goto err_nopackages;
     break;
     case CMD_REMOVE:
+      if (!cmd_opts.dryrun && !is_root())
+        goto err_noroot;
       if (poptPeekArg(optCon) == 0)
         goto err_nopackages;
     break;
@@ -298,7 +304,8 @@ int main(const int ac, const char* av[])
     goto err_2;
 
   /* open db */
-  if (db_open(cmd_opts.root, err))
+  gboolean readonly = cmd_opts.dryrun || !is_root();
+  if (db_open(cmd_opts.root, readonly, err))
     goto err_2;
 
   switch (command)
@@ -420,5 +427,8 @@ int main(const int ac, const char* av[])
   goto out;
  err_nopackages:
   fprintf(stderr, "ERROR: No packages specified.\n");
+  goto err_1;
+ err_noroot:
+  fprintf(stderr, "ERROR: You need root privileges to run this command. Try using --dry-run.\n");
   goto err_1;
 }

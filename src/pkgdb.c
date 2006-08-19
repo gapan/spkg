@@ -54,7 +54,7 @@ static struct db_state _db; // yeah, this is really not uninitialized
 /* public - open/close
  ************************************************************************/
 
-gint db_open(const gchar* root, struct error* e)
+gint db_open(const gchar* root, gboolean readonly, struct error* e)
 {
   gchar** d;
   gchar* checkdirs[] = { "packages", "scripts", "removed_packages",
