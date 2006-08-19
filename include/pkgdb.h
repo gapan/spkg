@@ -212,7 +212,7 @@ extern void db_filelist_free();
  * @param path Path.
  * @return Number of references to the path in various packages.
  */
-extern gint db_filelist_get_path_refs(const gchar* path);
+extern gulong db_filelist_get_path_refs(const gchar* path);
 
 /** Add paths from the package to the filelist.
  *

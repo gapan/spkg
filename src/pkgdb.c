@@ -142,7 +142,7 @@ void db_close()
 
   sys_lock_del(_db.fd_lock);
 
-  gint used;
+  Word_t used;
   JSLFA(used, _db.paths);
 
   g_free(_db.topdir);
@@ -158,7 +158,7 @@ void db_filelist_rem_pkg_paths(const struct db_pkg* pkg)
 {
   gchar path[MAXPATHLEN];
   gint rc;
-  void **p1, **p2;
+  Word_t *p1, *p2;
 
   strcpy(path, "");
   JSLF(p1, pkg->paths, path);
@@ -167,7 +167,7 @@ void db_filelist_rem_pkg_paths(const struct db_pkg* pkg)
     JSLG(p2, _db.paths, path);
     if (p2)
     {
-      gint* refs = (gint*)p2;
+      Word_t* refs = p2;
       if (*refs == 1)
       {
         JSLD(rc, _db.paths, path);
@@ -184,7 +184,7 @@ void db_filelist_rem_pkg_paths(const struct db_pkg* pkg)
 void db_filelist_add_pkg_paths(const struct db_pkg* pkg)
 {
   gchar path[MAXPATHLEN];
-  void **p1, **p2;
+  Word_t *p1, *p2;
 
   strcpy(path, "");
   JSLF(p1, pkg->paths, path);
@@ -215,7 +215,7 @@ gint db_filelist_load(gboolean force_reload)
 
   gchar* line = NULL;
   gint size = 0;
-  void** ptr;
+  Word_t* refs;
   struct dirent* de;
 
   /* for each package database entry */
@@ -260,8 +260,8 @@ gint db_filelist_load(gboolean force_reload)
           e_set(E_ERROR, "Path too long in the package database file %s. (%s)", name, line);
           goto err_1;
         }
-        JSLI(ptr, _db.paths, line);
-        (*ptr)++;
+        JSLI(refs, _db.paths, line);
+        (*refs)++;
       }
       else if (LINEMATCH("FILE LIST:"))
         files++;
@@ -303,8 +303,8 @@ gint db_filelist_load(gboolean force_reload)
           g_free(sane_path);
           goto err_1;
         }
-        JSLI(ptr, _db.paths, sane_path);
-        (*ptr)++;
+        JSLI(refs, _db.paths, sane_path);
+        (*refs)++;
         g_free(sane_path);
       }
     }
@@ -324,18 +324,18 @@ gint db_filelist_load(gboolean force_reload)
   return 1;
 }
 
-gint db_filelist_get_path_refs(const gchar* path)
+gulong db_filelist_get_path_refs(const gchar* path)
 {
-  void **ptr;
-  JSLG(ptr, _db.paths, path);
-  if (ptr == NULL)
+  Word_t* refs;
+  JSLG(refs, _db.paths, path);
+  if (refs == NULL)
     return 0;
-  return (gint)*ptr;
+  return (gulong)(*refs);
 }
 
 void db_filelist_free()
 {
-  guint used;
+  Word_t used;
   JSLFA(used, _db.paths);
   _db.filelist_loaded = FALSE;
 }
@@ -371,7 +371,7 @@ void db_free_pkg(struct db_pkg* pkg)
   if (pkg == NULL)
     return;
 
-  guint freed;
+  Word_t freed;
   JSLFA(freed, pkg->paths);
   g_free(pkg->name);
   g_free(pkg->shortname);
@@ -387,21 +387,21 @@ void db_free_pkg(struct db_pkg* pkg)
 
 gint db_pkg_add_path(struct db_pkg* pkg, const gchar* path, db_path_type type)
 {
-  gint* ptr;
+  Word_t* ptype;
   /* check path size limit */
   if (strlen(path) >= MAXPATHLEN)
     return 1;
-  JSLI(ptr, pkg->paths, path);
-  *ptr = type;
+  JSLI(ptype, pkg->paths, path);
+  *ptype = type;
   return 0;
 }
 
 db_path_type db_pkg_get_path(struct db_pkg* pkg, const gchar* path)
 {
-  gint* ptr;
-  JSLG(ptr, pkg->paths, path);
-  if (ptr)
-    return *ptr;
+  Word_t* ptype;
+  JSLG(ptype, pkg->paths, path);
+  if (ptype != NULL)
+    return (db_path_type)(*ptype);
   return DB_PATH_NONE;
 }
 
