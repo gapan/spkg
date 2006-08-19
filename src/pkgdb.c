@@ -37,7 +37,7 @@ struct db_state {
   gint fd_lock;
 };
 
-static struct db_state _db = { 0 };
+static struct db_state _db; // yeah, this is really not uninitialized
 
 #define e_set(n, fmt, args...) e_add(_db.err, "pkgdb", __func__, n, fmt, ##args)
 
