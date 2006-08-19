@@ -71,8 +71,8 @@ gchar* tests[][2] = {
 
 int main(int ac, char* av[])
 {
-  gint i;
-  for (i=0;i<sizeof(tests)/sizeof(tests[0]);i++)
+  guint i;
+  for (i=0; i<sizeof(tests)/sizeof(tests[0]); i++)
     test_parser(tests[i][0], tests[i][1]);
   return 0;
 }

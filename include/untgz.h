@@ -108,8 +108,8 @@ struct untgz_state {
   untgz_filetype f_type; /**< type of the current file */
   gchar*  f_name;      /**< name of the current file */
   gchar*  f_link;      /**< file that current file links to */
-  gsize   f_size;      /**< size of the current file */
-  gint    f_mode;      /**< mode of the current file */
+  off_t   f_size;      /**< size of the current file */
+  mode_t  f_mode;      /**< mode of the current file */
   time_t  f_mtime;     /**< mtime of the current file */
   uid_t   f_uid;       /**< uid of the current file */
   gid_t   f_gid;       /**< gid of the current file */

@@ -25,7 +25,7 @@ G_BEGIN_DECLS
 #define E_FATAL   4 /**< fatal error */
 #define E_BREAK   5 /**< terminated by signal */
 
-#define E_PASS    0xffffffff /**< leave previous error code (useful for longjmp error handling) */
+#define E_PASS    (-1) /**< leave previous error code (useful for longjmp error handling) */
 
 #define E(n) (1<<(n+8)) /**< helper macro for error number definitions */
 

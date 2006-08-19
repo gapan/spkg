@@ -14,6 +14,7 @@
 
 #include "sys.h"
 #include "path.h"
+#include "misc.h"
 
 #define e_set(e, n, fmt, args...) e_add(e, "sys", __func__, n, fmt, ##args)
 
@@ -107,7 +108,7 @@ gint sys_mkdir_p(const gchar* path)
 {
   gchar* simple_path;
   gchar** pathv;
-  gint i, j, retval = 1, pathv_len;
+  guint i, j, retval = 1, pathv_len;
   gchar* tmp, *tmp_end;
 
   g_assert(path != 0);

@@ -626,7 +626,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     {
       if (tgz->f_size > 1024*4) /* 4K is enough */
       {
-        e_set(E_ERROR, "Package description file is too big. (%d kB)", tgz->f_size / 1024);
+        e_set(E_ERROR, "Package description file is too big. (%ld kB)", tgz->f_size / 1024);
         goto err3;
       }
       _read_slackdesc(tgz, pkg);
@@ -636,7 +636,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     {
       if (tgz->f_size > 1024*512) /* 512K is enough for all. :) */
       {
-        e_set(E_ERROR, "Installation script is too big. (%d kB)", tgz->f_size / 1024);
+        e_set(E_ERROR, "Installation script is too big. (%ld kB)", tgz->f_size / 1024);
         goto err3;
       }
       has_doinst = _read_doinst_sh(tgz, pkg, root, sane_path, opts, e);

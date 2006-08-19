@@ -13,6 +13,7 @@
 #include <zlib.h>
 
 #include "untgz.h"
+#include "sys.h"
 
 /* Enable or disable parent directory modification and access times 
    preservation. */

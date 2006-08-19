@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "path.h"
+#include "misc.h"
 
 /* public - high quality path manipulation functions
  ************************************************************************/
