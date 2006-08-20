@@ -10,11 +10,7 @@ noinst_PROGRAMS = \
   test-mkdir \
   test-rm
 
-test_untgz_LDADD = $(top_builddir)/src/libspkg.la
-test_parsers_LDADD = $(top_builddir)/src/libspkg.la
-test_path_LDADD = $(top_builddir)/src/libspkg.la
-test_mkdir_LDADD = $(top_builddir)/src/libspkg.la
-test_rm_LDADD = $(top_builddir)/src/libspkg.la
+LDADD = $(top_builddir)/src/libspkg.a $(SPKG_LIBS) -lz -lJudy
 
 test_untgz_SOURCES = test-untgz.c
 test_parsers_SOURCES = test-parsers.c

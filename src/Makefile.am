@@ -26,19 +26,16 @@ SPKG_LIB_SRC = \
 	cmd-list.c
 
 # Library build reciepe
-libspkg_la_LIBADD = $(SPKG_LIBS) -lJudy -lz
-libspkg_la_LDFLAGS = -version-info 1:0:0 -no-undefined -z now
-libspkg_la_SOURCES = $(SPKG_LIB_SRC)
+libspkg_a_SOURCES = $(SPKG_LIB_SRC)
+spkg_SOURCES = main.c
+spkg_LDADD = libspkg.a -lpopt $(SPKG_LIBS) -lJudy -lz
 
 # Build only static spkg as spkg
 if STATIC_SPKG_ONLY
 
 bin_PROGRAMS = spkg
-noinst_LTLIBRARIES = libspkg.la
-
-spkg_LDADD = libspkg.la -lpopt $(libspkg_la_LIBADD)
-spkg_SOURCES = main.c
-spkg_LDFLAGS = -all-static
+noinst_LIBRARIES = libspkg.a
+spkg_LDFLAGS = -static
 
 else
 
@@ -46,23 +43,17 @@ else
 if STATIC_SPKG
 
 bin_PROGRAMS = spkg spkg.static
-lib_LTLIBRARIES = libspkg.la
+lib_LIBRARIES = libspkg.a
 
-spkg_LDADD = libspkg.la -lpopt
-spkg_SOURCES = main.c
-
-spkg_static_LDADD = libspkg.la -lpopt $(libspkg_la_LIBADD)
+spkg_static_LDADD = $(spkg_LDADD)
 spkg_static_SOURCES = main.c
-spkg_static_LDFLAGS = -all-static
+spkg_static_LDFLAGS = -static
 
 else
 # Build dynamic spkg binary
 
 bin_PROGRAMS = spkg
-lib_LTLIBRARIES = libspkg.la
-
-spkg_LDADD = libspkg.la -lpopt
-spkg_SOURCES = main.c
+lib_LIBRARIES = libspkg.a
 
 endif
 
