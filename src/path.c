@@ -15,7 +15,7 @@
 gchar* path_sanitize_slashes(const gchar* path)
 {
   g_assert(path != 0);
-  gchar* sanepath = g_malloc(strlen(path)+1);
+  gchar* sanepath = (gchar*)g_malloc(strlen(path)+1);
   gchar* tmp = sanepath;
   gboolean previous_was_slash = 0;
   while (*path != '\0')
@@ -49,7 +49,7 @@ gchar* path_simplify(const gchar* path)
   pathv = path_get_elements(path); /* should free */
   pathv_len = g_strv_length_compat(pathv);
   
-  sane_pathv = g_malloc0((pathv_len + 1) * sizeof(gchar*));
+  sane_pathv = (gchar**)g_malloc0((pathv_len + 1) * sizeof(gchar*));
   absolute = (pathv_len > 1 && **pathv == '\0');
   
   for (i = 0; i < pathv_len; i++)

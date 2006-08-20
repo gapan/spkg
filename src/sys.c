@@ -116,7 +116,7 @@ gint sys_mkdir_p(const gchar* path)
   simple_path = path_simplify(path);
   pathv = path_get_elements(simple_path);
   pathv_len = g_strv_length_compat(pathv);
-  tmp = tmp_end = g_malloc0(strlen(simple_path)+10);
+  tmp = tmp_end = (gchar*)g_malloc0(strlen(simple_path)+10);
   g_free(simple_path);
 
   for (i=0; i<pathv_len; i++)
