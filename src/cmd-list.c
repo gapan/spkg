@@ -77,8 +77,8 @@ gint cmd_list(GSList* arglist, const struct cmd_options* opts, struct error* e)
       printf("ARCH:    %s\n", pkg->arch);
       printf("BUILD:   %s\n", pkg->build);
       printf("DATE:    %s\n", _get_date(pkg->time));
-      printf("CSIZE:   %d kB\n", pkg->csize);
-      printf("USIZE:   %d kB\n", pkg->usize);
+      printf("CSIZE:   %u kB\n", pkg->csize);
+      printf("USIZE:   %u kB\n", pkg->usize);
       if (pkg->desc)
         printf("%s", pkg->desc);
     }

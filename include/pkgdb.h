@@ -75,8 +75,8 @@ struct db_pkg {
 
   /* details */
   time_t time;       /**< package installation/upgrade time [NA] */
-  gsize  csize;      /**< compressed size of the package in kB [O] */
-  gsize  usize;      /**< uncompressed size of the package in kB [O] */
+  guint  csize;      /**< compressed size of the package in kB [O] */
+  guint  usize;      /**< uncompressed size of the package in kB [O] */
   gchar* location;   /**< original package location (path) [O] */
   gchar* desc;       /**< cleaned (i.e. without rubbish :) package description [O] */
   gchar* doinst;     /**< complete doinst.sh script contents [O] */
