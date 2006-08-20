@@ -345,7 +345,7 @@ void untgz_close(struct untgz_state* s)
 
 gint untgz_get_header(struct untgz_state* s)
 {
-  gsize remaining;
+  off_t remaining;
   union tar_block* b;
   g_assert(s != 0);
 
@@ -396,7 +396,7 @@ gint untgz_get_header(struct untgz_state* s)
       return 1;
     }
 
-    remaining = getoct(s, b->h.size, 12);
+    remaining = getoct(s, b->h.size, sizeof(b->h.size));
     /* read longname and/or longlink */
     if (b->h.typeflag == GNUTYPE_LONGLINK)
     {
