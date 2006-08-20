@@ -226,7 +226,7 @@ gint db_filelist_load(gboolean force_reload)
   db_filelist_free();
 
   gchar* line = NULL;
-  gint size = 0;
+  size_t size = 0;
   Word_t* refs;
   struct dirent* de;
 
@@ -658,7 +658,7 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
   occur anymore, so we cache info about already matched lines */
 
   gchar* line = NULL;
-  gint size = 0;
+  size_t size = 0;
   gint linelen;
   while ((linelen = getline(&line, &size, fp)) >= 0)
   {
