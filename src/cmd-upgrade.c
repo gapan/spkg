@@ -316,7 +316,18 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
         /* installed directory already exist */
         if (_mode_differ(tgz, &ex_stat) || _gid_or_uid_differ(tgz, &ex_stat))
         {
-          _warning("Directory already exists %s (but permissions differ)", sane_path);
+          _notice("Directory already exists %s (but permissions differ)", sane_path);
+          if (!opts->safe)
+          {
+            _notice("Permissions will be changed to owner=%d, group=%d, mode=%03o.", tgz->f_uid, tgz->f_gid, tgz->f_mode, sane_path);
+            ta_chperm_nothing(fullpath, tgz->f_mode, tgz->f_uid, tgz->f_gid);
+            fullpath = NULL;
+          }
+          else
+          {
+            e_set(E_ERROR, "Can't change existing directory permissions in safe mode. (%s)", sane_path);
+            goto extract_failed;
+          }
         }
         else
         {
