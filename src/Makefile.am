@@ -58,9 +58,3 @@ lib_LIBRARIES = libspkg.a
 endif
 
 endif
-
-install-exec-hook:
-	ln -snf spkg$(EXEEXT) $(DESTDIR)$(bindir)/ipkg$(EXEEXT)
-	ln -snf spkg$(EXEEXT) $(DESTDIR)$(bindir)/rpkg$(EXEEXT)
-	ln -snf spkg$(EXEEXT) $(DESTDIR)$(bindir)/upkg$(EXEEXT)
-	ln -snf spkg$(EXEEXT) $(DESTDIR)$(bindir)/lpkg$(EXEEXT)

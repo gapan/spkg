@@ -1,11 +1,5 @@
 man_MANS = spkg.8
 
-install-data-hook:
-	ln -snf spkg.8 $(DESTDIR)$(mandir)/man8/ipkg.8
-	ln -snf spkg.8 $(DESTDIR)$(mandir)/man8/rpkg.8
-	ln -snf spkg.8 $(DESTDIR)$(mandir)/man8/upkg.8
-	ln -snf spkg.8 $(DESTDIR)$(mandir)/man8/lpkg.8
-
 EXTRA_DIST = devel/Doxyfile devel/footer.html \
   devel/header.html devel/index.doc blogs/blog1.html \
   blogs/blog2.html blogs/blog3.html blogs/blog4.html \

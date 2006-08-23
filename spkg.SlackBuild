@@ -10,11 +10,6 @@ cd spkg-$VERSION
 make
 make install DESTDIR=$CWD/slack-pkg
 gzip -9 $CWD/slack-pkg/usr/man/man8/spkg.8
-ln -snf spkg.8.gz $CWD/slack-pkg/usr/man/man8/ipkg.8.gz
-ln -snf spkg.8.gz $CWD/slack-pkg/usr/man/man8/upkg.8.gz
-ln -snf spkg.8.gz $CWD/slack-pkg/usr/man/man8/dpkg.8.gz
-ln -snf spkg.8.gz $CWD/slack-pkg/usr/man/man8/lpkg.8.gz
-rm $CWD/slack-pkg/usr/man/man8/?pkg.8
 mkdir -p $CWD/slack-pkg/install
 cat slack-desc > $CWD/slack-pkg/install/slack-desc
 cd $CWD/slack-pkg

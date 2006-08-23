@@ -237,31 +237,6 @@ int main(const int ac, const char* av[])
     goto out;
   }
 
-  /* got command? */
-  if (command == 0)
-  {
-    /* check if we are run as Xpkg */
-    if (av[0] != 0)
-    {
-      gchar* b = g_path_get_basename(av[0]);
-      if (!strcmp(b, "ipkg"))
-        command |= CMD_INSTALL;
-      else if (!strcmp(b, "rpkg"))
-        command |= CMD_REMOVE;
-      else if (!strcmp(b, "upkg"))
-        command |= CMD_UPGRADE;
-      else if (!strcmp(b, "lpkg"))
-        command |= CMD_LIST;
-      g_free(b);
-      if (command)
-        goto got_command;
-    }
-    printf("Usage: spkg [-i|-u|-d|-l] [-r ROOT] [-n] [-s] [-q] [-v] [packages...]\n");
-    printf("For more help use --help command line option.\n");
-    goto err_1;
-  }
-
- got_command:
   /* check verbosity options */
   if (verbose && quiet)
   {
@@ -294,6 +269,10 @@ int main(const int ac, const char* av[])
     break;
     case CMD_LIST:
     break;
+    case 0:
+      printf("Usage: spkg [-i|-u|-d|-l] [-r ROOT] [-n] [-s] [-q] [-v] [packages...]\n");
+      printf("For more help use --help command line option.\n");
+      goto err_1;
     default:
       fprintf(stderr, "ERROR: Schizofrenic command usage.\n");
       goto err_1;
