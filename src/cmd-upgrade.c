@@ -24,25 +24,6 @@
 #define e_set(n, fmt, args...) e_add(e, "upgrade", __func__, n, fmt, ##args)
 
 /* packages that can't be optimized, until they are fixed */
-static gchar* _doinst_opt_blacklist[] = {
-  "aaa_base",
-  "bin",
-  "glibc-solibs",
-  "glibc",
-  NULL
-};
-
-static gboolean _blacklisted(const gchar* shortname, gchar** blacklist)
-{
-  gchar** i = blacklist;
-  while (*i)
-  {
-    if (!strcmp(*i, shortname))
-      return TRUE;
-    i++;
-  }
-  return FALSE;
-}
 
 static gboolean _unsafe_path(const gchar* path)
 {
@@ -80,14 +61,14 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
   gchar* fullpath = g_strdup_printf("%s%s", root, sane_path);
 
   /* optimization disabled, just extract doinst script */
-  if (opts->no_optsyms || _blacklisted(pkg->shortname, _doinst_opt_blacklist))
+  if (opts->no_optsyms || is_blacklisted(pkg->shortname, opts->bl_symopts))
   {
     _debug("Symlink optimization is disabled.");
     if (opts->safe)
     {
       _warning("In safe mode, install script is not executed,"
       " and with disabled optimized symlink creation, symlinks"
-      " will not be created.%s", _blacklisted(pkg->shortname, _doinst_opt_blacklist) ?
+      " will not be created.%s", is_blacklisted(pkg->shortname, opts->bl_symopts) ?
       " Note that this package is blacklisted for optimized"
       " symlink creation. This may change in the future as"
       " better heuristics are developed for extracting symlink"
