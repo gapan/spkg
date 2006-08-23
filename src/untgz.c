@@ -626,7 +626,7 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
     case UNTGZ_DIR:
       /* because of the way tar stores directories, there 
          is no need to have mkdir_r here */
-      if (mkdir(path, 0755) == -1 && errno != EEXIST)
+      if (mkdir(path, 0700) == -1 && errno != EEXIST)
         e_throw(E_ERROR|UNTGZ_BADIO, "can't create directory: %s", strerror(errno));
       break;
     default:
