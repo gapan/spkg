@@ -70,7 +70,7 @@ static gint install_new = 0;
 static struct poptOption optsOptions[] = {
 {
   "root", 'r', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &cmd_opts.root, 0,
-  "Set altrernate root directory for package operations.", "ROOT"
+  "Set alternate root directory for package operations.", "ROOT"
 },
 {
   "safe", 's', 0, &cmd_opts.safe, 0,
