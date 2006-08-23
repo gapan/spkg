@@ -270,9 +270,13 @@ int main(const int ac, const char* av[])
     case CMD_LIST:
     break;
     case 0:
-      printf("Usage: spkg [-i|-u|-d|-l] [-r ROOT] [-n] [-s] [-q] [-v] [packages...]\n");
-      printf("For more help use --help command line option.\n");
-      goto err_1;
+      if (!cmd_opts.dryrun && !is_root())
+        goto err_noroot;
+      if (poptPeekArg(optCon) == 0)
+        goto err_nopackages;
+      command = CMD_UPGRADE;
+      install_new = TRUE;
+    break;
     default:
       fprintf(stderr, "ERROR: Schizofrenic command usage.\n");
       goto err_1;
