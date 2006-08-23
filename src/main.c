@@ -70,7 +70,8 @@ static gint install_new = 0;
 static struct poptOption optsOptions[] = {
 {
   "root", 0, POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &cmd_opts.root, 0,
-  "Set alternate root directory for package operations.", "ROOT"
+  "Set alternate root directory for package operations. You can also use "
+  "ROOT environment variable.", "ROOT"
 },
 {
   "safe", 's', 0, &cmd_opts.safe, 0,
@@ -178,6 +179,8 @@ int main(const int ac, const char* av[])
   err = e_new();
   /* check if we have enough privileges */
   unsetenv("LD_LIBRARY_PATH");
+
+  cmd_opts.root = getenv("ROOT");
 
   /* initialize popt context */
   optCon = poptGetContext("spkg", ac, av, opts, 0);
