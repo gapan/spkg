@@ -84,6 +84,10 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     if (*ptype != DB_PATH_FILE)
       goto skip1;
 
+    /* skip paths we don't want to remove */
+    if (!strcmp(path, "install") ||!strncmp(path, "install/", 8) || !strcmp(path, "."))
+      goto skip1;
+
     gchar* fullpath = g_strdup_printf("%s%s", root, path);
     struct stat st;
     sys_ftype type = sys_file_type_stat(fullpath, 0, &st);
@@ -197,6 +201,10 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
   while (ptype != NULL)
   {
     if (*ptype != DB_PATH_DIR)
+      goto skip3;
+
+    /* skip paths we don't want to remove */
+    if (!strcmp(path, "install") ||!strncmp(path, "install/", 8) || !strcmp(path, "."))
       goto skip3;
 
     gchar* fullpath = g_strdup_printf("%s%s", root, path);

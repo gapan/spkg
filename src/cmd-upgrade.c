@@ -527,6 +527,10 @@ static void _delete_leftovers(struct db_pkg* pkg, struct db_pkg* ipkg,
     if (ptype_new != DB_PATH_NONE)
       goto skip;
 
+    /* skip paths we don't want to remove */
+    if (!strcmp(path, "install") ||!strncmp(path, "install/", 8) || !strcmp(path, "."))
+      goto skip;
+
     /* get refs to this path from the global filelist */
     gint refs = db_filelist_get_path_refs(path);
     /* if it's referenced more than once (i.e. not only by
