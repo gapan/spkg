@@ -104,6 +104,13 @@ extern gint iter_buf_lines(gchar** b, gchar** e, gchar** n, gchar* eof, gchar** 
  */
 extern guint g_strv_length_compat(gchar **str_array);
 
+/** Load blacklist from file. Ignore empty and commented lines.
+ *
+ * @param path File path.
+ * @return String vector of blacklist file lines.
+ */
+extern gchar** load_blacklist(const gchar* path);
+
 G_END_DECLS
 
 #endif

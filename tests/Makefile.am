@@ -8,10 +8,12 @@ noinst_PROGRAMS = \
   test-parsers \
   test-path \
   test-mkdir \
+  test-blacklist \
   test-rm
 
 LDADD = $(top_builddir)/src/libspkg.a $(SPKG_LIBS) -lz -lJudy
 
+test_blacklist_SOURCES = test-blacklist.c
 test_untgz_SOURCES = test-untgz.c
 test_parsers_SOURCES = test-parsers.c
 test_path_SOURCES = test-path.c

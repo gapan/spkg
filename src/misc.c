@@ -4,6 +4,7 @@
 |*----------------------------------------------------------------------*|
 |*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
+#include <stdio.h>
 #include <string.h>
 
 #include "misc.h"
@@ -315,4 +316,33 @@ guint g_strv_length_compat(gchar **str_array)
   while (str_array[i])
     ++i;
   return i;
+}
+
+gchar** load_blacklist(const gchar* path)
+{
+  gchar* line = NULL;
+  size_t size = 0;
+  FILE* f;
+  GSList* l = NULL, *i;
+  gchar **bl, **tmp;
+  
+  f = fopen(path, "r");
+  if (f == NULL)
+    return NULL;
+
+  while (getline(&line, &size, f) >= 0)
+  {
+    g_strstrip(line);
+    if (strlen(line) > 0 && line[0] != '#')
+      l = g_slist_prepend(l, g_strdup(line));
+  }
+  free(line);
+
+  bl = tmp = g_new0(gchar*, g_slist_length(l)+1);
+  for (i=l; i!=NULL; i=i->next)
+    *(tmp++) = i->data;
+
+  g_slist_free(l);
+  fclose(f);
+  return bl;
 }
