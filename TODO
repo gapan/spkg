@@ -2,6 +2,19 @@
 before 1.0 |
 -----------/
 
+spkg -d --copy=dir package ???
+
+list files that can't be removed in removed_packages/package.leftovers ???
+  -- why not just do grep on output from spkg?
+
+F. spkg 1.0 should have somewhere a list of important differences in  
+behaviour from official pkgtools. Here's a short list:
+   1. spkg does not support the -preserve or -copy options of removepkg.
+   2. When spkg cannot overwrite a file during install/upgrade it keeps a  
+copy as $(name)-##$(operation)##
+   3. spkg will not allow installing several different version of a package  
+at the same system.
+
 [doc] Update documentation
 [doc] Write article
 [test] Automatic testuite
@@ -13,23 +26,23 @@ rcX releases after each bug is found and fixed.
 post 1.0 |
 ---------/
 
-- --check command
-- --verify command for checking validity of slack packages
+- --verify command for checking fs against package database (what files
+  changed after installation, missing files, etc.)
+- --check command for checking validity of slack packages
   (check for suid binaries and other rights based checks for files,
   enforcing slackware packages policy)
-- python bindings
-- gui interface
-- backward comaptible script extending using special comments for
-  pre/post install/update/remove code
 
 [untgz] using blockbuf as writebuf can speedup things slightly on the 
     user side (approx. by some 5%)
 
-install/doinst.sh:
+extend install/doinst.sh:
 
-#<I#
-#I>#
-#U>#
-#<U#/etc/rc.d/dnsmasq restart
-#R>#/etc/rc.d/dnsmasq stop
-#<R#
+exit 0
+#!REMOVE!
+code
+code
+code (until next block or end)
+#!UPGRADE!
+code
+code
+code
