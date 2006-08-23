@@ -1,6 +1,45 @@
 ----------------------------------------------------------------
 spkg - Release Notes
 ----------------------------------------------------------------
+2006-08-21: spkg 1.0rc7
+
+  "When one talks of having finally catched all of the bugs, another
+  one will pop up immediately."
+
+  Fixed 64bit incompatible pointer size related crashes on 64bit
+  paltform. (pointed out, debugged and tested by Yair K)
+
+  Don't build .so library until someone actually want to use it and
+  until I stop breaking binary compatibility with each new rc release.
+
+  Implement simple user interface to the most common command. 'spkg -u
+  --install-new package' can be now executed simply as 'spkg package'.
+  I've also dropped support for ipkg, lpkg, upkg and rpkg commands.
+
+  Implemented blacklists for otpimized symlinks functionality and
+  package upgrade. You may create /etc/spkg/upgrade_blacklist and
+  /etc/spkg/symopts_blacklist to disallow upgrade of some packages.
+  If you don't have these files, default blacklists will be used.
+
+  Incorporated some other changes kindly suggested by Yair K:
+  - Implement 'spkg -u oldname%newpkg'.
+  - Change permissions on installed directories if directory already
+  exist. Just like pkgtools.
+  - Don't cancel operation in safe mode if installed directory already
+  exist on the filesytem but is hidden behind symlink. Just warn, like
+  in normal mode.
+  - Fix problem when user can by mistake type -reinstall or -root by
+  disabling short version of --root command line option, so that
+  these typos do not mean --root=einstall or --root=oot.
+  - Pass -install to the doinst.sh script just like installpkg.
+  - Ignore . and install/ entries in file database when doing --upgrade
+  or --remove.
+  - Allow to set --root option via environment variable ROOT. Just like
+  pkgtools do.
+
+  And some other small changes. See ChangeLog for detailed list.
+
+----------------------------------------------------------------
 2006-08-20: spkg 1.0rc6
 
   Fixed a lot of compiler warnings on (-Wall -Wextra level).
