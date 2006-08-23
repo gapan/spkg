@@ -362,6 +362,13 @@ int main(const int ac, const char* av[])
             g_free(pkgname);
             e_clean(err);
           }
+          else if (e_errno(err) & CMD_BLACK)
+          {
+            gchar* pkgname = parse_pkgname(arg, 5);
+            _inform("Skipping package %s (package is blacklisted)...", pkgname ? pkgname : arg);
+            g_free(pkgname);
+            e_clean(err);
+          }
           else if (e_errno(err) & CMD_EXIST)
           {
             gchar* pkgname = parse_pkgname(arg, 5);

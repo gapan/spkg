@@ -625,6 +625,12 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
     e_set(E_ERROR, "Package name is invalid. (%s)", pkgfile);
     goto err1;
   }
+  
+  if (is_blacklisted(shortname, opts->bl_upgrade))
+  {
+    e_set(E_ERROR|CMD_BLACK, "Package is blacklisted for upgrade. (%s)", shortname);
+    goto err1;
+  }
 
   _safe_breaking_point(err1);
 

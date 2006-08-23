@@ -22,6 +22,7 @@ G_BEGIN_DECLS
 
 #define CMD_EXIST   E(0) /**< package already exists */
 #define CMD_NOTEX   E(1) /**< package does not exist */
+#define CMD_BLACK   E(2) /**< package is blacklisted for given operation */
 
 /** Common package command options structure. */
 struct cmd_options {
