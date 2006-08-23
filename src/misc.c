@@ -347,12 +347,14 @@ gchar** load_blacklist(const gchar* path)
   return bl;
 }
 
-gboolean is_blacklisted(const gchar* shortname, gchar** blacklist)
+gboolean is_blacklisted(const gchar* str, gchar** blacklist)
 {
   gchar** i = blacklist;
+  if (i == NULL || str == NULL)
+    return FALSE;
   while (*i)
   {
-    if (!strcmp(*i, shortname))
+    if (!strcmp(*i, str))
       return TRUE;
     i++;
   }
