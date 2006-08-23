@@ -228,7 +228,7 @@ int main(const int ac, const char* av[])
   }
   if (usage)
   {
-    printf("Usage: spkg [-i|-u|-d|-l] [-r ROOT] [-n] [-s] [-q] [-v] [packages...]\n");
+    printf("Usage: spkg [-i|-u|-d|-l] [--root=ROOT] [-n] [-s] [-q] [-v] [packages...]\n");
     goto out;
   }
   if (version)
