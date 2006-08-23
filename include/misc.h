@@ -111,6 +111,14 @@ extern guint g_strv_length_compat(gchar **str_array);
  */
 extern gchar** load_blacklist(const gchar* path);
 
+/** Check if given string is in blacklist.
+ *
+ * @param str String to check.
+ * @param blacklist Blacklist to check against.
+ * @return TRUE if blacklisted.
+ */
+extern gboolean is_blacklisted(const gchar* str, gchar** blacklist);
+
 G_END_DECLS
 
 #endif
