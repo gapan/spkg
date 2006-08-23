@@ -33,6 +33,8 @@ struct cmd_options {
   gboolean no_optsyms; /**< Turn off symlink optimizations. */
   gboolean no_ldconfig; /**< Turn off ldconfig execution. */
   gboolean reinstall;  /**< Reinstall package when it is already installed (for upgrade). */
+  gchar** bl_symopts;  /**< Blacklist for symlink optimizations. */
+  gchar** bl_upgrade;  /**< Blacklist for upgrade. */
 };
 
 /** Install package.

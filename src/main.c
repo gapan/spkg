@@ -52,6 +52,14 @@ POPT_TABLEEND
 /* options
  ************************************************************************/
 
+static gchar* default_bl_symopts[] = {
+  "aaa_base", "bin", "glibc-solibs", "glibc", NULL
+};
+
+static gchar* default_bl_upgrade[] = {
+  "aaa_base", "aaa_elflibs", NULL
+};
+
 static struct cmd_options cmd_opts = {
   .root = "/",
   .dryrun = 0,
@@ -60,7 +68,9 @@ static struct cmd_options cmd_opts = {
   .no_optsyms = 0,
   .no_scripts = 0,
   .no_ldconfig = 0,
-  .reinstall = 0
+  .reinstall = 0,
+  .bl_symopts = default_bl_symopts,
+  .bl_upgrade = default_bl_upgrade
 };
 
 static gint verbose = 0;
@@ -180,6 +190,16 @@ int main(const int ac, const char* av[])
   /* check if we have enough privileges */
   unsetenv("LD_LIBRARY_PATH");
 
+  /* load blacklists from /etc/spkg/ */
+  gchar** bl_symopts = load_blacklist("/etc/spkg/symopts_blacklist");
+  if (bl_symopts)
+    cmd_opts.bl_symopts = bl_symopts;
+
+  gchar** bl_upgrade = load_blacklist("/etc/spkg/upgrade_blacklist");
+  if (bl_upgrade)
+    cmd_opts.bl_upgrade = bl_upgrade;
+
+  /* preset ROOT */
   cmd_opts.root = getenv("ROOT");
 
   /* initialize popt context */
