@@ -708,7 +708,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     if (sys_file_type(doinst_path, 0) == SYS_REG)
     {
       gchar* qroot = g_shell_quote(root);
-      gchar* cmd = g_strdup_printf("cd %s && . install/doinst.sh", qroot);
+      gchar* cmd = g_strdup_printf("cd %s && . install/doinst.sh -install", qroot);
       g_free(qroot);
 
       _notice("Running post-installation script...");
