@@ -319,7 +319,7 @@ int main(const int ac, const char* av[])
           if (e_errno(err) & CMD_EXIST)
           {
             gchar* pkgname = parse_pkgname(arg, 5);
-            _inform("Skipping package %s (already installed)...", pkgname ? pkgname : arg);
+            _inform("Skipping package %s (package with same base name is already installed)...", pkgname ? pkgname : arg);
             g_free(pkgname);
             e_clean(err);
           }
@@ -352,14 +352,14 @@ int main(const int ac, const char* av[])
           else if (e_errno(err) & CMD_NOTEX)
           {
             gchar* pkgname = parse_pkgname(arg, 5);
-            _inform("Skipping package %s (not installed)...", pkgname ? pkgname : arg);
+            _inform("Skipping package %s (package with same base name is NOT installed)...", pkgname ? pkgname : arg);
             g_free(pkgname);
             e_clean(err);
           }
           else if (e_errno(err) & CMD_EXIST)
           {
             gchar* pkgname = parse_pkgname(arg, 5);
-            _inform("Skipping package %s (already installed)...", pkgname ? pkgname : arg);
+            _inform("Skipping package %s (already uptodate)...", pkgname ? pkgname : arg);
             g_free(pkgname);
             e_clean(err);
           }
