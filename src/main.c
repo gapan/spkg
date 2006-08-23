@@ -69,7 +69,7 @@ static gint install_new = 0;
 
 static struct poptOption optsOptions[] = {
 {
-  "root", 'r', POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &cmd_opts.root, 0,
+  "root", 0, POPT_ARG_STRING | POPT_ARGFLAG_SHOW_DEFAULT, &cmd_opts.root, 0,
   "Set alternate root directory for package operations.", "ROOT"
 },
 {
@@ -96,7 +96,7 @@ static struct poptOption optsOptions[] = {
   "completely disable output except for error messages.", NULL
 },
 {
-  "reinstall", 0, POPT_ARGFLAG_ONEDASH, &cmd_opts.reinstall, 0,
+  "reinstall", 0, 0, &cmd_opts.reinstall, 0,
   "When upgrading package and package already exists in the database, "
   "force reinstall.", NULL
 },
