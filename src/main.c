@@ -293,10 +293,13 @@ int main(const int ac, const char* av[])
     case CMD_LIST:
     break;
     case 0:
+      if (poptPeekArg(optCon) == 0)
+      {
+        printf("Usage: spkg [-i|-u|-d|-l] [--root=ROOT] [-n] [-s] [-q] [-v] [packages...]\n");
+        goto out;
+      }
       if (!cmd_opts.dryrun && !is_root())
         goto err_noroot;
-      if (poptPeekArg(optCon) == 0)
-        goto err_nopackages;
       command = CMD_UPGRADE;
       install_new = TRUE;
     break;
