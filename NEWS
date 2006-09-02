@@ -1,7 +1,7 @@
 ----------------------------------------------------------------
 spkg - Release Notes
 ----------------------------------------------------------------
-2006-08-21: spkg 1.0rc7
+2006-09-02: spkg 1.0rc7
 
   "When one talks of having finally catched all of the bugs, another
   one will pop up immediately."
@@ -22,7 +22,7 @@ spkg - Release Notes
   If you don't have these files, default blacklists will be used.
 
   Incorporated some other changes kindly suggested by Yair K:
-  - Implement 'spkg -u oldname%newpkg'.
+  - [PATCH] Limit slack-desc to 13 lines, not 11.
   - Change permissions on installed directories if directory already
   exist. Just like pkgtools.
   - Don't cancel operation in safe mode if installed directory already
