@@ -88,6 +88,8 @@ gchar* parse_pkgname(const gchar* path, guint elem)
   return retval;
 }
 
+#define MAXLNLEN 128 /* slack-desc file lines length is limited anyway */
+
 /* slack-desc format is 
   <shortname>: <shortname> (desc) 
   <shortname>: longdesc
@@ -95,8 +97,7 @@ gchar* parse_pkgname(const gchar* path, guint elem)
   ...
   other lines are discarded
 */
-#define MAXLNLEN 128 /* slack-desc file lines length is limited anyway */
-gint parse_slackdesc(const gchar* slackdesc, const gchar* sname, gchar* desc[11])
+gint parse_slackdesc(const gchar* slackdesc, const gchar* sname, gchar* desc[MAX_SLACKDESC_LINES])
 {
   const gchar* i = slackdesc;
   const gchar* j;
@@ -111,7 +112,7 @@ gint parse_slackdesc(const gchar* slackdesc, const gchar* sname, gchar* desc[11]
 
   sl = strlen(sname);
 
-  for (l=0;l<11;l++)
+  for (l = 0; l < MAX_SLACKDESC_LINES; l++)
     desc[l] = 0;
   
   while (1)
@@ -119,25 +120,25 @@ gint parse_slackdesc(const gchar* slackdesc, const gchar* sname, gchar* desc[11]
     if (strncmp(sname, i, sl) != 0 || (*(i+sl) != ':'))
     { /* line don't match sname */
       i = strchr(i,'\n');
-      if (i==0)
-        return ln?0:1; /* end */
+      if (i == 0)
+        return ln ? 0 : 1; /* end */
       i++;
     }
     else
     { /* line matches sname: */
-      if (ln > 10) /* too much valid lines */
+      if (ln > (MAX_SLACKDESC_LINES-1)) /* too many valid lines */
         return 0; /* this is ok */
 
       i += sl+1;
       j = strchr(i,'\n');
       if (j==0)
-        j = i+strlen(i)+1;
+        j = i + strlen(i) + 1;
       l = j-i;
       if (l > MAXLNLEN-1)
         l = MAXLNLEN-1;
       strncpy(buf, i, l);
       buf[l] = 0;
-      gchar* b = buf[0] == ' '?buf+1:buf;
+      gchar* b = buf[0] == ' ' ? buf + 1 : buf;
       desc[ln] = g_strndup(b, MAXLNLEN-1);
       ln++;
     }
@@ -145,23 +146,23 @@ gint parse_slackdesc(const gchar* slackdesc, const gchar* sname, gchar* desc[11]
   return 1;
 }
 
-gchar* gen_slackdesc(const gchar* sname, gchar* desc[11])
+gchar* gen_slackdesc(const gchar* sname, gchar* desc[MAX_SLACKDESC_LINES])
 {
-  gchar buf[MAXLNLEN*11];
+  gchar buf[MAXLNLEN*MAX_SLACKDESC_LINES];
   buf[0]=0;
   gint i;
 
   g_assert(sname != 0);
   g_assert(desc != 0);
 
-  for (i=0;i<11;i++)
+  for (i=0;i<MAX_SLACKDESC_LINES;i++)
   {
     if (desc[i] == 0)
       break;
-    g_strlcat(buf,sname,MAXLNLEN*11);
-    g_strlcat(buf,": ",MAXLNLEN*11);
-    g_strlcat(buf,desc[i],MAXLNLEN*11);
-    g_strlcat(buf,"\n",MAXLNLEN*11);
+    g_strlcat(buf, sname, MAXLNLEN * MAX_SLACKDESC_LINES);
+    g_strlcat(buf, ": ", MAXLNLEN * MAX_SLACKDESC_LINES);
+    g_strlcat(buf, desc[i], MAXLNLEN * MAX_SLACKDESC_LINES);
+    g_strlcat(buf, "\n", MAXLNLEN * MAX_SLACKDESC_LINES);
   }
   return buf[0]?g_strdup(buf):0;
 }

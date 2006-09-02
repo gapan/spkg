@@ -10,6 +10,10 @@
 #ifndef SPKG__MISC_H
 #define SPKG__MISC_H
 
+/** Maximum lines accepted in slack-desc file.
+ */ 
+#define MAX_SLACKDESC_LINES 13
+
 #include <glib.h>
 
 G_BEGIN_DECLS
@@ -36,7 +40,7 @@ extern gchar* parse_pkgname(const gchar* path, guint elem);
  * @param desc Array of prased slack-desc lines.
  * @return 0 on success, 1 on error (i.e. not a single slack-desc line)
  */
-extern gint parse_slackdesc(const gchar* slackdesc, const gchar* sname, gchar* desc[11]);
+extern gint parse_slackdesc(const gchar* slackdesc, const gchar* sname, gchar* desc[MAX_SLACKDESC_LINES]);
 
 /** Generate slack-desc file from parsed buffer.
  *
@@ -44,7 +48,7 @@ extern gint parse_slackdesc(const gchar* slackdesc, const gchar* sname, gchar* d
  * @param desc Array of prased slack-desc lines.
  * @return 0 on error, slack-desc string
  */
-extern gchar* gen_slackdesc(const gchar* sname, gchar* desc[11]);
+extern gchar* gen_slackdesc(const gchar* sname, gchar* desc[MAX_SLACKDESC_LINES]);
 
 /** Parse link line in the doinst_sh file.
  *

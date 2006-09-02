@@ -34,7 +34,7 @@ static gboolean _unsafe_path(const gchar* path)
 
 static void _read_slackdesc(struct untgz_state* tgz, struct db_pkg* pkg)
 {
-  gchar *buf = NULL, *desc[11] = {0};
+  gchar *buf = NULL, *desc[MAX_SLACKDESC_LINES] = {0};
   gsize len;
   untgz_write_data(tgz, &buf, &len);
   parse_slackdesc(buf, pkg->shortname, desc);
@@ -43,7 +43,7 @@ static void _read_slackdesc(struct untgz_state* tgz, struct db_pkg* pkg)
 
   /* free description */
   gint i;
-  for (i=0;i<11;i++)
+  for (i=0;i<MAX_SLACKDESC_LINES;i++)
   {
     _inform("| %s", desc[i] ? desc[i] : "");
     g_free(desc[i]);

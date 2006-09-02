@@ -10,19 +10,19 @@
 
 void test_parser(gchar* sn, gchar* sd)
 {
-  gchar* dsc[11];
+  gchar* dsc[MAX_SLACKDESC_LINES];
   gint i;
   gint rv = parse_slackdesc(sd, sn, dsc);
 
   gchar* d = gen_slackdesc(sn, dsc);
 
   printf("***** (reval = %d)\n", rv);
-  for (i=0;dsc[i]!=0 && i<11; i++)
+  for (i=0;dsc[i]!=0 && i<MAX_SLACKDESC_LINES; i++)
     printf("%s\n", dsc[i]);
   printf("*****\n");
   printf("%s", d);
   printf("*****\n");
-  for (i=0;i<11;i++)
+  for (i=0;i<MAX_SLACKDESC_LINES;i++)
     g_free(dsc[i]);
 }
 
