@@ -9,11 +9,18 @@ list files that can't be removed in removed_packages/package.leftovers ???
 
 F. spkg 1.0 should have somewhere a list of important differences in  
 behaviour from official pkgtools. Here's a short list:
-   1. spkg does not support the -preserve or -copy options of removepkg.
-   2. When spkg cannot overwrite a file during install/upgrade it keeps a  
-copy as $(name)-##$(operation)##
-   3. spkg will not allow installing several different version of a package  
-at the same system.
+
+1. spkg does not support the -preserve or -copy options of removepkg.
+2. When spkg cannot overwrite a file during install/upgrade it keeps a  
+   copy as $(name)-##$(operation)##
+3. spkg will not allow installing several different version of a package  
+   at the same system.
+4. The errorlevels given by installpkg and spkg -i are incompatible.
+5. installpkg allows non-root user to install as long as they have  
+   write access to the database.
+6. Because pkgtools use gzip, a .tgz file doesn't have to be a .tar.gz  
+   file to work. .tar.Z or .tar.zip, if renamed to .tgz will work just as  
+   well.
 
 [doc] Update documentation
 [doc] Write article
