@@ -26,9 +26,6 @@ behaviour from official pkgtools. Here's a short list:
 [doc] Write article
 [test] Automatic testuite
 
-Use it for a month or so instead of pkgtools everywhere and push
-rcX releases after each bug is found and fixed.
-
 ---------------------------------------------------------------------
 post 1.0 |
 ---------/
