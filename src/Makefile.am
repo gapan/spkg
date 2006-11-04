@@ -1,6 +1,7 @@
 AM_CFLAGS = \
 	-I$(top_srcdir)/include \
 	$(SPKG_CFLAGS) \
+	-DSPKG_CONFDIR=\"$(sysconfdir)/spkg\" \
 	-D_GNU_SOURCE
 
 if ENABLE_ASSUME_BROKEN_PKGDB

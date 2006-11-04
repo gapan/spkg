@@ -190,12 +190,12 @@ int main(const int ac, const char* av[])
   /* check if we have enough privileges */
   unsetenv("LD_LIBRARY_PATH");
 
-  /* load blacklists from /etc/spkg/ */
-  gchar** bl_symopts = load_blacklist("/etc/spkg/symopts_blacklist");
+  /* load blacklists from SPKG_CONFDIR */
+  gchar** bl_symopts = load_blacklist(SPKG_CONFDIR "/symopts_blacklist");
   if (bl_symopts)
     cmd_opts.bl_symopts = bl_symopts;
 
-  gchar** bl_upgrade = load_blacklist("/etc/spkg/upgrade_blacklist");
+  gchar** bl_upgrade = load_blacklist(SPKG_CONFDIR "/upgrade_blacklist");
   if (bl_upgrade)
     cmd_opts.bl_upgrade = bl_upgrade;
 

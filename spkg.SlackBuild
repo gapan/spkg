@@ -6,7 +6,7 @@ VERSION=1.0rc7
 rm -rf spkg-$VERSION
 tar xzvf spkg-$VERSION.tar.gz
 cd spkg-$VERSION
-./configure --prefix=/usr --mandir=/usr/man --enable-static-spkg=only
+./configure --sysconfdir=/etc --prefix=/usr --mandir=/usr/man --enable-static-spkg=only
 make
 make install DESTDIR=$CWD/slack-pkg
 gzip -9 $CWD/slack-pkg/usr/man/man8/spkg.8
