@@ -238,6 +238,15 @@ static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
   goto err0;
 }
 
+static int _untgz_to_db_file_type(int type)
+{
+  if (type == UNTGZ_DIR)
+    return DB_PATH_DIR;
+  else if (type == UNTGZ_SYM)
+    return DB_PATH_SYMLINK;
+  return DB_PATH_FILE;
+}
+
 static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
                    struct db_pkg* ipkg, const gchar* sane_path,
                    const gchar* root, const struct cmd_options* opts,
@@ -251,7 +260,7 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
   /* EXIT: free(fullpath), free(temppath) */
 
   /* add file to the package */
-  if (db_pkg_add_path(pkg, sane_path, tgz->f_type == UNTGZ_DIR ? DB_PATH_DIR : DB_PATH_FILE))
+  if (db_pkg_add_path(pkg, sane_path, _untgz_to_db_file_type(tgz->f_type)))
   {
     e_set(E_ERROR, "Can't add path to the package, it's too long. (%s)", sane_path);
     goto extract_failed;
