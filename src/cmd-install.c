@@ -271,7 +271,9 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
   /* get information about installed file from filesystem and filedb */
   struct stat ex_stat;
   sys_ftype ex_type = sys_file_type_stat(fullpath, 0, &ex_stat);
-  sys_ftype ex_deref_type = sys_file_type(fullpath, 1);
+  sys_ftype ex_deref_type = SYS_NONE;
+  if (ex_type == SYS_SYM)
+    ex_deref_type = sys_file_type(fullpath, 1);
 
   if (ex_type == SYS_ERR)
   {
