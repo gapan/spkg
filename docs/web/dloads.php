@@ -24,14 +24,16 @@
 
  <h2>Building</h2>
 
-  <p>Prerequisites for building spkg are:</p>
+  <p>Prerequisites for building spkg are at least:</p>
 
   <ul>
    <li><a href="http://judy.sourceforge.net">Judy-1.0.3</a> - Judy arrays (heavily optimized arrays)</li>
-   <li><a href="http://www.gtk.org">glib-2.10.3</a> - general purpose C library</li>
-   <li><a href="ftp://ftp.rpm.org/pub/rpm/dist">popt-1.10.2</a> - command line parser</li>
-   <li><a href="http://www.zlib.net">zlib-1.2.3</a> - zlib (de)compression library</li>
+   <li><a href="http://www.gtk.org">glib-2.2.1</a> - general purpose C library</li>
+   <li><a href="ftp://ftp.rpm.org/pub/rpm/dist">popt-1.7</a> - command line parser</li>
+   <li><a href="http://www.zlib.net">zlib-1.1.4</a> - zlib (de)compression library</li>
   </ul>
+
+  <p>NOTE: It may compile/work even with older version of these libraries but it was not tested.</p>
 
   <p>Installing spkg is very easy. Just extract source code package
   and run these commands (you will need to have Judy installed first):</p>
