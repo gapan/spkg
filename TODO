@@ -4,8 +4,6 @@ before 1.0 |
 
 - segfault on SIG in static binary
 
-- symlinks directly in tgz
-
 1. When upgrading, spkg may accidently delete files from the new package  
 install because of the symlinked directory issue - say docs were installed  
 to /usr/share/doc/$name, but the new packages installs them to  
@@ -13,6 +11,9 @@ to /usr/share/doc/$name, but the new packages installs them to
 files before doinst.sh is run, and reinstall files if they do not exist.  
 (What pkgtools does is install the package again as a third step unless  
 "-no-paranoia" is set).
+
+This will require path normalization for package database and some hacks
+to make it work even with broken package databases. (or just that hack)
 
 2. Another issue with upgrading is that when the new package is corrupt or  
 unacceptable for some reason (say, tar is containing symlinks), the script  
