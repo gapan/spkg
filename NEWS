@@ -1,6 +1,25 @@
 ----------------------------------------------------------------
 spkg - Release Notes
 ----------------------------------------------------------------
+2006-11-04: spkg 1.0rc8
+
+  Another set of bugfixes and small features.
+  
+  "ROOT=" is now interpreted as "ROOT=/". Use "ROOT=." if you want to
+  install package into current directory. (suggested by Yair K)
+  
+  Spkg configuration files directory is not fixed on /etc/spkg, but it
+  can be changed using --sysconfdir option to configure script. Using
+  --sysconfdir=/etc means that spkg will try to find configuration files
+  in /etc/spkg.
+  
+  spkg.SlackBuild was improved a bit. Added slack-required file and
+  ARCH variable, that can be overriden from environment.
+  
+  Fixed "Can't access package database directory." error when package
+  directory path component contains smylink.
+
+----------------------------------------------------------------
 2006-09-02: spkg 1.0rc7
 
   "When one talks of having finally catched all of the bugs, another
