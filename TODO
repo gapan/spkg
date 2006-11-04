@@ -2,12 +2,29 @@
 before 1.0 |
 -----------/
 
-spkg -d --copy=dir package ???
+- segfault on SIG in static binary
 
-list files that can't be removed in removed_packages/package.leftovers ???
-  -- why not just do grep on output from spkg?
+- symlinks directly in tgz
 
-F. spkg 1.0 should have somewhere a list of important differences in  
+1. When upgrading, spkg may accidently delete files from the new package  
+install because of the symlinked directory issue - say docs were installed  
+to /usr/share/doc/$name, but the new packages installs them to  
+/usr/doc/$name. One way to fix it is by reiterating the list of installed  
+files before doinst.sh is run, and reinstall files if they do not exist.  
+(What pkgtools does is install the package again as a third step unless  
+"-no-paranoia" is set).
+
+2. Another issue with upgrading is that when the new package is corrupt or  
+unacceptable for some reason (say, tar is containing symlinks), the script  
+at var/log/scripts of the old package is still renamed to the new package  
+name. (this may be false report)
+
+[test] Automatic testuite
+
+[doc] Update documentation
+[doc] Write article
+
+Spkg 1.0 should have somewhere a list of important differences in  
 behaviour from official pkgtools. Here's a short list:
 
 1. spkg does not support the -preserve or -copy options of removepkg.
@@ -22,14 +39,13 @@ behaviour from official pkgtools. Here's a short list:
    file to work. .tar.Z or .tar.zip, if renamed to .tgz will work just as  
    well.
 
-[doc] Update documentation
-[doc] Write article
-[test] Automatic testuite
-
 ---------------------------------------------------------------------
 post 1.0 |
 ---------/
 
+list files that can't be removed in removed_packages/package.leftovers ???
+  -- why not just do grep on output from spkg?
+spkg -d --copy=dir package ???
 - --verify command for checking fs against package database (what files
   changed after installation, missing files, etc.)
 - --check command for checking validity of slack packages
