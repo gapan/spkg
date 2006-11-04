@@ -134,7 +134,7 @@ gint sys_mkdir_p(const gchar* path)
       continue;
 
     /* check dir */
-    sys_ftype type = sys_file_type(tmp,0);
+    sys_ftype type = sys_file_type(tmp, 1);
     if (type == SYS_DIR)
       continue;
     if (type == SYS_NONE)
