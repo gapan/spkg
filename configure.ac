@@ -48,6 +48,13 @@ AC_ARG_ENABLE(static-spkg,
 AM_CONDITIONAL([STATIC_SPKG],[test "x$create_static" = "xyes"])
 AM_CONDITIONAL([STATIC_SPKG_ONLY],[test "x$create_static" = "xonly"])
 
+AC_ARG_ENABLE(legacy,
+  AS_HELP_STRING([--disable-legacy],
+                 [Disable legacy checks, like symlinks in the archive.]),
+                 [legacy_checks=$enableval], [legacy_checks=yes])
+
+AM_CONDITIONAL([LEGACY_CHECKS],[test x$legacy_checks = xyes])
+
 # Output
 AC_OUTPUT([
     Makefile
