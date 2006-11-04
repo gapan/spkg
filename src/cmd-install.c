@@ -342,10 +342,33 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
       }
     }
     break;
-    case UNTGZ_SYM: /* wtf?, symlinks are not permitted to be in package */
+    case UNTGZ_SYM:
     {
+#ifdef LEGACY_CHECKS
       e_set(E_ERROR, "Symlink was found in the archive. (%s)", sane_path);
       goto extract_failed;
+#else
+      _debug("Symlink detected: %s -> %s", sane_path, tgz->f_link);
+      if (ex_type == SYS_NONE)
+      {
+        ta_symlink_nothing(fullpath, g_strdup(tgz->f_link)); /* target is freed by db_free_pkg(), dup by taction finalize/rollback */
+        fullpath = NULL;
+      }
+      else
+      {
+        if (opts->safe)
+        {
+          e_set(E_ERROR, "Can't create symlink over existing %s. (%s)", ex_type == SYS_DIR ? "directory" : "file", sane_path);
+          goto extract_failed;
+        }
+        else
+        {
+          _warning("%s exists, where symlink should be created. It will be removed. (%s)", ex_type == SYS_DIR ? "Directory" : "File", sane_path);
+          ta_forcesymlink_nothing(fullpath, g_strdup(tgz->f_link));
+          fullpath = NULL;
+        }
+      }
+#endif
     }
     break;
     case UNTGZ_LNK: 
