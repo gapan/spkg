@@ -18,6 +18,11 @@ spkg - Release Notes
   
   Fixed "Can't access package database directory." error when package
   directory path component contains smylink.
+  
+  Added --disable-legacy configure option to enable new experimental
+  stuff.
+  
+  Implement support for symlinks directly in tgz archive.
 
 ----------------------------------------------------------------
 2006-09-02: spkg 1.0rc7
