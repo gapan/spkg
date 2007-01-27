@@ -37,7 +37,7 @@ else
 <div id="all">
 
  <h1 id="top">
-  <span class="title">spkg</span>
+  <span class="title">spkg</span> -
   <span class="subtitle">The Unofficial Slackware Linux Package Manager</span>
  </h1>
 

@@ -7,8 +7,25 @@
   spkg-<?php echo $version; ?></a></b>. See <a href="dl/NEWS">NEWS</a>
   file for more information about this release.</p>
 
-  <p><b>Spkg is now feature complete and under heavy testing by yours
-  truly.</b></p>
+ <h2>News</h2>
+
+  <h3>Spkg GIT repository is now avalilabe</h3>
+   <p><b>2006-11-09</b>: Spkg GIT repository is now available on <a
+   href="http://repo.or.cz/w/spkg.git">repo.or.cz</a>. Feel free to
+   [ab]use the <i>mob</i> branch there. ;-)</p>
+
+  <h3>Spkg is heading towards 1.0</h3>
+
+   <p>What this means is, that I've modified site to allow me to easily
+   roll out spkg-1.0 release candidates. So this means, that there
+   will be a lot of them. :-)</p>
+
+   <p>I've tested beta a lot and come up with some benchmarks you
+   can find <a href="dl/BENCHMARKS">here</a>. Just a few numbers
+   comparing pkgtools to spkg here: installation is at least 4x faster,
+   upgrade is 7x faster and remove is 30x faster on averange.</p>
+   
+  <p>See <a href="history.php">older news</a>...</p>
 
  <h2>Features</h2>
 
@@ -25,20 +42,5 @@
     implement new commands easily.</li>
   </ul>
 
- <h2>News</h2>
-
-  <h3>Spkg is heading towards 1.0</h3>
-
-   <p>What this means is, that I've modified site to allow me to easily
-   roll out spkg-1.0 release candidates. So this means, that there
-   will be a lot of them. :-)</p>
-
-   <p>I've tested beta a lot and come up with some benchmarks you
-   can find <a href="dl/BENCHMARKS">here</a>. Just a few numbers
-   comparing pkgtools to spkg here: installation is at least 4x faster,
-   upgrade is 7x faster and remove is 30x faster on averange.</p>
-   
-
-  <p>See <a href="history.php">older news</a>...</p>
 
 <?php foot(); ?>
