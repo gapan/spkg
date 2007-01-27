@@ -32,7 +32,11 @@ gchar* parse_pkgname(const gchar* path, guint elem)
     {
       guint i = 0, j = 0;
       tmp = tmp == NULL ? (gchar*)path : tmp+1;
-      name = g_strndup(tmp, strlen(tmp) - (g_str_has_suffix(path, ".tgz") || g_str_has_suffix(path, ".tlz") ? 4 : 0));
+      guint suffix_len =
+        g_str_has_suffix(path, ".tgz") ||
+        g_str_has_suffix(path, ".tlz") ||
+        g_str_has_suffix(path, ".tar") ? 4 : 0;
+      name = g_strndup(tmp, strlen(tmp) - suffix_len);
       /* 3 dashes required */
       for (tmp = name; *tmp != '\0'; tmp++)
         if (*tmp == '-') i++;
