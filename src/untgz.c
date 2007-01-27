@@ -29,8 +29,11 @@
 #define BLOCKBUFSIZE (512*100)
 #define WRITEBUFSIZE (1024*16)
 
-#define COMPTYPE_GZIP 1
-#define COMPTYPE_LZMA 2
+enum {
+  COMPTYPE_GZIP,
+  COMPTYPE_LZMA,
+  COMPTYPE_NONE
+};
 
 struct untgz_state_internal {
   /* error handling */
@@ -173,7 +176,7 @@ static union tar_block* read_next_block(struct untgz_state* s, gboolean is_heade
 
     if (i->comptype == COMPTYPE_GZIP)
       read = gzread(i->gzf, i->bbuf, BLOCKBUFSIZE);
-    else if (i->comptype == COMPTYPE_LZMA)
+    else
       read = fread(i->bbuf, 1, BLOCKBUFSIZE, i->fp);
 
     stop_timer(6);
@@ -182,7 +185,7 @@ static union tar_block* read_next_block(struct untgz_state* s, gboolean is_heade
       gint err;
       if (i->comptype == COMPTYPE_GZIP)
         err = (read == 0 && !gzeof(i->gzf));
-      else if (i->comptype == COMPTYPE_LZMA)
+      else
         err = (read == 0 && !feof(i->fp));
       if (err)
         e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] corrupted tgz archive (gzread failed)", i->blockid);
@@ -230,6 +233,7 @@ struct untgz_state* untgz_open(const gchar* tgzfile, struct error* e)
   gzFile *gzf;
   FILE* fp;
   struct stat st;
+  gint comptype;
 
   continue_timer(0);
   continue_timer(1);
@@ -243,27 +247,16 @@ struct untgz_state* untgz_open(const gchar* tgzfile, struct error* e)
     return NULL;
   }
 
-  gint comptype;
-  guchar magic[64];
-  if (sys_read_file_to_buffer(tgzfile, magic, sizeof(magic), e))
+  if (g_str_has_suffix(tgzfile, ".tgz"))
+    comptype = COMPTYPE_GZIP;
+  else if (g_str_has_suffix(tgzfile, ".tlz"))
+    comptype = COMPTYPE_LZMA;
+  else if (g_str_has_suffix(tgzfile, ".tar"))
+    comptype = COMPTYPE_NONE;
+  else
   {
-    _e_set(e, E_ERROR, "Can't determine file compression type.");
+    _e_set(e, E_ERROR, "unknown package type: %s", tgzfile);
     return NULL;
-  }
-
-  comptype = COMPTYPE_GZIP;
-  if (magic[0] < 0xE1 || (magic[0] == 0xFF && magic[1] == 'L' && magic[2] == 'Z' && magic[3] == 'M'))
-  {
-    if (magic[0] == 0xFF && magic[4] == 'A' && magic[5] == 0x00)
-      comptype = COMPTYPE_LZMA;
-    else if (magic[0] < 0xE1 && magic[4] < 0x20 &&
-      ((magic[10] == 0x00 && magic[11] == 0x00 &&
-        magic[12] == 0x00) ||
-       (magic[5] == 0xFF && magic[6] == 0xFF &&
-        magic[7] == 0xFF && magic[8] == 0xFF &&
-        magic[9] == 0xFF && magic[10] == 0xFF &&
-        magic[11] == 0xFF && magic[12] == 0xFF)))
-      comptype = COMPTYPE_LZMA;
   }
 
   if (comptype == COMPTYPE_GZIP)
@@ -289,6 +282,15 @@ struct untgz_state* untgz_open(const gchar* tgzfile, struct error* e)
     }
     g_free(cmd);
   }  
+  else if (comptype == COMPTYPE_NONE)
+  {
+    fp = fopen(tgzfile, "r");
+    if (fp == NULL)
+    {
+      _e_set(e, E_ERROR, "can't open file: %s", tgzfile);
+      return NULL;
+    }
+  }
 
   s = g_new0(struct untgz_state,1);
   s->i = g_new0(struct untgz_state_internal,1);
@@ -316,6 +318,8 @@ void untgz_close(struct untgz_state* s)
   if (i->comptype == COMPTYPE_GZIP)
     gzclose(i->gzf);
   else if (i->comptype == COMPTYPE_LZMA)
+    pclose(i->fp);
+  else
     fclose(i->fp);
 
   umask(i->old_umask);
