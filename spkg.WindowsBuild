@@ -9,9 +9,9 @@ export CFLAGS="-O2 -mms-bitfields"
 export PKG_CONFIG_PATH="/usr/i486-mingw32/lib/pkgconfig/"
 
 #chmod -R 755 spkg-1.0rc9/
-rm -rf spkg-1.0rc9/
+rm -rf spkg-1.0rc10/
 make distdir
-cd spkg-1.0rc9/
+cd spkg-1.0rc10/
   
 ./configure \
   --prefix=/usr/i486-mingw32 \
@@ -19,7 +19,12 @@ cd spkg-1.0rc9/
   || exit 1
 
 make || exit 1
+
+cd ..
+
+cp spkg-1.0rc10/src/spkg.exe package/
+
 #make -j1 DESTDIR=$startdir/pkg install || exit 1
 
-#./upx `find package -name '*.exe' -o -name '*.dll'`
+upx `find package -name '*.exe' -o -name '*.dll'`
 
