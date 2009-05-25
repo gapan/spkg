@@ -5,7 +5,11 @@
 |*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
 #include <stdio.h>
+#ifdef __WIN32__
+#include "win32/fnmatch.h"
+#else
 #include <fnmatch.h>
+#endif
 
 #include "cmd-private.h"
 

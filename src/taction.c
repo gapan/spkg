@@ -16,6 +16,11 @@
 #include "message.h"
 #include "sys.h"
 
+#ifdef __WIN32__
+#include <windows.h>
+extern int link(const char *existing, const char *newfile);
+#endif
+
 /* private
  ************************************************************************/
 
@@ -193,6 +198,10 @@ gint ta_finalize()
       _debug("Moving %s -> %s", a->path1, a->path2);
       if (!_ta.dryrun)
       {
+#ifdef __WIN32__
+      if (access(a->path2, 0) == 0) 
+         remove(a->path2);
+#endif			
         if (rename(a->path1, a->path2) == -1)
         {
           _warning("Failed to move %s -> %s (%s)", a->path1, a->path2, strerror(errno));
@@ -235,10 +244,14 @@ gint ta_finalize()
       _notice("Creating symlink %s -> %s", a->path1, a->path2);
       if (!_ta.dryrun)
       {
+#ifndef __WIN32__  
         if (symlink(a->path2, a->path1) == -1)
         {
           _warning("Failed to create symlink %s -> %s (%s)", a->path1, a->path2, strerror(errno));
         }
+#else		  
+          _warning("Failed to create symlink %s -> %s (%s)", a->path1, a->path2, strerror(errno));
+#endif		  
       }
     }
     else if (a->on_finalize == FORCESYMLINK)
@@ -255,10 +268,14 @@ gint ta_finalize()
       _notice("Creating symlink %s -> %s", a->path1, a->path2);
       if (!_ta.dryrun)
       {
+#ifndef __WIN32__  
         if (symlink(a->path2, a->path1) == -1)
         {
           _warning("Failed to create symlink %s -> %s (%s)", a->path1, a->path2, strerror(errno));
         }
+#else
+          _warning("Failed to create symlink %s -> %s (%s)", a->path1, a->path2, strerror(errno));		  
+#endif		  
       }
     }
     else if (a->on_finalize == CHPERM)
@@ -276,10 +293,12 @@ gint ta_finalize()
       _notice("Changing owner on %s to %d:%d", a->path1, a->owner, a->group);
       if (!_ta.dryrun)
       {
+#ifndef __WIN32__  
         if (chown(a->path1, a->owner, a->group) == -1)
         {
           _warning("Failed to cange owner on %s to %d:%d (%s)", a->path1, a->owner, a->group, strerror(errno));
         }
+#endif		  
       }
     }
     else if (a->on_finalize == REMOVE)

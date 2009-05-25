@@ -97,6 +97,11 @@ typedef enum {
 /** internal opaque data type */
 struct untgz_state_internal;
 
+#ifdef  __WIN32__
+typedef long		uid_t;
+typedef long		gid_t;
+#endif
+
 /** Untgz state structure. */
 struct untgz_state {
   /* archive information */

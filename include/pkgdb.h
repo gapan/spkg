@@ -41,7 +41,9 @@ G_BEGIN_DECLS
 #define DB_EXIST   E(4) /**< Package already in database. */
 #define DB_BLOCKED E(6) /**< DB is open by another proccess. */
 
+#ifndef MAXPATHLEN
 #define MAXPATHLEN 8192 /**< Maximum length of the path. */
+#endif
 
 /** What to get when getting package from database. */
 typedef enum {

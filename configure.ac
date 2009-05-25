@@ -1,4 +1,4 @@
-AC_PREREQ(2.57)
+AC_PREREQ(2.60)
 AC_INIT([spkg], 1.0rc9, [megous@megous.com], spkg)
 AC_CONFIG_SRCDIR([Makefile.am])
 AM_CONFIG_HEADER([config.h])
@@ -11,6 +11,10 @@ AM_MAINTAINER_MODE
 AC_PROG_CC
 AC_PROG_LN_S
 AC_PROG_RANLIB
+AM_PROG_CC_C_O
+AC_LIBTOOL_WIN32_DLL
+AM_PROG_LIBTOOL
+AC_HEADER_STDC
 
 # Checks for pkg-config packages
 GLIB_REQUIRED="glib-2.0 >= 2.2.0"
@@ -55,10 +59,14 @@ AC_ARG_ENABLE(legacy,
 
 AM_CONDITIONAL([LEGACY_CHECKS],[test x$legacy_checks = xyes])
 
+# Windows
+AM_CONDITIONAL(WINDOWS, test "x$version_type" = xwindows)
+
 # Output
 AC_OUTPUT([
     Makefile
     src/Makefile
+    src/win32/Makefile
     include/Makefile
     docs/Makefile
     tests/Makefile

@@ -10,6 +10,25 @@
 
 #include "sigtrap.h"
 
+#ifdef __WIN32__
+#define SIGHUP 1
+#define SIGQUIT 3
+#define SIGUSR1 10
+#define SIGUSR2 12
+#define SIGPIPE 13
+#define SA_RESTART 0
+
+typedef unsigned long sigset_t;
+
+typedef struct sigaction {
+  void (*sa_handler)();
+  sigset_t sa_mask;
+  int sa_flags;
+} sigaction_t;
+
+#endif
+
+
 /* private 
  ************************************************************************/
 
@@ -30,9 +49,9 @@ gint sig_trap(struct error* e)
 {
   g_assert(e != 0);
   struct sigaction act;
-  memset(&act, 0, sizeof(act));
   act.sa_handler = _signal_handler;
   act.sa_flags = SA_RESTART;
+#ifndef __WIN32__  	
   if ( sigemptyset(&act.sa_mask) ||
        sigaction(SIGINT, &act, NULL) ||
        sigaction(SIGQUIT, &act, NULL) ||
@@ -45,5 +64,6 @@ gint sig_trap(struct error* e)
     e_set(E_FATAL, "signal trapping setup failed");
     return 1;
   }
+#endif  
   return 0;
 }

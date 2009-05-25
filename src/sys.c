@@ -16,6 +16,34 @@
 #include "path.h"
 #include "misc.h"
 
+#ifdef __WIN32__
+#include <windows.h>
+//#include <pthread.h>
+#include "win32/flock.h"
+
+#ifndef EWOULDBLOCK
+#define EWOULDBLOCK EAGAIN
+#endif
+
+#define S_ISLNK(m) (0)
+#define S_ISSOCK(m) 0
+ 
+#define lstat(x,y) stat(x,y)
+
+int sigfillset(sigset_t *set) { *set = ~(sigset_t)0; return 0; }
+
+int usleep(unsigned int usec)
+{
+   unsigned int dwMilliseconds = usec/1000;
+   if (dwMilliseconds > 0) 
+   {
+      Sleep (dwMilliseconds);
+   }
+   return (0);
+}
+
+#endif
+
 #define e_set(e, n, fmt, args...) e_add(e, "sys", __func__, n, fmt, ##args)
 
 sys_ftype sys_file_type_stat(const gchar* path, gboolean deref, struct stat* s)
@@ -139,7 +167,11 @@ gint sys_mkdir_p(const gchar* path)
       continue;
     if (type == SYS_NONE)
     {
+#ifdef __WIN32__		 
+      if (mkdir(tmp) == -1)
+#else			
       if (mkdir(tmp, 0755) == -1)
+#endif			
         goto out;
     }
     else
@@ -153,6 +185,7 @@ out:
   return retval;
 }
 
+#ifndef __WIN32__  
 void sys_sigblock(sigset_t* sigs)
 {
   g_assert(sigs != 0);
@@ -166,7 +199,9 @@ void sys_sigblock(sigset_t* sigs)
     exit(1);
   }
 }
+#endif
 
+#ifndef __WIN32__  
 void sys_sigunblock(sigset_t* sigs)
 {
   g_assert(sigs != 0);
@@ -178,6 +213,7 @@ void sys_sigunblock(sigset_t* sigs)
     exit(1);
   }
 }
+#endif	
 
 gint sys_lock_new(const gchar* path, struct error* e)
 {

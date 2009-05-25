@@ -1,5 +1,9 @@
 AUTOMAKE_OPTIONS = foreign
-SUBDIRS = src include tests docs
+SUBDIRS = src include docs
+
+if !WINDOWS
+SUBDIRS += tests
+endif
 
 EXTRA_DIST = BENCHMARKS README.cs libspkg.pc.in slack-desc slack-required spkg.SlackBuild
 CLEANFILES = libspkg.pc
