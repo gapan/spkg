@@ -1,6 +1,12 @@
 ----------------------------------------------------------------
 spkg - Release Notes
 ----------------------------------------------------------------
+2009-05-25: spkg 1.0rc10
+
+  Spkg is now supported on windows thanks to excellent patch from
+  Laura Michaels <ml at distasis.com>.
+  
+----------------------------------------------------------------
 2007-01-27: spkg 1.0rc9
 
   Implement support for uncompressed tar pacakges.
