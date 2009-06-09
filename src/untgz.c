@@ -38,6 +38,7 @@ extern int link(const char *existing, const char *newfile);
 enum {
   COMPTYPE_GZIP,
   COMPTYPE_LZMA,
+  COMPTYPE_XZ,
   COMPTYPE_NONE
 };
 
@@ -257,6 +258,8 @@ struct untgz_state* untgz_open(const gchar* tgzfile, struct error* e)
     comptype = COMPTYPE_GZIP;
   else if (g_str_has_suffix(tgzfile, ".tlz"))
     comptype = COMPTYPE_LZMA;
+  else if (g_str_has_suffix(tgzfile, ".txz"))
+    comptype = COMPTYPE_XZ;
   else if (g_str_has_suffix(tgzfile, ".tar"))
     comptype = COMPTYPE_NONE;
   else
@@ -278,6 +281,20 @@ struct untgz_state* untgz_open(const gchar* tgzfile, struct error* e)
   {
     gchar* escaped = g_shell_quote(tgzfile);
     gchar* cmd = g_strdup_printf("lzma -d -c %s", escaped);
+    fp = popen(cmd, "r");
+    g_free(escaped);
+    if (fp == NULL)
+    {
+      _e_set(e, E_ERROR, "can't popen command: %s", cmd);
+      g_free(cmd);
+      return NULL;
+    }
+    g_free(cmd);
+  }  
+  else if (comptype == COMPTYPE_XZ)
+  {
+    gchar* escaped = g_shell_quote(tgzfile);
+    gchar* cmd = g_strdup_printf("xzdec -q -c %s", escaped);
     fp = popen(cmd, "r");
     g_free(escaped);
     if (fp == NULL)
@@ -323,7 +340,7 @@ void untgz_close(struct untgz_state* s)
 
   if (i->comptype == COMPTYPE_GZIP)
     gzclose(i->gzf);
-  else if (i->comptype == COMPTYPE_LZMA)
+  else if (i->comptype == COMPTYPE_LZMA || i->comptype == COMPTYPE_XZ)
     pclose(i->fp);
   else
     fclose(i->fp);
