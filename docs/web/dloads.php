@@ -7,10 +7,10 @@
 
  <h3>Binary packages</h3>
 
-  <p>I recommend you, to build spkg yourself. It's very easy, see 
-  building section on this page. You can also download the latest binary
-  package: <a href="dl/releases/spkg-<?php echo $version; ?>-i486-1.tgz">
-  spkg-<?php echo $version; ?>-i486-1.tgz</a>.</p>
+  <p>I recommend you to build spkg yourself. It's very easy as you can see 
+  below. Binary packages for linux are no longer available. Package for windows
+  can be downloaded here: <a href="dl/releases/spkg-<?php echo $version; ?>-win32-bin.tar.gz">
+  spkg-<?php echo $version; ?>-win32-bin.tar.gz</a>.</p>
 
  <h3>Source code</h3>
 
