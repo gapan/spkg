@@ -1,5 +1,5 @@
 AC_PREREQ(2.60)
-AC_INIT([spkg], 1.0rc10, [megous@megous.com], spkg)
+AC_INIT([spkg], 1.0rc11, [megous@megous.com], spkg)
 AC_CONFIG_SRCDIR([Makefile.am])
 AM_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE([dist-bzip2])

@@ -1,6 +1,13 @@
 ----------------------------------------------------------------
 spkg - Release Notes
 ----------------------------------------------------------------
+2009-06-09: spkg 1.0rc11
+
+  Added support for .txz packages requested by Thorsten Mühlfelder.
+
+  Fixed static spkg build option. Now it actually produces a static 
+  binary.
+  
 2009-05-25: spkg 1.0rc10
 
   Spkg is now supported on windows thanks to excellent patch from
