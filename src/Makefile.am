@@ -48,7 +48,7 @@ if STATIC_SPKG_ONLY
 
 bin_PROGRAMS = spkg
 noinst_LIBRARIES = libspkg.a
-spkg_LDFLAGS = -static
+spkg_LDFLAGS = -all-static
 
 else
 
@@ -60,7 +60,7 @@ lib_LIBRARIES = libspkg.a
 
 spkg_static_LDADD = $(spkg_LDADD)
 spkg_static_SOURCES = main.c
-spkg_static_LDFLAGS = -static
+spkg_static_LDFLAGS = -all-static
 
 else
 # Build dynamic spkg binary
