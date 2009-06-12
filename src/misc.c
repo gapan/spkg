@@ -35,6 +35,7 @@ gchar* parse_pkgname(const gchar* path, guint elem)
       guint suffix_len =
         g_str_has_suffix(path, ".tgz") ||
         g_str_has_suffix(path, ".tlz") ||
+        g_str_has_suffix(path, ".txz") ||
         g_str_has_suffix(path, ".tar") ? 4 : 0;
       name = g_strndup(tmp, strlen(tmp) - suffix_len);
       /* 3 dashes required */
