@@ -1,6 +1,10 @@
 ----------------------------------------------------------------
 spkg - Release Notes
 ----------------------------------------------------------------
+2010-04-12: spkg 1.0rc12
+
+  Fixed support for .txz.
+
 2009-06-09: spkg 1.0rc11
 
   Added support for .txz packages requested by Thorsten Mühlfelder.
