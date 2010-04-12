@@ -787,7 +787,7 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
     }
     else if (!strcmp(sane_path, "install/doinst.sh"))
     {
-      if (tgz->f_size > 1024*512) /* 512K is enough for all. :) */
+      if (tgz->f_size > 1024*1024*4) /* 4M is enough for all. :) now, really! */
       {
         e_set(E_ERROR, "Installation script is too big. (%ld kB)", tgz->f_size / 1024);
         goto err3;
