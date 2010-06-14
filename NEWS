@@ -1,6 +1,16 @@
 ----------------------------------------------------------------
 spkg - Release Notes
 ----------------------------------------------------------------
+2010-06-14: spkg 1.0rc13
+
+  Added support for --force option. Allows to force installation of packages
+  with the same shortname.
+
+  This option when used will create problems with package ambiguity during
+  upgrade. spkg will pick random package with given shortname for upgrade.
+
+  Make sure you know what you are doing, if you choose to use this option.
+
 2010-04-12: spkg 1.0rc12
 
   Fixed support for .txz.
