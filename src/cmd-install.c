@@ -557,12 +557,16 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     g_free(installed_pkgname);
     goto err1;
   }
-  installed_pkgname = db_get_package_name(shortname);
-  if (installed_pkgname)
+
+  if (!opts->force)
   {
-    e_set(E_ERROR|CMD_EXIST, "Different package with same short name is already installed. (%s)", installed_pkgname);
-    g_free(installed_pkgname);
-    goto err1;
+    installed_pkgname = db_get_package_name(shortname);
+    if (installed_pkgname)
+    {
+      e_set(E_ERROR|CMD_EXIST, "Different package with same short name is already installed. (%s)", installed_pkgname);
+      g_free(installed_pkgname);
+      goto err1;
+    }
   }
 
   _safe_breaking_point(err1);

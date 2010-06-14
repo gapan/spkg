@@ -90,6 +90,11 @@ static struct poptOption optsOptions[] = {
   "--remove.", NULL
 },
 {
+  "force", 'f', 0, &cmd_opts.force, 0,
+  "Force installation even if package is already installed.",
+  NULL
+},
+{
   "dry-run", 'n', 0, &cmd_opts.dryrun, 0,
   "Don't modify filesystem or database. This may be useful when used along "
   "with -v option to check what exactly would given command do.", NULL
