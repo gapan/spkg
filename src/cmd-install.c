@@ -525,6 +525,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
    - finish transaction
    - close package file
    - run doinst.sh
+   - run gtk-update-icon-cache in the hicolor icon dir
    - run ldconfig
    - remove install/
   */
@@ -600,6 +601,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
   pkg->location = g_strdup(pkgfile);
 
   gboolean need_ldconfig = 0;
+  gboolean need_update_icon_cache = 0;
   gboolean has_doinst = 0;
   gchar* sane_path = NULL;
   gchar* root = sanitize_root_path(opts->root);
@@ -636,6 +638,10 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     /* check if package contains .so libraries */
     if (!need_ldconfig && g_str_has_suffix(sane_path, ".so"))
       need_ldconfig = 1;
+
+    /* check if package contains .desktop files */
+    if (!need_update_icon_cache && g_str_has_suffix(sane_path, ".desktop"))
+      need_update_icon_cache = 1;
 
     /* check for metadata files */
     if (!strcmp(sane_path, "install/slack-desc"))
@@ -766,6 +772,29 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     }
   }
 
+  /* run gtk-update-icon-cache */
+  if (need_update_icon_cache && !opts->no_gtk_update_icon_cache)
+  {
+    if (access("/usr/bin/gtk-update-icon-cache", X_OK) == 0)
+    {
+      gchar* cmd = g_strdup_printf("/usr/bin/gtk-update-icon-cache %susr/share/icons/hicolor > /dev/null 2>&1", root);
+
+      _notice("Running /usr/bin/gtk-update-icon-cache...");
+      if (!opts->dryrun)
+      {
+        gint rv = system(cmd);
+        if (rv < 0)
+          _warning("Can't execute /usr/bin/gtk-update-icon-cache. (%s)", strerror(errno));
+        else if (rv > 0)
+          _warning("Program /usr/bin/gtk-update-icon-cache failed. (%d)", rv);
+      }
+    }
+    else
+    {
+      _warning("Program /usr/bin/gtk-update-icon-cache was not found on the system.");
+    }
+  }
+ 
   if (!opts->dryrun)
   {
     gchar* install_path = g_strdup_printf("%sinstall", root);

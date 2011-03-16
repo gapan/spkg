@@ -68,6 +68,7 @@ static struct cmd_options cmd_opts = {
   .no_optsyms = 0,
   .no_scripts = 0,
   .no_ldconfig = 0,
+  .no_gtk_update_icon_cache = 0,
   .reinstall = 0,
   .bl_symopts = default_bl_symopts,
   .bl_upgrade = default_bl_upgrade
@@ -134,6 +135,11 @@ static struct poptOption optsOptions[] = {
 {
   "no-ldconfig", 0, 0, &cmd_opts.no_ldconfig, 0,
   "Don't execute ldconfig after installation and upgrade.", NULL
+},
+{
+  "no-gtk-update-icon-cache", 0, 0, &cmd_opts.no_gtk_update_icon_cache, 0,
+  "Don't execute gtk-update-icon-cache after installation and upgrade "
+  "even if a .desktop file is included in the package.", NULL
 },
 POPT_TABLEEND
 };

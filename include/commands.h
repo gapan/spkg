@@ -34,6 +34,7 @@ struct cmd_options {
   gboolean no_scripts; /**< Turn off scripts (doinst.sh) execution. */
   gboolean no_optsyms; /**< Turn off symlink optimizations. */
   gboolean no_ldconfig; /**< Turn off ldconfig execution. */
+  gboolean no_gtk_update_icon_cache; /**< Turn off gtk-update-icon-cache execution. */
   gboolean reinstall;  /**< Reinstall package when it is already installed (for upgrade). */
   gchar** bl_symopts;  /**< Blacklist for symlink optimizations. */
   gchar** bl_upgrade;  /**< Blacklist for upgrade. */
