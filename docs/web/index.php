@@ -7,24 +7,26 @@
   spkg-<?php echo $version; ?></a></b>. See <a href="dl/NEWS">NEWS</a>
   file for more information about this release.</p>
 
+  <p>Spkg is used in <a href="http://www.salixos.org">Salix OS</a> to 
+  make its package installation and upgrades blazingly fast.</p>
+
  <h2>News</h2>
 
-  <h3>Spkg GIT repository is now avalilabe</h3>
-   <p><b>2006-11-09</b>: Spkg GIT repository is now available on <a
-   href="http://repo.or.cz/w/spkg.git">repo.or.cz</a>. Feel free to
-   [ab]use the <i>mob</i> branch there. ;-)</p>
+  <h3>Spkg 1.0 was released</h3>
 
-  <h3>Spkg is heading towards 1.0</h3>
+  <p>After almost five years since the development started, spkg reached version 1.0. Yay!</p>
 
-   <p>What this means is, that I've modified site to allow me to easily
-   roll out spkg-1.0 release candidates. So this means, that there
-   will be a lot of them. :-)</p>
+  <p>Over those five years, spkg received some commercial support by <a href="http://zonio.net">Zonio</a>, 
+    gained windows support thanks to <a href="http://mingw.org/wiki/LibrariesAndTools">Laura Michaels</a>, 
+  and was adopted by Salix OS developers for package management in their 
+  distribution.</p>
 
-   <p>I've tested beta a lot and come up with some benchmarks you
-   can find <a href="dl/BENCHMARKS">here</a>. Just a few numbers
-   comparing pkgtools to spkg here: installation is at least 4x faster,
-   upgrade is 7x faster and remove is 30x faster on averange.</p>
-   
+  <h3>Spkg GIT repository on GITHUB</h3>
+
+   <p>Spkg GIT repository is available on <a
+   href="http://github.com/megous/spkg">GITHUB</a>. Feel free to
+   create forks and send me pull requests. ;-)</p>
+
   <p>See <a href="history.php">older news</a>...</p>
 
  <h2>Features</h2>
@@ -42,5 +44,10 @@
     implement new commands easily.</li>
   </ul>
 
+   <p>You can find some benchmarks <a href="dl/BENCHMARKS">here</a>. Here are 
+    just a few numbers
+   comparing pkgtools to spkg: installation is at least 4x faster,
+   upgrade is 7x faster and remove is 30x faster on averange.</p>
+   
 
 <?php foot(); ?>

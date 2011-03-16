@@ -57,15 +57,9 @@ else
  </div>
 
  <div id="botmenu">
- Written by Ondøej Jirman, 2005 - 2010<br/>
+ Written by Ondøej Jirman, 2005 - 2011<br/>
  Last update: <?php echo $reldate; ?><br/>
  Contact: <a href="mailto:megous@megous.com">Ondøej Jirman</a> (<a href="http://megous.com">megous.com</a>)<br/>
- </div>
- <div id="lonmenu">
- Listed on:
- <a href="http://freshmeat.net"><img src="img/freshmeat.gif" alt="Freshmeat.net" /></a>
- <a href="http://linuxlinks.com"><img src="img/linuxlinks.gif" alt="Linuxlinks.com" /></a>
- <a href="http://softpedia.com">Softpedia.com</a>
  </div>
 
 </div>
