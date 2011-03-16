@@ -1,6 +1,14 @@
 ----------------------------------------------------------------
 spkg - Release Notes
 ----------------------------------------------------------------
+2011-03-16: spkg 1.0
+
+  Added patch from George Vlahavas that implements automatic GTK+ icon cache
+  updates.
+
+  Released spkg 1.0. :) I guess it's time after almost 5 years since the
+  development started.
+
 2010-06-14: spkg 1.0rc13
 
   Added support for --force option. Allows to force installation of packages
