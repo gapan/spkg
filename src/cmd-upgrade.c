@@ -250,13 +250,6 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
 
   /* EXIT: free(fullpath), free(temppath) */
 
-  /* add file to the package */
-  if (db_pkg_add_path(pkg, sane_path, tgz->f_type == UNTGZ_DIR ? DB_PATH_DIR : DB_PATH_FILE))
-  {
-    e_set(E_ERROR, "Can't add path to the package, it's too long. (%s)", sane_path);
-    goto extract_failed;
-  }
-
   /* Here we must check interaction of following conditions:
    *
    * - type of the file we are installing (tgz->f_type)
@@ -779,6 +772,13 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
     /* check if package contains .desktop files */
     if (!need_update_icon_cache && g_str_has_suffix(sane_path, ".desktop"))
       need_update_icon_cache = 1;
+
+    /* add file to the package */
+    if (db_pkg_add_path(pkg, sane_path, tgz->f_type == UNTGZ_DIR ? DB_PATH_DIR : DB_PATH_FILE))
+    {
+      e_set(E_ERROR, "Can't add path to the package, it's too long. (%s)", sane_path);
+      goto err3;
+    }
 
     /* check for metadata files */
     if (!strcmp(sane_path, "install/slack-desc"))
