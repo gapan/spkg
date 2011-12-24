@@ -1,37 +1,56 @@
-AC_PREREQ(2.60)
-AC_INIT([spkg], 1.0, [megous@megous.com], spkg)
-AC_CONFIG_SRCDIR([Makefile.am])
-AM_CONFIG_HEADER([config.h])
-AM_INIT_AUTOMAKE([dist-bzip2])
-AM_MAINTAINER_MODE
+AC_PREREQ([2.68])
+AC_INIT([spkg], [1.0.1], [megous@megous.com])
+AC_CONFIG_SRCDIR([config.h.in])
+AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_MACRO_DIR([m4])
 
 # Checks for programs.
-#AC_DISABLE_STATIC
-#AC_PROG_LIBTOOL
+AC_PROG_AWK
 AC_PROG_CC
+AC_PROG_CPP
+AC_PROG_INSTALL
 AC_PROG_LN_S
+AC_PROG_MAKE_SET
 AC_PROG_RANLIB
-AM_PROG_CC_C_O
-AC_LIBTOOL_WIN32_DLL
-AM_PROG_LIBTOOL
-AC_HEADER_STDC
 
-# Checks for pkg-config packages
-GLIB_REQUIRED="glib-2.0 >= 2.2.0"
-PKG_CHECK_MODULES(SPKG, [$GLIB_REQUIRED])
-AC_SUBST(SPKG_CFLAGS)
-AC_SUBST(SPKG_LIBS)
+# Checks for libraries.
+AC_CHECK_LIB(Judy, [Judy1Next], [true], AC_MSG_ERROR([spkg requires Judy: http://judy.sf.net]))
+AC_CHECK_LIB(z, [compress], [true], AC_MSG_ERROR([spkg requires zlib: http://www.zlib.net]))
+AC_CHECK_LIB(popt, [poptGetArg], [true], AC_MSG_ERROR([spkg requires popt library]))
 
 # Checks for header files.
-AC_HEADER_STDC
+AC_CHECK_HEADERS([fcntl.h limits.h stdlib.h string.h sys/file.h unistd.h utime.h])
 AC_CHECK_HEADER([Judy.h], [true], AC_MSG_ERROR([spkg requires Judy: http://judy.sf.net]))
 AC_CHECK_HEADER([zlib.h], [true], AC_MSG_ERROR([spkg requires zlib: http://www.zlib.net]))
 AC_CHECK_HEADER([popt.h], [true], AC_MSG_ERROR([spkg requires popt library]))
 
-# Check for libs.
-AC_CHECK_LIB(Judy, Judy1Next, [true], AC_MSG_ERROR([spkg requires Judy: http://judy.sf.net]))
-AC_CHECK_LIB(z, compress, [true], AC_MSG_ERROR([spkg requires zlib: http://www.zlib.net]))
-AC_CHECK_LIB(popt, poptGetArg, [true], AC_MSG_ERROR([spkg requires popt library]))
+# Checks for pkg-config packages
+PKG_CHECK_MODULES(GLIB, [glib-2.0 >= 2.2.0])
+AC_SUBST(GLIB_CFLAGS)
+AC_SUBST(GLIB_LIBS)
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_TYPE_UID_T
+AC_TYPE_MODE_T
+AC_TYPE_OFF_T
+AC_TYPE_SIZE_T
+AC_TYPE_SSIZE_T
+AC_CHECK_MEMBERS([struct stat.st_rdev])
+
+# Checks for library functions.
+AC_FUNC_CHOWN
+AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
+AC_FUNC_REALLOC
+AC_CHECK_FUNCS([getdelim memset mkdir mkfifo putenv rmdir strchr strerror utime])
+
+# Libtool
+LT_INIT([win32-dll])
+
+# Automake
+#AM_CONFIG_HEADER([config.h])
+AM_INIT_AUTOMAKE([dist-bzip2])
+AM_MAINTAINER_MODE
+#AM_PROG_CC_C_O
 
 # Assume broken pkgdb 
 AC_ARG_ENABLE(assume-broken-pkgdb,AC_HELP_STRING([--enable-assume-broken-pkgdb],
@@ -63,7 +82,7 @@ AM_CONDITIONAL([LEGACY_CHECKS],[test x$legacy_checks = xyes])
 AM_CONDITIONAL(WINDOWS, test "x$version_type" = xwindows)
 
 # Output
-AC_OUTPUT([
+AC_CONFIG_FILES([
     Makefile
     src/Makefile
     src/win32/Makefile
@@ -72,3 +91,4 @@ AC_OUTPUT([
     tests/Makefile
     libspkg.pc
 ])
+AC_OUTPUT
