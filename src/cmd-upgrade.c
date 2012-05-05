@@ -314,12 +314,12 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
         }
         else
         {
-          _debug("Direcory already exists %s", sane_path);
+          _debug("Directory already exists %s", sane_path);
         }
       }
       else if (ex_type == SYS_SYM && ex_deref_type == SYS_DIR)
       {
-        _warning("Direcory already exists *behind the symlink* on filesystem. This may break upgrade/remove if you change that symlink in the future. (%s)", sane_path);
+        _warning("Directory already exists *behind the symlink* on filesystem. This may break upgrade/remove if you change that symlink in the future. (%s)", sane_path);
       }
       else if (ex_type == SYS_NONE)
       {
