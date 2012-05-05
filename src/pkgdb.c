@@ -485,10 +485,10 @@ static gint _db_add_pkg(struct db_pkg* pkg, gchar* origname)
 
   /* construct header */
   if (fprintf(pf,
-    "PACKAGE NAME:              %s\n"
-    "COMPRESSED PACKAGE SIZE:   %u K\n"
-    "UNCOMPRESSED PACKAGE SIZE: %u K\n"
-    "PACKAGE LOCATION:          %s\n"
+    "PACKAGE NAME:     %s\n"
+    "COMPRESSED PACKAGE SIZE:     %uK\n"
+    "UNCOMPRESSED PACKAGE SIZE:     %uK\n"
+    "PACKAGE LOCATION: %s\n"
     "PACKAGE DESCRIPTION:\n"
     "%s"
     "FILE LIST:\n",
