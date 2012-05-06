@@ -789,6 +789,7 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
         goto err3;
       }
       _read_slackdesc(tgz, pkg);
+      db_pkg_add_path(pkg, "install/slack-desc", DB_PATH_FILE);
       continue;
     }
     else if (!strcmp(sane_path, "install/doinst.sh"))
@@ -804,6 +805,7 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
         e_set(E_ERROR, "Installation script processing failed.");
         goto err3;
       }
+      db_pkg_add_path(pkg, "install/doinst.sh", DB_PATH_FILE);
       continue;
     }
     else if (!strncmp(sane_path, "install/", 8) && strcmp(sane_path, "install"))
