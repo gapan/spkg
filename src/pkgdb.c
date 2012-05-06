@@ -484,15 +484,83 @@ static gint _db_add_pkg(struct db_pkg* pkg, gchar* origname)
 #endif
 
   /* construct header */
+  gfloat csizef = (float) pkg->csize/1024;
+  gfloat usizef = (float) pkg->usize/1024;
+  /* header package name */
   if (fprintf(pf,
-    "PACKAGE NAME:     %s\n"
-    "COMPRESSED PACKAGE SIZE:     %uK\n"
-    "UNCOMPRESSED PACKAGE SIZE:     %uK\n"
+    "PACKAGE NAME:     %s\n",
+    pkg->name) <0)
+   {
+     goto err_2;
+   }
+  /* header compressed package size
+   * print in KB with not decimals when size < 1024KB
+   * in MB with one decimal when size < 10 MB
+   * in MB with no decimals when size >= 10 MB */
+  if (pkg->csize < 1024)
+  {
+    if(fprintf(pf,
+    "COMPRESSED PACKAGE SIZE:     %uK\n",
+    pkg->csize) <0)
+    {
+      goto err_2;
+    }
+  }
+  else if (csizef < 10)
+  {
+    if(fprintf(pf,
+    "COMPRESSED PACKAGE SIZE:     %2.1fM\n",
+    csizef) <0)
+    {
+      goto err_2;
+    }
+  }
+  else
+  {
+    if(fprintf(pf,
+    "COMPRESSED PACKAGE SIZE:     %.0fM\n",
+    csizef) <0)
+    {
+      goto err_2;
+    }
+  }
+  /* header uncompressed package size
+   * print in KB with not decimals when size < 1024KB
+   * in MB with one decimal when size < 10 MB
+   * in MB with no decimals when size >= 10 MB */
+  if (pkg->usize < 1024)
+  {
+    if(fprintf(pf,
+    "UNCOMPRESSED PACKAGE SIZE:     %uK\n",
+    pkg->usize) <0)
+    {
+      goto err_2;
+    }
+  }
+  else if (usizef < 10)
+  {
+    if(fprintf(pf,
+    "UNCOMPRESSED PACKAGE SIZE:     %2.1fM\n",
+    usizef) <0)
+    {
+      goto err_2;
+    }
+  }
+  else
+  {
+    if(fprintf(pf,
+    "UNCOMPRESSED PACKAGE SIZE:     %.0fM\n",
+    usizef) <0)
+    {
+      goto err_2;
+    }
+  }
+  /* header location and description */
+   if (fprintf(pf,
     "PACKAGE LOCATION: %s\n"
     "PACKAGE DESCRIPTION:\n"
     "%s"
     "FILE LIST:\n",
-    pkg->name, pkg->csize, pkg->usize,
     pkg->location ? pkg->location : "",
     pkg->desc ? pkg->desc : "") < 0)
   {
