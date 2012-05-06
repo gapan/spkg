@@ -460,7 +460,7 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
         }
         else if (tmp_type == SYS_DIR)
         {
-          e_set(E_ERROR, "Temporary file path is used by a direcotry. (%s)", temppath);
+          e_set(E_ERROR, "Temporary file path is used by a directory. (%s)", temppath);
           goto extract_failed;
         }
         else if (tmp_type != SYS_NONE)
