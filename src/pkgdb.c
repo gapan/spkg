@@ -769,20 +769,34 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
     else if (!m[1] && LINEMATCH("COMPRESSED PACKAGE SIZE:"))
     {
       gchar* size = line + LINESIZE("COMPRESSED PACKAGE SIZE:");
-      if (sscanf(size, " %u ", &p->csize) != 1)
+      gchar suffix = NULL;
+      if (sscanf(size, " %u %c", &p->csize, &suffix) != 2)
       {
         e_set(E_ERROR, "Can't parse compressed package size. (%s)", size);
         goto err_1;
+      }
+      /* always report size in KB, even when it's in MB in the package
+       * database */
+      if (suffix == 'M')
+      {
+        p->csize = p->csize*1024;
       }
       m[1] = 1;
     }
     else if (!m[2] && LINEMATCH("UNCOMPRESSED PACKAGE SIZE:"))
     {
       gchar* size = line + LINESIZE("UNCOMPRESSED PACKAGE SIZE:");
-      if (sscanf(size, " %u ", &p->usize) != 1)
+      gchar suffix = NULL;
+      if (sscanf(size, " %u %c", &p->usize, &suffix) != 2)
       {
         e_set(E_ERROR, "Can't parse uncompressed package size. (%s)", size);
         goto err_1;
+      }
+      /* always report size in KB, even when it's in MB in the package
+       * database */
+      if (suffix == 'M')
+      {
+        p->usize = p->usize*1024;
       }
       m[2] = 1;
     }
