@@ -73,8 +73,6 @@ gint cmd_list(GSList* arglist, const struct cmd_options* opts, struct error* e)
     if (verbose)
     {
       struct db_pkg* pkg = i->data;
-      gfloat csizef = (float) pkg->csize/1024;
-      gfloat usizef = (float) pkg->usize/1024;
       printf("+===================================================================+\n");
       printf("| %-65s |\n", pkg->name);
       printf("+===================================================================+\n");
@@ -83,24 +81,8 @@ gint cmd_list(GSList* arglist, const struct cmd_options* opts, struct error* e)
       printf("ARCH:    %s\n", pkg->arch);
       printf("BUILD:   %s\n", pkg->build);
       printf("DATE:    %s\n", _get_date(pkg->time));
-      // Print compressed size with no decimals in KB, when size < 1MB
-      // with one decimal in MB, when size < 10MB
-      // and with no decimals in MB when size >= 10MB 
-      if (pkg->csize < 1024)
-	      printf("CSIZE:   %u KB\n", pkg->csize);
-      else if (csizef < 10)
-	      printf("CSIZE:   %2.1f MB\n", csizef);
-      else
-	      printf("CSIZE:   %.0f MB\n", csizef);
-      // Print uncompressed size with no decimals in KB, when size < 1MB
-      // with one decimal in MB, when size < 10MB
-      // and with no decimals in MB when size >= 10MB 
-      if (pkg->usize < 1024)
-	      printf("USIZE:   %u KB\n", pkg->usize);
-      else if (usizef < 10)
-	      printf("USIZE:   %2.1f MB\n", usizef);
-      else
-	      printf("USIZE:   %.0f MB\n", usizef);
+      printf("CSIZE:   %u kB\n", pkg->csize);
+      printf("USIZE:   %u kB\n", pkg->usize);
       if (pkg->desc)
         printf("%s", pkg->desc);
     }

@@ -484,83 +484,15 @@ static gint _db_add_pkg(struct db_pkg* pkg, gchar* origname)
 #endif
 
   /* construct header */
-  gfloat csizef = (float) pkg->csize/1024;
-  gfloat usizef = (float) pkg->usize/1024;
-  /* header package name */
   if (fprintf(pf,
-    "PACKAGE NAME:     %s\n",
-    pkg->name) <0)
-   {
-     goto err_2;
-   }
-  /* header compressed package size
-   * print in KB with not decimals when size < 1024KB
-   * in MB with one decimal when size < 10 MB
-   * in MB with no decimals when size >= 10 MB */
-  if (pkg->csize < 1024)
-  {
-    if(fprintf(pf,
-    "COMPRESSED PACKAGE SIZE:     %uK\n",
-    pkg->csize) <0)
-    {
-      goto err_2;
-    }
-  }
-  else if (csizef < 10)
-  {
-    if(fprintf(pf,
-    "COMPRESSED PACKAGE SIZE:     %2.1fM\n",
-    csizef) <0)
-    {
-      goto err_2;
-    }
-  }
-  else
-  {
-    if(fprintf(pf,
-    "COMPRESSED PACKAGE SIZE:     %.0fM\n",
-    csizef) <0)
-    {
-      goto err_2;
-    }
-  }
-  /* header uncompressed package size
-   * print in KB with not decimals when size < 1024KB
-   * in MB with one decimal when size < 10 MB
-   * in MB with no decimals when size >= 10 MB */
-  if (pkg->usize < 1024)
-  {
-    if(fprintf(pf,
-    "UNCOMPRESSED PACKAGE SIZE:     %uK\n",
-    pkg->usize) <0)
-    {
-      goto err_2;
-    }
-  }
-  else if (usizef < 10)
-  {
-    if(fprintf(pf,
-    "UNCOMPRESSED PACKAGE SIZE:     %2.1fM\n",
-    usizef) <0)
-    {
-      goto err_2;
-    }
-  }
-  else
-  {
-    if(fprintf(pf,
-    "UNCOMPRESSED PACKAGE SIZE:     %.0fM\n",
-    usizef) <0)
-    {
-      goto err_2;
-    }
-  }
-  /* header location and description */
-   if (fprintf(pf,
-    "PACKAGE LOCATION: %s\n"
+    "PACKAGE NAME:              %s\n"
+    "COMPRESSED PACKAGE SIZE:   %u K\n"
+    "UNCOMPRESSED PACKAGE SIZE: %u K\n"
+    "PACKAGE LOCATION:          %s\n"
     "PACKAGE DESCRIPTION:\n"
     "%s"
     "FILE LIST:\n",
+    pkg->name, pkg->csize, pkg->usize,
     pkg->location ? pkg->location : "",
     pkg->desc ? pkg->desc : "") < 0)
   {
@@ -769,39 +701,21 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
     else if (!m[1] && LINEMATCH("COMPRESSED PACKAGE SIZE:"))
     {
       gchar* size = line + LINESIZE("COMPRESSED PACKAGE SIZE:");
-      gfloat csizef = 0;
-      gchar suffix = NULL;
-      if (sscanf(size, " %f %c", &csizef, &suffix) != 2)
+      if (sscanf(size, " %u ", &p->csize) != 1)
       {
         e_set(E_ERROR, "Can't parse compressed package size. (%s)", size);
         goto err_1;
       }
-      /* always report size in KB, even when it's in MB in the package
-       * database */
-      if (suffix == 'M')
-      {
-        csizef = csizef*1024;
-      }
-      p->csize = (int) csizef;
       m[1] = 1;
     }
     else if (!m[2] && LINEMATCH("UNCOMPRESSED PACKAGE SIZE:"))
     {
       gchar* size = line + LINESIZE("UNCOMPRESSED PACKAGE SIZE:");
-      gfloat usizef = 0;
-      gchar suffix = NULL;
-      if (sscanf(size, " %f %c", &usizef, &suffix) != 2)
+      if (sscanf(size, " %u ", &p->usize) != 1)
       {
         e_set(E_ERROR, "Can't parse uncompressed package size. (%s)", size);
         goto err_1;
       }
-      /* always report size in KB, even when it's in MB in the package
-       * database */
-      if (suffix == 'M')
-      {
-        usizef = usizef*1024;
-      }
-      p->usize = (int) usizef;
       m[2] = 1;
     }
     else if (!m[3] && LINEMATCH("PACKAGE LOCATION:"))
