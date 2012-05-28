@@ -437,10 +437,22 @@ db_path_type db_pkg_get_path(struct db_pkg* pkg, const gchar* path)
 /* public - main database package operations
  ************************************************************************/
 
+// size is in kb
+static gchar* _size_fmt(guint size)
+{
+  if (size < 1024)
+    return g_strdup_printf("%uK", size);
+  else if (size < 10239)
+    return g_strdup_printf("%0.1fM", (double)size / 1024);
+  else
+    return g_strdup_printf("%uM", size / 1024);
+}
+
 static gint _db_add_pkg(struct db_pkg* pkg, gchar* origname)
 {
   FILE *pf, *sf;
   gchar *ppath, *spath, *ppath_tmp, *spath_tmp;
+  int rs;
 
   _db_open_check(1)
 
@@ -483,21 +495,27 @@ static gint _db_add_pkg(struct db_pkg* pkg, gchar* origname)
   fchmod(fileno(pf), 0644);
 #endif
 
+  char* csize_fmt = _size_fmt(pkg->csize);
+  char* usize_fmt = _size_fmt(pkg->usize);
+
   /* construct header */
-  if (fprintf(pf,
-    "PACKAGE NAME:              %s\n"
-    "COMPRESSED PACKAGE SIZE:   %u K\n"
-    "UNCOMPRESSED PACKAGE SIZE: %u K\n"
-    "PACKAGE LOCATION:          %s\n"
+  rs = fprintf(pf,
+    "PACKAGE NAME:     %s\n"
+    "COMPRESSED PACKAGE SIZE:     %s\n"
+    "UNCOMPRESSED PACKAGE SIZE:     %s\n"
+    "PACKAGE LOCATION: %s\n"
     "PACKAGE DESCRIPTION:\n"
     "%s"
     "FILE LIST:\n",
-    pkg->name, pkg->csize, pkg->usize,
+    pkg->name, csize_fmt, usize_fmt,
     pkg->location ? pkg->location : "",
-    pkg->desc ? pkg->desc : "") < 0)
-  {
+    pkg->desc ? pkg->desc : "");
+
+  g_free(csize_fmt);
+  g_free(usize_fmt);
+  
+  if (rs < 0)
     goto err_2;
-  }
   
   /* construct filelist */
   gchar path[MAXPATHLEN];
@@ -617,6 +635,25 @@ gint db_replace_pkg(gchar* origname, struct db_pkg* pkg)
   return _db_add_pkg(pkg, origname);
 }
 
+static _parse_size(const char* str, guint* size)
+{
+  gdouble v;
+
+  if (sscanf(str, "%lf", &v) == 1)
+  {
+    if (strchr(str, 'K'))
+      *size = (guint)v;
+    else if (strchr(str, 'M'))
+      *size = (guint)(v * 1024);
+    else
+      return 0;
+
+    return 1;
+  }
+
+  return 0;
+}
+
 struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
 {
   FILE *fp, *fs;
@@ -701,7 +738,7 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
     else if (!m[1] && LINEMATCH("COMPRESSED PACKAGE SIZE:"))
     {
       gchar* size = line + LINESIZE("COMPRESSED PACKAGE SIZE:");
-      if (sscanf(size, " %u ", &p->csize) != 1)
+      if (_parse_size(size, &p->csize) != 1)
       {
         e_set(E_ERROR, "Can't parse compressed package size. (%s)", size);
         goto err_1;
@@ -711,7 +748,7 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
     else if (!m[2] && LINEMATCH("UNCOMPRESSED PACKAGE SIZE:"))
     {
       gchar* size = line + LINESIZE("UNCOMPRESSED PACKAGE SIZE:");
-      if (sscanf(size, " %u ", &p->usize) != 1)
+      if (_parse_size(size, &p->usize) != 1)
       {
         e_set(E_ERROR, "Can't parse uncompressed package size. (%s)", size);
         goto err_1;
