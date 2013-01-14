@@ -286,7 +286,7 @@ gint ta_finalize()
       {
         if (chmod(a->path1, a->mode) == -1)
         {
-          _warning("Failed to cange mode on %s to %04o (%s)", a->path1, a->mode, strerror(errno));
+          _warning("Failed to change mode on %s to %04o (%s)", a->path1, a->mode, strerror(errno));
         }
       }
       /* chown */
@@ -296,7 +296,7 @@ gint ta_finalize()
 #ifndef __WIN32__  
         if (chown(a->path1, a->owner, a->group) == -1)
         {
-          _warning("Failed to cange owner on %s to %d:%d (%s)", a->path1, a->owner, a->group, strerror(errno));
+          _warning("Failed to change owner on %s to %d:%d (%s)", a->path1, a->owner, a->group, strerror(errno));
         }
 #endif		  
       }
