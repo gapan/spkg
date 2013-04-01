@@ -83,12 +83,12 @@ static __inline__ void print_timer(int t, char* msg)
 
 #else
 
-static __inline__ void start_timer(int t) { t; }
+static __inline__ void start_timer(int t) { }
 static __inline__ void reset_timers() { }
-static __inline__ void reset_timer(int t) { t; }
-static __inline__ void continue_timer(int t) { t;  }
-static __inline__ void stop_timer(int t) { t;  }
-static __inline__ double get_timer(int t) { t;  return 0; }
-static __inline__ void print_timer(int t, char* msg) { t; msg; }
+static __inline__ void reset_timer(int t) { }
+static __inline__ void continue_timer(int t) { }
+static __inline__ void stop_timer(int t) {  }
+static __inline__ double get_timer(int t) { return 0; }
+static __inline__ void print_timer(int t, char* msg) { }
 
 #endif

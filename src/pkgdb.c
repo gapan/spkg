@@ -635,7 +635,7 @@ gint db_replace_pkg(gchar* origname, struct db_pkg* pkg)
   return _db_add_pkg(pkg, origname);
 }
 
-static _parse_size(const char* str, guint* size)
+static gint _parse_size(const char* str, guint* size)
 {
   gdouble v;
 

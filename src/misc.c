@@ -4,6 +4,7 @@
 |*----------------------------------------------------------------------*|
 |*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
