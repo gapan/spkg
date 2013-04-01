@@ -6,7 +6,8 @@ AM_CFLAGS = \
 	-I$(top_srcdir)/include \
 	$(GLIB_CFLAGS) \
 	-DSPKG_CONFDIR=\"$(sysconfdir)/spkg\" \
-	-D_GNU_SOURCE
+	-D_GNU_SOURCE \
+	-Wall -Wno-pointer-sign
 
 if ENABLE_ASSUME_BROKEN_PKGDB
 AM_CFLAGS += -DASSUME_BROKEN_PKGDB=1

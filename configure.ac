@@ -11,7 +11,6 @@ AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
-AC_PROG_RANLIB
 
 # Checks for libraries.
 AC_CHECK_LIB(Judy, [Judy1Next], [true], AC_MSG_ERROR([spkg requires Judy: http://judy.sf.net]))
@@ -47,10 +46,9 @@ AC_CHECK_FUNCS([getdelim memset mkdir mkfifo putenv rmdir strchr strerror utime]
 LT_INIT([win32-dll])
 
 # Automake
-#AM_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE([dist-bzip2])
 AM_MAINTAINER_MODE
-#AM_PROG_CC_C_O
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 # Assume broken pkgdb 
 AC_ARG_ENABLE(assume-broken-pkgdb,AC_HELP_STRING([--enable-assume-broken-pkgdb],
