@@ -1,6 +1,18 @@
 ----------------------------------------------------------------
 spkg - Release Notes
 ----------------------------------------------------------------
+2013-04-02: spkg 1.0.1
+
+  Updated autotools, fixed issue where spkg binary was not being generated.
+  (reported by vegaflapjack)
+
+  Fixed some compiler warnings.
+
+  Added better README from Yousha Aleayoub.
+
+  Added pkgdb format patch from Ruarí Ødegaard, to make spkg's package database
+  format match that of original Slackware pkgtools.
+
 2011-03-16: spkg 1.0
 
   Added patch from George Vlahavas that implements automatic GTK+ icon cache
