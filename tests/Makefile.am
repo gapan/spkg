@@ -1,7 +1,8 @@
 AM_CFLAGS= \
 	-I$(top_srcdir)/include \
-	$(SPKG_CFLAGS) \
-	-D_GNU_SOURCE
+	$(GLIB_CFLAGS) \
+	-D_GNU_SOURCE \
+	-Wall -Wno-pointer-sign
 
 noinst_PROGRAMS = \
   test-untgz \
@@ -11,7 +12,7 @@ noinst_PROGRAMS = \
   test-blacklist \
   test-rm
 
-LDADD = $(top_builddir)/src/libspkg.a $(SPKG_LIBS) -lz -lJudy
+LDADD = $(top_builddir)/src/libspkg.a $(GLIB_LIBS) -lz -lJudy
 
 test_blacklist_SOURCES = test-blacklist.c
 test_untgz_SOURCES = test-untgz.c

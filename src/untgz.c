@@ -54,7 +54,7 @@ struct untgz_state_internal {
   gboolean eof;/* end of archive reached */
 
   gint comptype;
-  gzFile* gzf; /* gzio tar stream */
+  gzFile gzf; /* gzio tar stream */
   FILE* fp;    /* file stream */
   
   /* internal block buffer data */
@@ -237,8 +237,8 @@ static gchar* strnappend(gchar* dst, gchar* src, gsize size)
 struct untgz_state* untgz_open(const gchar* tgzfile, struct error* e)
 {
   struct untgz_state* s=0;
-  gzFile *gzf;
-  FILE* fp;
+  gzFile gzf = NULL;
+  FILE* fp = NULL;
   struct stat st;
   gint comptype;
 

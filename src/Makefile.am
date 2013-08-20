@@ -4,9 +4,10 @@ endif
 
 AM_CFLAGS = \
 	-I$(top_srcdir)/include \
-	$(SPKG_CFLAGS) \
+	$(GLIB_CFLAGS) \
 	-DSPKG_CONFDIR=\"$(sysconfdir)/spkg\" \
-	-D_GNU_SOURCE
+	-D_GNU_SOURCE \
+	-Wall -Wno-pointer-sign
 
 if ENABLE_ASSUME_BROKEN_PKGDB
 AM_CFLAGS += -DASSUME_BROKEN_PKGDB=1
@@ -38,9 +39,9 @@ SPKG_LIB_SRC = \
 libspkg_a_SOURCES = $(SPKG_LIB_SRC)
 spkg_SOURCES = main.c
 if WINDOWS
-spkg_LDADD = libspkg.a win32/libwin32.a -lpopt $(SPKG_LIBS) -lJudy -lz
+spkg_LDADD = libspkg.a win32/libwin32.a -lpopt $(GLIB_LIBS) -lJudy -lz
 else
-spkg_LDADD = libspkg.a -lpopt $(SPKG_LIBS) -lJudy -lz
+spkg_LDADD = libspkg.a -lpopt $(GLIB_LIBS) -lJudy -lz
 endif
 
 # Build only static spkg as spkg

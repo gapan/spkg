@@ -287,7 +287,7 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
           _notice("Directory already exists %s (but permissions differ)", sane_path);
           if (!opts->safe)
           {
-            _notice("Permissions will be changed to owner=%d, group=%d, mode=%03o.", tgz->f_uid, tgz->f_gid, tgz->f_mode, sane_path);
+            _notice("Permissions will be changed to owner=%d, group=%d, mode=%03o.", tgz->f_uid, tgz->f_gid, tgz->f_mode);
             ta_chperm_nothing(fullpath, tgz->f_mode, tgz->f_uid, tgz->f_gid);
             fullpath = NULL;
           }
