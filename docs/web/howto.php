@@ -6,7 +6,7 @@
 
  <h3>Quick start</h3>
 
-  <p>After successful <a href="dload.php">installation</a> you can start
+  <p>After successful <a href="dloads.php">installation</a> you can start
   using spkg to install or upgrade existing packages:</p>
   <code># spkg some-package-1.0-i486-1.tgz</code>
   
