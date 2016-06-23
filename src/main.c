@@ -56,10 +56,6 @@ static gchar* default_bl_symopts[] = {
   "aaa_base", "bin", "glibc-solibs", "glibc", NULL
 };
 
-static gchar* default_bl_upgrade[] = {
-  "aaa_base", "aaa_elflibs", NULL
-};
-
 static struct cmd_options cmd_opts = {
   .root = "/",
   .dryrun = 0,
@@ -70,8 +66,7 @@ static struct cmd_options cmd_opts = {
   .no_ldconfig = 0,
   .no_gtk_update_icon_cache = 0,
   .reinstall = 0,
-  .bl_symopts = default_bl_symopts,
-  .bl_upgrade = default_bl_upgrade
+  .bl_symopts = default_bl_symopts
 };
 
 static gint verbose = 0;
@@ -214,10 +209,6 @@ int main(const int ac, const char* av[])
   gchar** bl_symopts = load_blacklist(SPKG_CONFDIR "/symopts_blacklist");
   if (bl_symopts)
     cmd_opts.bl_symopts = bl_symopts;
-
-  gchar** bl_upgrade = load_blacklist(SPKG_CONFDIR "/upgrade_blacklist");
-  if (bl_upgrade)
-    cmd_opts.bl_upgrade = bl_upgrade;
 
   /* preset ROOT */
   cmd_opts.root = getenv("ROOT");
@@ -382,13 +373,6 @@ int main(const int ac, const char* av[])
           {
             gchar* pkgname = parse_pkgname(arg, 5);
             _inform("Skipping package %s (package with same base name is NOT installed)...", pkgname ? pkgname : arg);
-            g_free(pkgname);
-            e_clean(err);
-          }
-          else if (e_errno(err) & CMD_BLACK)
-          {
-            gchar* pkgname = parse_pkgname(arg, 5);
-            _inform("Skipping package %s (package is blacklisted)...", pkgname ? pkgname : arg);
             g_free(pkgname);
             e_clean(err);
           }
