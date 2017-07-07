@@ -1,6 +1,26 @@
 ----------------------------------------------------------------
 spkg - Release Notes
 ----------------------------------------------------------------
+2017-06-07: spkg 1.1
+
+  Fix breakage when upgrading the glibc-solibs package. Do not remove
+  symlinks to critical libc libraries when upgrading. The symlinks are
+  taken care of when the doinst.sh script is executed anyway, so there
+  is no harm.
+
+  Add support for brotli compressed packages.
+
+  Some code refactoring.
+
+  Remove block for package upgrades. Some packages, such as aaa_elflibs
+  and aaa_base were blacklisted for upgrades. That goes against what
+  pkgtools do. All blacklisting  code has been removed, it should be
+  possible to upgrade any package now.
+
+  Minor fixes in manpage.
+
+  I guess I'm officially the new maintainer now... ~~ George
+
 2013-04-02: spkg 1.0.1
 
   Updated autotools, fixed issue where spkg binary was not being generated.
