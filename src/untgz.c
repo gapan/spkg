@@ -1,3 +1,4 @@
+// vim:et:sta:sts=2:sw=2:ts=2:tw=79:
 /*----------------------------------------------------------------------*\
 |* spkg - The Unofficial Slackware Linux Package Manager                *|
 |*                                      designed by Ondøej Jirman, 2005 *|
@@ -39,6 +40,7 @@ enum {
   COMPTYPE_GZIP,
   COMPTYPE_LZMA,
   COMPTYPE_XZ,
+  COMPTYPE_BRO,
   COMPTYPE_NONE
 };
 
@@ -260,6 +262,8 @@ struct untgz_state* untgz_open(const gchar* tgzfile, struct error* e)
     comptype = COMPTYPE_LZMA;
   else if (g_str_has_suffix(tgzfile, ".txz"))
     comptype = COMPTYPE_XZ;
+  else if (g_str_has_suffix(tgzfile, ".tbr"))
+    comptype = COMPTYPE_BRO;
   else if (g_str_has_suffix(tgzfile, ".tar"))
     comptype = COMPTYPE_NONE;
   else
@@ -305,6 +309,20 @@ struct untgz_state* untgz_open(const gchar* tgzfile, struct error* e)
     }
     g_free(cmd);
   }  
+  else if (comptype == COMPTYPE_BRO)
+  {
+    gchar* escaped = g_shell_quote(tgzfile);
+    gchar* cmd = g_strdup_printf("bro --decompress --input %s", escaped);
+    fp = popen(cmd, "r");
+    g_free(escaped);
+    if (fp == NULL)
+    {
+      _e_set(e, E_ERROR, "can't popen command: %s", cmd);
+      g_free(cmd);
+      return NULL;
+    }
+    g_free(cmd);
+  }
   else if (comptype == COMPTYPE_NONE)
   {
     fp = fopen(tgzfile, "r");
@@ -340,7 +358,8 @@ void untgz_close(struct untgz_state* s)
 
   if (i->comptype == COMPTYPE_GZIP)
     gzclose(i->gzf);
-  else if (i->comptype == COMPTYPE_LZMA || i->comptype == COMPTYPE_XZ)
+  else if (i->comptype == COMPTYPE_LZMA || i->comptype == COMPTYPE_XZ ||
+           i->comptype == COMPTYPE_BRO)
     pclose(i->fp);
   else
     fclose(i->fp);

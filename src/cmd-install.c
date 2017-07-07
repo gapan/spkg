@@ -1,3 +1,4 @@
+// vim:et:sta:sts=2:sw=2:ts=2:tw=79:
 /*----------------------------------------------------------------------*\
 |* spkg - The Unofficial Slackware Linux Package Manager                *|
 |*                                      designed by Ondøej Jirman, 2005 *|
@@ -299,12 +300,12 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
         }
         else
         {
-          _debug("Direcory already exists %s", sane_path);
+          _debug("Directory already exists %s", sane_path);
         }
       }
       else if (ex_type == SYS_SYM && ex_deref_type == SYS_DIR)
       {
-        _warning("Direcory already exists *behind the symlink* on filesystem. This may break upgrade/remove if you change that symlink in the future. (%s)", sane_path);
+        _warning("Directory already exists *behind the symlink* on filesystem. This may break upgrade/remove if you change that symlink in the future. (%s)", sane_path);
       }
       else if (ex_type == SYS_NONE)
       {
@@ -453,7 +454,7 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
         }
         else if (tmp_type == SYS_DIR)
         {
-          e_set(E_ERROR, "Temporary file path is used by a direcotry. (%s)", temppath);
+          e_set(E_ERROR, "Temporary file path is used by a directory. (%s)", temppath);
           goto extract_failed;
         }
         else if (tmp_type != SYS_NONE)
@@ -652,6 +653,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
         goto err3;
       }
       _read_slackdesc(tgz, pkg);
+      db_pkg_add_path(pkg, "install/slack-desc", DB_PATH_FILE);
       continue;
     }
     else if (!strcmp(sane_path, "install/doinst.sh"))
@@ -667,6 +669,7 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
         e_set(E_ERROR, "Installation script processing failed.");
         goto err3;
       }
+      db_pkg_add_path(pkg, "install/doinst.sh", DB_PATH_FILE);
       continue;
     }
     else if (!strncmp(sane_path, "install/", 8) && strcmp(sane_path, "install"))

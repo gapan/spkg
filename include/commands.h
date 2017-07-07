@@ -22,7 +22,6 @@ G_BEGIN_DECLS
 
 #define CMD_EXIST   E(0) /**< package already exists */
 #define CMD_NOTEX   E(1) /**< package does not exist */
-#define CMD_BLACK   E(2) /**< package is blacklisted for given operation */
 
 /** Common package command options structure. */
 struct cmd_options {
@@ -37,7 +36,6 @@ struct cmd_options {
   gboolean no_gtk_update_icon_cache; /**< Turn off gtk-update-icon-cache execution. */
   gboolean reinstall;  /**< Reinstall package when it is already installed (for upgrade). */
   gchar** bl_symopts;  /**< Blacklist for symlink optimizations. */
-  gchar** bl_upgrade;  /**< Blacklist for upgrade. */
 };
 
 /** Install package.

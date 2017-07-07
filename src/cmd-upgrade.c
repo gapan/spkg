@@ -1,3 +1,4 @@
+// vim:et:sta:sts=2:sw=2:ts=2:tw=79:
 /*----------------------------------------------------------------------*\
 |* spkg - The Unofficial Slackware Linux Package Manager                *|
 |*                                      designed by Ondøej Jirman, 2005 *|
@@ -24,6 +25,79 @@
 #define e_set(n, fmt, args...) e_add(e, "upgrade", __func__, n, fmt, ##args)
 
 /* packages that can't be optimized, until they are fixed */
+
+/* Check for libc symlinks to libraries that are critical to running sh. If
+ * these symlinks are removed, doinst fails to run, because sh (bash) fails to
+ * run. Since these are recreated with ldconfig when the glibc-solibs package
+ * is installed, it's same to leave them where they are
+ */
+static gboolean _check_libc_libs(const gchar* path)
+{
+  if (strncmp(path, "lib/ld-linux.so", strlen("lib/ld-linux.so")) == 0 ||
+    strncmp(path, "lib64/ld-linux-x86-64.so", strlen("lib64/ld-linux-x86-64.so")) == 0 ||
+    strncmp(path, "lib/libc.so", strlen("lib/libc.so")) == 0 ||
+    strncmp(path, "lib64/libc.so", strlen("lib64/libc.so")) == 0 ||
+    strncmp(path, "lib/libdl.so", strlen("lib/libdl.so")) == 0 ||
+    strncmp(path, "lib64/libdl.so", strlen("lib64/libdl.so")) == 0)
+  {
+    return 0;
+  }
+  return 1;
+}
+
+static void _run_ldconfig(const gchar* root, const struct cmd_options* opts)
+{
+  if (access("/sbin/ldconfig", X_OK) == 0)
+  {
+    gchar* ldconf_file = g_strdup_printf("%setc/ld.so.conf", root);
+    if (access(ldconf_file, R_OK) == 0)
+    {
+      gchar* qroot = g_shell_quote(root);
+      gchar* cmd = g_strdup_printf("/sbin/ldconfig -r %s", qroot);
+      g_free(qroot);
+
+      _notice("Running /sbin/ldconfig...");
+      if (!opts->dryrun)
+      {
+        gint rv = system(cmd);
+        if (rv < 0)
+          _warning("Can't execute /sbin/ldconfig. (%s)", strerror(errno));
+        else if (rv > 0)
+          _warning("Program /sbin/ldconfig failed. (%d)", rv);
+      }
+
+      g_free(cmd);
+    }
+    g_free(ldconf_file);
+  }
+  else
+  {
+    _warning("Program /sbin/ldconfig was not found on the system.");
+  }
+}
+
+static void _gtk_update_icon_cache(const gchar* root, const struct cmd_options* opts)
+{
+  if (access("/usr/bin/gtk-update-icon-cache", X_OK) == 0)
+  {
+    gchar* cmd = g_strdup_printf("/usr/bin/gtk-update-icon-cache %susr/share/icons/hicolor > /dev/null 2>&1", root);
+
+    _notice("Running /usr/bin/gtk-update-icon-cache...");
+    if (!opts->dryrun)
+    {
+      gint rv = system(cmd);
+      if (rv < 0)
+        _warning("Can't execute /usr/bin/gtk-update-icon-cache. (%s)", strerror(errno));
+      else if (rv > 0)
+        _warning("Program /usr/bin/gtk-update-icon-cache failed. (%d)", rv);
+    }
+  }
+  else
+  {
+    _warning("Program /usr/bin/gtk-update-icon-cache was not found on the system.");
+  }
+}
+
 
 static gboolean _unsafe_path(const gchar* path)
 {
@@ -307,12 +381,12 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
         }
         else
         {
-          _debug("Direcory already exists %s", sane_path);
+          _debug("Directory already exists %s", sane_path);
         }
       }
       else if (ex_type == SYS_SYM && ex_deref_type == SYS_DIR)
       {
-        _warning("Direcory already exists *behind the symlink* on filesystem. This may break upgrade/remove if you change that symlink in the future. (%s)", sane_path);
+        _warning("Directory already exists *behind the symlink* on filesystem. This may break upgrade/remove if you change that symlink in the future. (%s)", sane_path);
       }
       else if (ex_type == SYS_NONE)
       {
@@ -463,7 +537,7 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
         }
         else if (tmp_type == SYS_DIR)
         {
-          e_set(E_ERROR, "Temporary file path is used by a direcotry. (%s)", temppath);
+          e_set(E_ERROR, "Temporary file path is used by a directory. (%s)", temppath);
           goto extract_failed;
         }
         else if (tmp_type != SYS_NONE)
@@ -581,8 +655,13 @@ static void _delete_leftovers(struct db_pkg* pkg, struct db_pkg* ipkg,
           if (opts->safe)
             goto skip_free;
         }
-        _debug("Removing file %s (postponed)", path);
-        ta_remove_nothing(fullpath, FALSE);
+        /* don't remove symlinks to critical libc libraries */
+        if (_check_libc_libs(path) == 0 && *ptype == DB_PATH_SYMLINK) {
+          _debug("Libc library (%s). Not removing symlink.", path);
+        } else {
+          _debug("Removing file %s (postponed)", path);
+          ta_remove_nothing(fullpath, FALSE);
+        }
         fullpath = NULL;
       }
     }
@@ -671,13 +750,6 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
       goto err1;
     }
     _inform("Upgrading package %s -> %s...", installed_pkgname, name);
-  }
-
-  if (is_blacklisted(shortname, opts->bl_upgrade))
-  {
-    e_set(E_ERROR|CMD_BLACK, "Package is blacklisted for upgrade. (%s)", shortname);
-    g_free(installed_pkgname);
-    goto err1;
   }
 
   _safe_breaking_point(err1);
@@ -789,6 +861,7 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
         goto err3;
       }
       _read_slackdesc(tgz, pkg);
+      db_pkg_add_path(pkg, "install/slack-desc", DB_PATH_FILE);
       continue;
     }
     else if (!strcmp(sane_path, "install/doinst.sh"))
@@ -804,6 +877,7 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
         e_set(E_ERROR, "Installation script processing failed.");
         goto err3;
       }
+      db_pkg_add_path(pkg, "install/doinst.sh", DB_PATH_FILE);
       continue;
     }
     else if (!strncmp(sane_path, "install/", 8) && strcmp(sane_path, "install"))
@@ -888,58 +962,11 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
 
   /* run ldconfig */
   if (need_ldconfig && !opts->no_ldconfig)
-  {
-    if (access("/sbin/ldconfig", X_OK) == 0)
-    {
-      gchar* ldconf_file = g_strdup_printf("%setc/ld.so.conf", root);
-      if (access(ldconf_file, R_OK) == 0)
-      {
-        gchar* qroot = g_shell_quote(root);
-        gchar* cmd = g_strdup_printf("/sbin/ldconfig -r %s", qroot);
-        g_free(qroot);
-
-        _notice("Running /sbin/ldconfig...");
-        if (!opts->dryrun)
-        {
-          gint rv = system(cmd);
-          if (rv < 0)
-            _warning("Can't execute /sbin/ldconfig. (%s)", strerror(errno));
-          else if (rv > 0)
-            _warning("Program /sbin/ldconfig failed. (%d)", rv);
-        }
-
-        g_free(cmd);
-      }
-      g_free(ldconf_file);
-    }
-    else
-    {
-      _warning("Program /sbin/ldconfig was not found on the system.");
-    }
-  }
+    _run_ldconfig(root, opts);
 
   /* run gtk-update-icon-cache */
   if (need_update_icon_cache && !opts->no_gtk_update_icon_cache)
-  {
-    if (access("/usr/bin/gtk-update-icon-cache", X_OK) == 0)
-    {
-      gchar* cmd = g_strdup_printf("/usr/bin/gtk-update-icon-cache %susr/share/icons/hicolor > /dev/null 2>&1", root);
-
-      _notice("Running /usr/bin/gtk-update-icon-cache...");
-      if (!opts->dryrun)
-      {
-        gint rv = system(cmd);
-        if (rv < 0)
-          _warning("Can't execute /usr/bin/gtk-update-icon-cache. (%s)", strerror(errno));
-        else if (rv > 0)
-          _warning("Program /usr/bin/gtk-update-icon-cache failed. (%d)", rv);
-      }
-    }
-    else
-    {
-      _warning("Program /usr/bin/gtk-update-icon-cache was not found on the system.");
-    }
-  }
+    _gtk_update_icon_cache(root, opts);
 
   if (!opts->dryrun)
   {

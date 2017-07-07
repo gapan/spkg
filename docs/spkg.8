@@ -14,7 +14,8 @@ spkg \- The Unofficial \fISlackware Linux\fR Package Manager
 [\fB--install-new\fR] 
 [\fB--no-fast-symlinks\fR] 
 [\fB--no-scripts\fR] 
-[\fB--no-ldconfigs\fR] 
+[\fB--no-ldconfig\fR] 
+[\fB--no-gtk-update-icon-cache\fR] 
 [\fB-q\fR|\fB--quiet\fR] 
 [\fB-v\fR|\fB--verbose\fR]
 [\fIpackages...\fR]
@@ -86,6 +87,16 @@ Disable postinstallation script.
 .TP
 \fB--no-ldconfig\fR
 Don't execute ldconfig after installation and upgrade.
+.TP
+\fB--no-gtk-update-icon-cache\fR
+When a package includes a .desktop file, in other words when a package
+includes a menu entry, spkg by default runs gtk-update-icon-cache, so
+that the icon cache will be updated, ensuring that the menu icon will
+be displayed properly at all times. Using this option, this behaviour
+is disabled. Useful if you want to install a large number of packages
+that include menu entries; installation will be faster without updating
+the icon cache after installing every package. The user could run
+gtk-update-icon-cache manually after all packages have been installed.
 .CM ===========================================================================
 .SS Help
 .TP
