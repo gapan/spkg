@@ -26,6 +26,25 @@
 
 /* packages that can't be optimized, until they are fixed */
 
+/* Check for libc symlinks to libraries that are critical to running sh. If
+ * these symlinks are removed, doinst fails to run, because sh (bash) fails to
+ * run. Since these are recreated with ldconfig when the glibc-solibs package
+ * is installed, it's same to leave them where they are
+ */
+static gboolean _check_libc_libs(const gchar* path)
+{
+  if (strncmp(path, "lib/ld-linux.so", strlen("lib/ld-linux.so") == 0) ||
+    strncmp(path, "lib64/ld-linux-x86-64.so", strlen("lib64/ld-linux-x86-64.so")) == 0 ||
+    strncmp(path, "lib/libc.so", strlen("lib/libc.so")) == 0 ||
+    strncmp(path, "lib64/libc.so", strlen("lib64/libc.so")) == 0 ||
+    strncmp(path, "lib/libdl.so", strlen("lib/libdl.so")) == 0 ||
+    strncmp(path, "lib64/libdl.so", strlen("lib64/libdl.so")) == 0)
+  {
+    return 0;
+  }
+  return 1;
+}
+
 static void _run_ldconfig(const gchar* root, const struct cmd_options* opts)
 {
   if (access("/sbin/ldconfig", X_OK) == 0)
@@ -636,8 +655,13 @@ static void _delete_leftovers(struct db_pkg* pkg, struct db_pkg* ipkg,
           if (opts->safe)
             goto skip_free;
         }
-        _debug("Removing file %s (postponed)", path);
-        ta_remove_nothing(fullpath, FALSE);
+        /* don't remove symlinks to critical libc libraries */
+        if (_check_libc_libs(path) == 0 && *ptype == DB_PATH_SYMLINK) {
+          _debug("Libc library (%s). Not removing symlink.", path);
+        } else {
+          _debug("Removing file %s (postponed)", path);
+          ta_remove_nothing(fullpath, FALSE);
+        }
         fullpath = NULL;
       }
     }
