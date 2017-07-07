@@ -33,7 +33,7 @@
  */
 static gboolean _check_libc_libs(const gchar* path)
 {
-  if (strncmp(path, "lib/ld-linux.so", strlen("lib/ld-linux.so") == 0) ||
+  if (strncmp(path, "lib/ld-linux.so", strlen("lib/ld-linux.so")) == 0 ||
     strncmp(path, "lib64/ld-linux-x86-64.so", strlen("lib64/ld-linux-x86-64.so")) == 0 ||
     strncmp(path, "lib/libc.so", strlen("lib/libc.so")) == 0 ||
     strncmp(path, "lib64/libc.so", strlen("lib64/libc.so")) == 0 ||
