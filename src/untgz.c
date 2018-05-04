@@ -312,7 +312,7 @@ struct untgz_state* untgz_open(const gchar* tgzfile, struct error* e)
   else if (comptype == COMPTYPE_BRO)
   {
     gchar* escaped = g_shell_quote(tgzfile);
-    gchar* cmd = g_strdup_printf("bro --decompress --input %s", escaped);
+    gchar* cmd = g_strdup_printf("brotli -c --decompress %s", escaped);
     fp = popen(cmd, "r");
     g_free(escaped);
     if (fp == NULL)
