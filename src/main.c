@@ -54,7 +54,7 @@ POPT_TABLEEND
  ************************************************************************/
 
 static gchar* default_bl_symopts[] = {
-  "aaa_base", "bin", "glibc-solibs", "glibc", NULL
+  "aaa_base", "aaa_glibc-solibs", "bin", "glibc-solibs", "glibc", NULL
 };
 
 static struct cmd_options cmd_opts = {
