@@ -32,7 +32,7 @@ These functions returns list of package names.
 G_BEGIN_DECLS
 
 /** Directory where the package database is stored. */
-#define PKGDB_DIR "var/log"
+#define PKGDB_DIR "var"
 
 #define DB_NOPEN   E(0) /**< Database is not open. */
 #define DB_OPEN    E(1) /**< Database is already open (when opening). */

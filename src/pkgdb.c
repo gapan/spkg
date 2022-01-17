@@ -63,8 +63,13 @@ static struct db_state _db; // yeah, this is really not uninitialized
 gint db_open(const gchar* root, gboolean readonly, struct error* e)
 {
   gchar** d;
-  gchar* checkdirs[] = { "packages", "scripts", "removed_packages",
-    "removed_scripts", "setup", NULL };
+  gchar* checkdirs[] = {
+    "lib/pkgtools/packages",
+    "lib/pkgtools/scripts",
+    "lib/pkgtools/setup",
+    "log/pkgtools/removed_packages",
+    "log/pkgtools/removed_scripts",
+    NULL };
 
   g_assert(e != NULL);
   _db.err = e;
@@ -85,8 +90,8 @@ gint db_open(const gchar* root, gboolean readonly, struct error* e)
     _db.topdir = g_strdup_printf("%s/%s%s", cwd, sane_root, PKGDB_DIR);
     g_free(cwd);
   }
-  _db.pkgdir = g_strdup_printf("%s/packages", _db.topdir);
-  _db.scrdir = g_strdup_printf("%s/scripts", _db.topdir);
+  _db.pkgdir = g_strdup_printf("%s/lib/pkgtools/packages", _db.topdir);
+  _db.scrdir = g_strdup_printf("%s/lib/pkgtools/scripts", _db.topdir);
   g_free(sane_root);
 
   /* check db dirs */
@@ -922,8 +927,8 @@ gint db_rem_pkg(gchar* name)
 
   gchar* p = g_strdup_printf("%s/%s", _db.pkgdir, name);
   gchar* s = g_strdup_printf("%s/%s", _db.scrdir, name);
-  gchar* rp = g_strdup_printf("%s/removed_packages/%s-removed-%s", _db.topdir, name, _get_date());
-  gchar* rs = g_strdup_printf("%s/removed_scripts/%s-removed-%s", _db.topdir, name, _get_date());
+  gchar* rp = g_strdup_printf("%s/log/pkgtools/removed_packages/%s-removed-%s", _db.topdir, name, _get_date());
+  gchar* rs = g_strdup_printf("%s/log/pkgtools/removed_scripts/%s-removed-%s", _db.topdir, name, _get_date());
 
   if (sys_file_type(p, 1) != SYS_REG)
   {
