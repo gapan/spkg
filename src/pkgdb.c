@@ -651,6 +651,8 @@ static gint _parse_size(const char* str, guint* size)
       *size = (guint)v;
     else if (strchr(str, 'M'))
       *size = (guint)(v * 1024);
+    else if (strchr(str, 'G'))
+      *size = (guint)(v * 1024 * 1024);
     else
       return 0;
 
