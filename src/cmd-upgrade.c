@@ -691,7 +691,7 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
    - load global filelist
    - open package tgz file
    - initialize transaction
-   - prepare empty db_pkg obejct for newly installed package
+   - prepare empty db_pkg object for newly installed package
    - for each file in the package:
      - sanitize path
      - handle special files (install/)
