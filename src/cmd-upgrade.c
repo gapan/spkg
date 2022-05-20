@@ -401,10 +401,24 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
         ta_keep_remove(fullpath, 1);
         fullpath = NULL;
       }
-      else
+      else /* create directory over file */
       {
-        e_set(E_ERROR, "Can't create directory over ordinary file. (%s)", sane_path);
-        goto extract_failed;
+        if (opts->safe)
+        {
+          e_set(E_ERROR, "Can't create directory over ordinary file. (%s)", sane_path);
+          goto extract_failed;
+        }
+        _notice("Creating directory over ordinary file (%s)", sane_path);
+        if (!opts->dryrun)
+        {
+          if (unlink(fullpath) < 0)
+            _warning("Can't remove file %s during upgrade. (%s)", sane_path, strerror(errno));
+          if (untgz_write_file(tgz, fullpath))
+            goto extract_failed;
+        }
+
+        ta_keep_remove(fullpath, 1);
+        fullpath = NULL;
       }
     }
     break;
