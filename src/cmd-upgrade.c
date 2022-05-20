@@ -408,7 +408,7 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
       }
     }
     break;
-    case UNTGZ_SYM:
+    case UNTGZ_SYM: /* we have a symlink */
     {
 #ifdef LEGACY_CHECKS
       e_set(E_ERROR, "Symlink was found in the archive. (%s)", sane_path);
@@ -437,7 +437,7 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
 #endif
     }
     break;
-    case UNTGZ_LNK: 
+    case UNTGZ_LNK: /* we have a hardlink */
     { 
       /* hardlinks are special beasts, most easy solution is to 
        * postpone hardlink creation into transaction finalization phase 
@@ -490,7 +490,7 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
       }
     }
     break;
-    case UNTGZ_NONE:
+    case UNTGZ_NONE: /* nothing? tar is broken */
     {
       e_set(E_ERROR, "Broken tar archive.");
       goto extract_failed;
