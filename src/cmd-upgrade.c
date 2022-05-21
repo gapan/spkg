@@ -412,7 +412,10 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
         if (!opts->dryrun)
         {
           if (unlink(fullpath) < 0)
-            _warning("Can't remove file %s during upgrade. (%s)", sane_path, strerror(errno));
+          {
+            e_set(E_ERROR, "Couldn't remove file %s during upgrade.", sane_path);
+            goto extract_failed;
+          }
           if (untgz_write_file(tgz, fullpath))
             goto extract_failed;
         }
