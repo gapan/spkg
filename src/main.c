@@ -241,6 +241,7 @@ int main(const int ac, const char* av[])
       PACKAGE_STRING "\n"
       "\n"
       "Written by Ondrej Jirman, 2005-2006.\n"
+      "Maintained by George Vlahavas, 2012-2022\n"
       "\n"
       "This is free software. Not like a beer or like in a \"freedom\",\n"
       "but like in \"I don't care what you are going to do with it.\"\n"
@@ -257,7 +258,7 @@ int main(const int ac, const char* av[])
       "  spkg -vnu <packages>   [--upgrade --verbose --dry-run]\n"
       "\n"
       "Official website: http://spkg.megous.com\n"
-      "Bug reports can be sent to <megous@megous.com>.\n"
+      "Bug reports can be sent to <vlahavas@gmail.com>.\n"
     );
     goto out;
   }
