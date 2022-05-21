@@ -413,7 +413,7 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
         {
           if (unlink(fullpath) < 0)
           {
-            e_set(E_ERROR, "Couldn't remove file %s during upgrade.", sane_path);
+            e_set(E_ERROR, "Couldn't remove file during upgrade. (%s)", sane_path);
             goto extract_failed;
           }
           if (untgz_write_file(tgz, fullpath))
@@ -528,7 +528,7 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
         {
           if (sys_rm_rf(fullpath) < 0)
           {
-            e_set(E_ERROR, "Couldn't remove directory %s during upgrade.", sane_path);
+            e_set(E_ERROR, "Couldn't remove directory during upgrade. (%s)", sane_path);
             goto extract_failed;
           }
           if (untgz_write_file(tgz, fullpath))
