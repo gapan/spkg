@@ -322,8 +322,25 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
       }
       else /* create directory over file */
       {
-        e_set(E_ERROR, "Can't create directory over ordinary file. (%s)", sane_path);
-        goto extract_failed;
+        if (opts->safe)
+        {
+          e_set(E_ERROR, "Can't create directory over ordinary file. (%s)", sane_path);
+          goto extract_failed;
+        }
+        _notice("Creating directory over ordinary file (%s)", sane_path);
+        if (!opts->dryrun)
+        {
+          if (unlink(fullpath) < 0)
+          {
+            e_set(E_ERROR, "Couldn't remove file during upgrade. (%s)", sane_path);
+            goto extract_failed;
+          }
+          if (untgz_write_file(tgz, fullpath))
+            goto extract_failed;
+        }
+
+        ta_keep_remove(fullpath, 1);
+        fullpath = NULL;
       }
     }
     break;
@@ -422,8 +439,25 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
       if (ex_type == SYS_DIR)
       {
         /* target path is a directory, bad! */
-        e_set(E_ERROR, "Can't create file over existing directory. (%s)", sane_path);
-        goto extract_failed;
+        if (opts->safe) {
+          e_set(E_ERROR, "Can't create file over existing directory. (%s)", sane_path);
+          goto extract_failed;
+        }
+
+        _notice("Creating ordinary file over directory (%s)", sane_path);
+        if (!opts->dryrun)
+        {
+          if (sys_rm_rf(fullpath) < 0)
+          {
+            e_set(E_ERROR, "Couldn't remove directory during upgrade. (%s)", sane_path);
+            goto extract_failed;
+          }
+          if (untgz_write_file(tgz, fullpath))
+            goto extract_failed;
+        }
+
+        ta_keep_remove(fullpath, 1);
+        fullpath = NULL;
       }
       else if (ex_type == SYS_NONE)
       {
