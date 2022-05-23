@@ -12,6 +12,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <string.h>
+#include <fcntl.h>
 
 #include "sys.h"
 #include "path.h"
