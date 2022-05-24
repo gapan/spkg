@@ -12,12 +12,6 @@
 
 #include <Judy.h>
 
-#include "misc.h"
-#include "path.h"
-#include "sys.h"
-#include "taction.h"
-
-#include "cmd-private.h"
 #include "cmd-common.h"
 
 /* private 
