@@ -23,8 +23,6 @@
     } \
   } while(0)
 
-#endif
-
 static __inline__ gint _mode_differ(struct untgz_state* u, struct stat* st)
 {
   return ((u->f_mode ^ st->st_mode) & 07777);
@@ -50,3 +48,5 @@ static __inline__ gint _rdev_differ(struct untgz_state* u, struct stat* st)
     return 0;
   return 1;
 }
+
+#endif // SPKG__CMD_PRIVATE_H
