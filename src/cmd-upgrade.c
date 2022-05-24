@@ -414,6 +414,8 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
     break;
     default: /* ordinary file */
     {
+      _notice("Installing file %s", sane_path);
+
       if (ex_type == SYS_DIR)
       {
         /* target path is a directory, bad! */
@@ -439,7 +441,6 @@ static void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
       }
       else if (ex_type == SYS_NONE)
       {
-        _notice("Installing file %s", sane_path);
         if (!opts->dryrun)
         {
           if (untgz_write_file(tgz, fullpath))
