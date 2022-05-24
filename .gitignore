@@ -19,3 +19,7 @@ ltmain.sh
 m4
 missing
 stamp-h1
+*.o
+*.a
+libspkg.pc
+src/spkg
