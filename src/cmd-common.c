@@ -16,7 +16,6 @@
  * run. Since these are recreated with ldconfig when the glibc-solibs package
  * is installed, it's same to leave them where they are
  */
-
 gboolean _check_libc_libs(const gchar* path)
 {
   if (strncmp(path, "lib/ld-linux.so", strlen("lib/ld-linux.so")) == 0 ||
@@ -302,4 +301,319 @@ gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
   g_free(sane_link_path);
   g_free(ln);
   goto err0;
+}
+
+void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
+                   const gchar* sane_path, const gchar* root,
+                   const struct cmd_options* opts, struct error* e,
+                   gboolean do_upgrade, struct db_pkg* ipkg)
+{
+  gchar context[] = "install";
+  if (do_upgrade)
+    strcpy(context, "upgrade");
+  /* following strings can be freed by the ta_* code, if so, you must zero
+     variables after passing them to a ta_* function */
+  gchar* fullpath = g_strdup_printf("%s%s", root, sane_path);
+  gchar* temppath = g_strdup_printf("%s--###%s###", fullpath, context);
+
+  /* EXIT: free(fullpath), free(temppath) */
+
+  /* Here we must check interaction of following conditions:
+   *
+   * - type of the file we are installing (tgz->f_type)
+   * - type of the file on the filesystem (existing)
+   * - presence of the file in the file database (install)
+   *   or original package (upgrade)
+   *
+   * And decide what to do:
+   *
+   * - install new file
+   * - overwrite existing file
+   * - leave existing file alone
+   * - issue error and rollback installation
+   * - issue notice or warning
+   */
+
+  /* EXIT: free(fullpath), free(temppath) */
+
+  /* treat an install just as an upgrade where the file didn't exist */
+  db_path_type orig_ptype = DB_PATH_NONE;
+  if (do_upgrade)
+    orig_ptype = db_pkg_get_path(ipkg, sane_path);
+
+  /* get information about installed file from filesystem and filedb */
+  struct stat ex_stat;
+  sys_ftype ex_type = sys_file_type_stat(fullpath, 0, &ex_stat);
+  sys_ftype ex_deref_type = SYS_NONE;
+  if (ex_type == SYS_SYM)
+    ex_deref_type = sys_file_type(fullpath, 1);
+
+  if (ex_type == SYS_ERR)
+  {
+    e_set(E_ERROR, "Can't check path. (%s)", sane_path);
+    goto extract_failed;
+  }
+
+  // installed file type
+  switch (tgz->f_type)
+  {
+    case UNTGZ_DIR: /* we have directory */
+    {
+      if (ex_type == SYS_DIR)
+      {
+        /* installed directory already exist */
+        if (_mode_differ(tgz, &ex_stat) || _gid_or_uid_differ(tgz, &ex_stat))
+        {
+          _notice("Directory already exists %s (but permissions differ)", sane_path);
+          if (!opts->safe)
+          {
+            _notice("Permissions will be changed to owner=%d, group=%d, mode=%03o.", tgz->f_uid, tgz->f_gid, tgz->f_mode);
+            ta_chperm_nothing(fullpath, tgz->f_mode, tgz->f_uid, tgz->f_gid);
+            fullpath = NULL;
+          }
+          else
+          {
+            e_set(E_ERROR, "Can't change existing directory permissions in safe mode. (%s)", sane_path);
+            goto extract_failed;
+          }
+        }
+        else
+        {
+          _debug("Directory already exists %s", sane_path);
+        }
+      }
+      else if (ex_type == SYS_SYM && ex_deref_type == SYS_DIR)
+      {
+        _warning("Directory already exists *behind the symlink* on filesystem. This may break upgrade/remove if you change that symlink in the future. (%s)", sane_path);
+      }
+      else if (ex_type == SYS_NONE)
+      {
+        _notice("Creating directory %s", sane_path);
+
+        if (!opts->dryrun)
+        {
+          if (untgz_write_file(tgz, fullpath))
+            goto extract_failed;
+        }
+
+        ta_keep_remove(fullpath, 1);
+        fullpath = NULL;
+      }
+      else /* create directory over file */
+      {
+        if (opts->safe)
+        {
+          e_set(E_ERROR, "Can't create directory over ordinary file. (%s)", sane_path);
+          goto extract_failed;
+        }
+        _notice("Creating directory over ordinary file (%s)", sane_path);
+        if (!opts->dryrun)
+        {
+          if (unlink(fullpath) < 0)
+          {
+            e_set(E_ERROR, "Couldn't remove file during upgrade. (%s)", sane_path);
+            goto extract_failed;
+          }
+          if (untgz_write_file(tgz, fullpath))
+            goto extract_failed;
+        }
+
+        ta_keep_remove(fullpath, 1);
+        fullpath = NULL;
+      }
+    }
+    break;
+    case UNTGZ_SYM: /* we have a symlink */
+    {
+#ifdef LEGACY_CHECKS
+      e_set(E_ERROR, "Symlink was found in the archive. (%s)", sane_path);
+      goto extract_failed;
+#else
+      _debug("Symlink detected: %s -> %s", sane_path, tgz->f_link);
+      if (ex_type == SYS_NONE)
+      {
+        ta_symlink_nothing(fullpath, g_strdup(tgz->f_link)); /* target is freed by db_free_pkg(), dup by taction finalize/rollback */
+        fullpath = NULL;
+      }
+      else
+      {
+        if (opts->safe)
+        {
+          e_set(E_ERROR, "Can't create symlink over existing %s. (%s)", ex_type == SYS_DIR ? "directory" : "file", sane_path);
+          goto extract_failed;
+        }
+        else
+        {
+          _warning("%s exists, where symlink should be created. It will be removed. (%s)", ex_type == SYS_DIR ? "Directory" : "File", sane_path);
+          ta_forcesymlink_nothing(fullpath, g_strdup(tgz->f_link));
+          fullpath = NULL;
+        }
+      }
+#endif
+    }
+    break;
+    case UNTGZ_LNK: /* we have a hardlink */
+    {
+      /* hardlinks are special beasts, most easy solution is to
+       * postpone hardlink creation into transaction finalization phase
+       */
+      gchar* linkpath = g_strdup_printf("%s%s", root, tgz->f_link);
+
+      /* check file we will be linking to (it should be a regular file) */
+      sys_ftype tgt_type = sys_file_type(linkpath, 0);
+      if (tgt_type == SYS_ERR)
+      {
+        e_set(E_ERROR, "Can't check hardlink target path. (%s)", linkpath);
+        g_free(linkpath);
+        goto extract_failed;
+      }
+      else if (tgt_type == SYS_REG)
+      {
+        _debug("Hardlink detected: %s -> %s", sane_path, tgz->f_link);
+
+        /* when creating hardlink, nothing must exist on created path */
+        if (ex_type == SYS_NONE)
+        {
+          ta_link_nothing(fullpath, linkpath); /* link path freed by ta_* */
+          fullpath = NULL;
+        }
+        else
+        {
+          /* If this path was not in the original package if upgrading.
+             This is always going to be the case if installing. */
+          if (orig_ptype == DB_PATH_NONE)
+          {
+            if (opts->safe)
+            {
+              e_set(E_ERROR, "Can't create hardlink over existing %s. (%s)", ex_type == SYS_DIR ? "directory" : "file", sane_path);
+              g_free(linkpath);
+              goto extract_failed;
+            }
+            _warning("%s exists, where hardlink should be created. It will be removed. (%s)", ex_type == SYS_DIR ? "Directory" : "File", sane_path);
+          }
+          ta_forcelink_nothing(fullpath, linkpath);
+          fullpath = NULL;
+        }
+      }
+      else
+      {
+        if (!opts->dryrun)
+        {
+          e_set(E_ERROR, "Hardlink target is NOT a regular file. (%s)", linkpath);
+          g_free(linkpath);
+          goto extract_failed;
+        }
+        g_free(linkpath);
+      }
+    }
+    break;
+    case UNTGZ_NONE: /* nothing? tar is broken */
+    {
+      e_set(E_ERROR, "Broken tar archive.");
+      goto extract_failed;
+    }
+    break;
+    default: /* ordinary file */
+    {
+      _notice("Installing file %s", sane_path);
+
+      if (ex_type == SYS_DIR)
+      {
+        /* target path is a directory, bad! */
+        if (opts->safe) {
+          e_set(E_ERROR, "Can't create file over existing directory. (%s)", sane_path);
+          goto extract_failed;
+        }
+
+        _notice("Creating ordinary file over directory (%s)", sane_path);
+        if (!opts->dryrun)
+        {
+          if (sys_rm_rf(fullpath) < 0)
+          {
+            e_set(E_ERROR, "Couldn't remove directory during upgrade. (%s)", sane_path);
+            goto extract_failed;
+          }
+          if (untgz_write_file(tgz, fullpath))
+            goto extract_failed;
+        }
+
+        ta_keep_remove(fullpath, 1);
+        fullpath = NULL;
+      }
+      else if (ex_type == SYS_NONE)
+      {
+        if (!opts->dryrun)
+        {
+          if (untgz_write_file(tgz, fullpath))
+            goto extract_failed;
+        }
+
+        ta_keep_remove(fullpath, 0);
+        fullpath = NULL;
+      }
+      else /* file already exist there */
+      {
+        if (do_upgrade)
+          _notice("Upgrading file %s", sane_path);
+        /* If this path was not in the original package if upgrading.
+           This is always going to be the case if installing. */
+        if (orig_ptype == DB_PATH_NONE)
+        {
+          if (opts->safe)
+          {
+            if (do_upgrade)
+              e_set(E_ERROR, "File already exist, but it was not installed by the upgraded package. (%s)", sane_path);
+            else
+              e_set(E_ERROR, "File already exist. (%s)", sane_path);
+            goto extract_failed;
+          }
+          if (do_upgrade)
+            _warning("File already exist, but it was not installed by the upgraded package. (%s)", sane_path);
+        }
+        if (!do_upgrade)
+          _warning("File already exist %s (it will be replaced)", sane_path);
+        sys_ftype tmp_type = sys_file_type(temppath, 0);
+        if (tmp_type == SYS_ERR)
+        {
+          e_set(E_ERROR, "Can't check temporary file path. (%s)", temppath);
+          goto extract_failed;
+        }
+        else if (tmp_type == SYS_DIR)
+        {
+          e_set(E_ERROR, "Temporary file path is used by a directory. (%s)", temppath);
+          goto extract_failed;
+        }
+        else if (tmp_type != SYS_NONE)
+        {
+          _warning("Temporary file already exists, removing %s", temppath);
+          if (!opts->dryrun)
+          {
+            if (unlink(temppath) < 0)
+            {
+              e_set(E_ERROR, "Can't remove temporary file %s. (%s)", temppath, strerror(errno));
+              goto extract_failed;
+            }
+          }
+        }
+
+        if (!opts->dryrun)
+        {
+          if (untgz_write_file(tgz, temppath))
+            goto extract_failed;
+        }
+
+        ta_move_remove(temppath, fullpath);
+        fullpath = temppath = NULL;
+      }
+    }
+    break;
+  }
+
+ done:
+  g_free(temppath);
+  g_free(fullpath);
+  return;
+ extract_failed:
+  e_set(E_ERROR, "Failed to extract file %s.", sane_path);
+  goto done;
 }

@@ -35,4 +35,9 @@ extern gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
                    const struct cmd_options* opts, struct error* e,
                    const gboolean do_upgrade, struct db_pkg* ipkg);
 
+extern void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
+                   const gchar* sane_path, const gchar* root,
+                   const struct cmd_options* opts, struct error* e,
+                   gboolean do_upgrade, struct db_pkg* ipkg);
+
 #endif // SPKG__CMD_COMMON_H
