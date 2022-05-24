@@ -55,7 +55,7 @@ AC_ARG_ENABLE(assume-broken-pkgdb,AC_HELP_STRING([--enable-assume-broken-pkgdb],
 [Compile with support for broken package databases that may contain
 non-normalized paths with multiple slashes. This doubles time necessary to load
 file database. To see if you need to enable this option, check paths in your
-package database with 'grep // /var/log/packages/*' command.]))
+package database with 'grep // /var/lib/pkgtools/packages/*' command.]))
 
 AM_CONDITIONAL(ENABLE_ASSUME_BROKEN_PKGDB, test "x$enable_assume_broken_pkgdb" = xyes)
 

@@ -36,8 +36,8 @@ struct db_state {
   gboolean filelist_loaded;
   gboolean readonly;
   gchar* topdir;
-  gchar* pkgdir; /* /var/log/packages/ */
-  gchar* scrdir; /* /var/log/scripts/ */
+  gchar* pkgdir; /* /var/lib/pkgtools/packages/ */
+  gchar* scrdir; /* /var/lib/pkgtools/scripts/ */
   struct error* err;
   void* paths;
   gint fd_lock;
