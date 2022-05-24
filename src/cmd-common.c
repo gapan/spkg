@@ -89,3 +89,22 @@ gboolean _unsafe_path(const gchar* path)
     return TRUE;
   return FALSE;
 }
+
+void _read_slackdesc(struct untgz_state* tgz, struct db_pkg* pkg)
+{
+  gchar *buf = NULL, *desc[MAX_SLACKDESC_LINES] = {0};
+  gsize len;
+  untgz_write_data(tgz, &buf, &len);
+  parse_slackdesc(buf, pkg->shortname, desc);
+  pkg->desc = gen_slackdesc(pkg->shortname, desc);
+  g_free(buf);
+
+  /* free description */
+  gint i;
+  for (i=0;i<MAX_SLACKDESC_LINES;i++)
+  {
+    _inform("| %s", desc[i] ? desc[i] : "");
+    g_free(desc[i]);
+  }
+}
+

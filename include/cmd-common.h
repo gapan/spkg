@@ -35,4 +35,6 @@ extern void _gtk_update_icon_cache(const gchar* root, const struct cmd_options* 
 
 extern gboolean _unsafe_path(const gchar* path);
 
+extern void _read_slackdesc(struct untgz_state* tgz, struct db_pkg* pkg);
+
 #endif // SPKG__CMD_COMMON_H

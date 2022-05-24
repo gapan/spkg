@@ -23,24 +23,6 @@
 
 #define e_set(n, fmt, args...) e_add(e, "install", __func__, n, fmt, ##args)
 
-static void _read_slackdesc(struct untgz_state* tgz, struct db_pkg* pkg)
-{
-  gchar *buf = NULL, *desc[MAX_SLACKDESC_LINES] = {0};
-  gsize len;
-  untgz_write_data(tgz, &buf, &len);
-  parse_slackdesc(buf, pkg->shortname, desc);
-  pkg->desc = gen_slackdesc(pkg->shortname, desc);
-  g_free(buf);
-
-  /* free description */
-  gint i;
-  for (i=0;i<MAX_SLACKDESC_LINES;i++)
-  {
-    _inform("| %s", desc[i] ? desc[i] : "");
-    g_free(desc[i]);
-  }  
-}
-
 static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
                             const gchar* root, const gchar* sane_path,
                             const struct cmd_options* opts, struct error* e)
