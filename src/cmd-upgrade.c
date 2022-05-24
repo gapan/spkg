@@ -26,9 +26,9 @@
 #define e_set(n, fmt, args...) e_add(e, "upgrade", __func__, n, fmt, ##args)
 
 static gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
-                   struct db_pkg* ipkg, const gchar* sane_path,
-                   const gchar* root, const struct cmd_options* opts,
-                   struct error* e)
+                   const gchar* root, const gchar* sane_path,
+                   const struct cmd_options* opts, struct error* e,
+                   struct db_pkg* ipkg)
 {
   gint has_doinst = 0;
   gchar* fullpath = g_strdup_printf("%s%s", root, sane_path);
@@ -805,7 +805,7 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
         e_set(E_ERROR, "Installation script is too big. (%ld kB)", tgz->f_size / 1024);
         goto err3;
       }
-      has_doinst = _read_doinst_sh(tgz, pkg, ipkg, sane_path, root, opts, e);
+      has_doinst = _read_doinst_sh(tgz, pkg, root, sane_path, opts, e, ipkg);
       if (!e_ok(e))
       {
         e_set(E_ERROR, "Installation script processing failed.");
