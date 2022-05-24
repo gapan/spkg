@@ -7,6 +7,8 @@
 
 #include "cmd-common.h"
 
+#define e_set(n, fmt, args...) e_add(e, "common", __func__, n, fmt, ##args)
+
 /* packages that can't be optimized, until they are fixed */
 
 /* Check for libc symlinks to libraries that are critical to running sh. If
@@ -14,6 +16,7 @@
  * run. Since these are recreated with ldconfig when the glibc-solibs package
  * is installed, it's same to leave them where they are
  */
+
 gboolean _check_libc_libs(const gchar* path)
 {
   if (strncmp(path, "lib/ld-linux.so", strlen("lib/ld-linux.so")) == 0 ||
@@ -108,3 +111,195 @@ void _read_slackdesc(struct untgz_state* tgz, struct db_pkg* pkg)
   }
 }
 
+gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
+                   const gchar* root, const gchar* sane_path,
+                   const struct cmd_options* opts, struct error* e,
+                   const gboolean do_upgrade, struct db_pkg* ipkg)
+{
+  gint has_doinst = 0;
+  gchar* fullpath = g_strdup_printf("%s%s", root, sane_path);
+
+  /* optimization disabled, just extract doinst script */
+  if (opts->no_optsyms || is_blacklisted(pkg->shortname, opts->bl_symopts))
+  {
+    _debug("Symlink optimization is disabled.");
+    if (opts->safe)
+    {
+      _warning("In safe mode, install script is not executed,"
+      " and with disabled optimized symlink creation, symlinks"
+      " will not be created.%s", is_blacklisted(pkg->shortname, opts->bl_symopts) ?
+      " Note that this package is blacklisted for optimized"
+      " symlink creation. This may change in the future as"
+      " better heuristics are developed for extracting symlink"
+      " creation code from install script." : "");
+    }
+    else
+    {
+      if (!opts->dryrun)
+      {
+        if (untgz_write_file(tgz, fullpath))
+        {
+          e_set(E_ERROR, "Failed to extract file %s.", sane_path);
+          goto err0;
+        }
+      }
+      has_doinst = 1;
+    }
+    goto done;
+  }
+
+  /* EXIT: free(fullpath) */
+
+  /* read doinst.sh into buffer */
+  gchar* buf;
+  gsize len;
+  if (untgz_write_data(tgz, &buf, &len))
+  {
+    e_set(E_ERROR, "Failed to read post-installation script into buffer.");
+    goto err0;
+  }
+
+  /* EXIT: free(fullpath), free(buf) */
+
+  _debug("Extracting symlinks from the post-installation script...");
+      
+  /* optimize out symlinks creation from doinst.sh */
+  GSList *doinst = NULL;
+  gsize doinst_len = 0;
+  gchar *b, *end, *ln = NULL, *n = buf, *sane_link_path = NULL,
+        *link_target = NULL, *link_fullpath = NULL;
+  while(iter_str_lines(&b, &end, &n, &ln))
+  { /* for each line */
+    gchar *link_dir, *link_name;
+
+    /* EXIT: free(fullpath), free(buf), free(ln) */
+
+    /* create link line */
+    if (parse_createlink(ln, &link_dir, &link_name, &link_target))
+    {
+      struct stat ex_stat;
+      gchar* link_path = g_strdup_printf("%s/%s", link_dir, link_name);
+      sane_link_path = path_simplify(link_path);
+      link_fullpath = g_strdup_printf("%s%s", root, sane_link_path);
+      g_free(link_dir);
+      g_free(link_name);
+      g_free(link_path);
+      
+      /* EXIT: free(fullpath), free(buf), free(ln), free(link_target),
+         free(sane_link_path), free(link_fullpath) */
+
+      /* link path checks (be careful here) */
+      if (_unsafe_path(sane_link_path))
+      {
+        e_set(E_ERROR, "Package contains symlink with unsafe path. (%s)", sane_link_path);
+        goto parse_failed;
+      }
+
+      /* treat an install just as an upgrade where the file didn't exist */
+      db_path_type orig_ptype = DB_PATH_NONE;
+      if (do_upgrade)
+      {
+        orig_ptype = db_pkg_get_path(ipkg, sane_link_path);
+      }
+
+      _debug("Symlink detected: %s -> %s", sane_link_path, link_target);
+      if (db_pkg_add_path(pkg, sane_link_path, DB_PATH_SYMLINK))
+      {
+        e_set(E_ERROR, "Can't add path to the package, it's too long. (%s)", sane_link_path);
+        goto parse_failed;
+      }
+      sys_ftype ex_type = sys_file_type_stat(link_fullpath, 0, &ex_stat);
+
+      if (ex_type == SYS_ERR)
+      {
+        e_set(E_ERROR, "Can't check path for symlink. (%s)", sane_link_path);
+        goto parse_failed;
+      }
+      else if (ex_type == SYS_NONE)
+      {
+        ta_symlink_nothing(link_fullpath, g_strdup(link_target)); /* target is freed by db_free_pkg(), dup by taction finalize/rollback */
+        link_fullpath = NULL;
+      }
+      else
+      {
+        /* If this path was not in the original package if upgrading.
+           This is always going to be the case if installing. */
+        if (orig_ptype == DB_PATH_NONE)
+        {
+          if (opts->safe)
+          {
+            e_set(E_ERROR, "Can't create symlink over existing %s. (%s)", ex_type == SYS_DIR ? "directory" : "file", sane_link_path);
+            goto parse_failed;
+          }
+          _warning("%s exists, where symlink should be created. It will be removed. (%s)", ex_type == SYS_DIR ? "Directory" : "File", sane_link_path);
+        }
+        ta_forcesymlink_nothing(link_fullpath, g_strdup(link_target));
+        link_fullpath = NULL;
+      }
+
+      g_free(link_fullpath);
+      g_free(sane_link_path);
+    }
+    /* if this is not 'delete old file' line... */
+    else if (!parse_cleanuplink(ln))
+    {
+      /* ...append it to doinst buffer */
+      doinst = g_slist_prepend(doinst, ln);
+      doinst_len += end - b + 1; /* line len + eol */
+      ln = NULL; /* will be freed later */
+    }
+
+    g_free(ln);
+  } /* iter_lines */
+
+  /* EXIT: free(fullpath), free(buf), free(doinst) */
+
+  /* we always store full doinst.sh in database (buf freed by db_free_pkg()) */
+  pkg->doinst = buf;
+
+  /* EXIT: free(fullpath), free(doinst) */
+
+  /* write stripped down version of doinst.sh to a file */
+  if (doinst != NULL)
+  {
+    _debug("Saving optimized post-installation script...");
+
+    if (!opts->dryrun)
+    {
+      gchar* doinst_buf = g_malloc(doinst_len*2);
+      gchar* doinst_buf_ptr = doinst_buf;
+      doinst = g_slist_reverse(doinst);
+      GSList* i;
+      for (i = doinst; i != 0; i = i->next)
+      {
+        strcpy(doinst_buf_ptr, i->data);
+        doinst_buf_ptr += strlen(i->data);
+        *doinst_buf_ptr = '\n';
+        doinst_buf_ptr++;
+      }
+      if (sys_write_buffer_to_file(fullpath, doinst_buf, doinst_len, e))
+      {
+        e_set(E_ERROR, "Can't write buffer to file %s.", sane_path);
+        g_free(doinst_buf);
+        g_slist_foreach(doinst, (GFunc)g_free, 0);
+        g_slist_free(doinst);
+        goto err0;
+      }
+      g_free(doinst_buf);
+    }
+    g_slist_foreach(doinst, (GFunc)g_free, 0);
+    g_slist_free(doinst);
+    has_doinst = 1;
+  }
+
+ done:  
+ err0:
+  g_free(fullpath);
+  return has_doinst;
+ parse_failed:
+  g_free(link_target);
+  g_free(link_fullpath);
+  g_free(sane_link_path);
+  g_free(ln);
+  goto err0;
+}
