@@ -30,6 +30,7 @@ SPKG_LIB_SRC = \
 	taction.c \
 	sigtrap.c \
 	message.c \
+	cmd-common.c \
 	cmd-install.c \
 	cmd-remove.c \
 	cmd-upgrade.c \
