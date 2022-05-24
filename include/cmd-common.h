@@ -20,13 +20,6 @@
 #include "misc.h"
 #include "cmd-private.h"
 
-/* packages that can't be optimized, until they are fixed */
-
-/* Check for libc symlinks to libraries that are critical to running sh. If
- * these symlinks are removed, doinst fails to run, because sh (bash) fails to
- * run. Since these are recreated with ldconfig when the glibc-solibs package
- * is installed, it's same to leave them where they are
- */
 extern gboolean _check_libc_libs(const gchar* path);
 
 extern void _run_ldconfig(const gchar* root, const struct cmd_options* opts);
