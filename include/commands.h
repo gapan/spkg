@@ -28,6 +28,7 @@ struct cmd_options {
   gchar* root;         /**< Root directory. */
   gboolean safe;       /**< Play it safe (i.e. don't replace existing files). */
   gboolean force;      /**< Play it hard (force install,...). */
+  gboolean purge;      /**< Purge remnants of .new configuration files */
   gboolean dryrun;     /**< Don't touch filesystem. */
   gint verbosity;      /**< Verbosity level. */
   gboolean no_scripts; /**< Turn off scripts (doinst.sh) execution. */

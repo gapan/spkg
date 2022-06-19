@@ -21,6 +21,57 @@
 
 #define e_set(n, fmt, args...) e_add(e, "remove", __func__, n, fmt, ##args)
 
+/* purge configuration files from the system. Processed configuration files
+ * have their .new suffix removed and don't appear in the package list. So,
+ * remove the .new suffix and try to remove that file */
+static void _purge(gchar* root, gchar* path)
+{
+  gint path_len = strlen(path);
+  /* only run this for .new files  */
+  if (path_len > 4 && !strcmp(path + path_len - 4, ".new"))
+  {
+    /* strip the .new suffix */
+    gchar* path_processed = g_strdup_printf("%.*s", path_len - 4, path);
+    gchar* fullpath = g_strdup_printf("%s%s", root, path_processed);
+
+    struct stat st;
+    sys_ftype type = sys_file_type_stat(fullpath, 0, &st);
+    if (type == SYS_ERR)
+    {
+      _warning("File type check failed, assuming file does not exist. (%s)", path_processed);
+      type = SYS_NONE;
+    }
+    /* Since this is a processed configuration file, it will not appear in the
+     * current package's list. But if it appears in another package's list,
+     * then it should not be removed. */
+    gint refs = db_filelist_get_path_refs(path_processed);
+    if (refs > 0)
+    {
+      _notice("Not purging file %s (used by another package)", path_processed);
+    }
+    else
+    {
+      /* OK, let's go on to remove it */
+      if (type == SYS_DIR)
+      {
+        _warning("Expecting file, but getting directory. (%s)", path_processed);
+      }
+      else if (type == SYS_NONE)
+      {
+        _warning("File was already removed. (%s)", path_processed);
+      }
+      else
+      {
+        _notice("Purging file %s", path_processed);
+        if (unlink(fullpath) < 0)
+          _warning("Can't purge file %s. (%s)", path_processed, strerror(errno));
+      }
+    }
+    g_free(path_processed);
+    g_free(fullpath);
+  }
+}
+
 /* public 
  ************************************************************************/
 
@@ -112,6 +163,8 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
       else if (type == SYS_NONE)
       {
         _warning("File was already removed. (%s)", path);
+        if (opts->purge)
+          _purge(root, path);
       }
       else
       {
@@ -126,6 +179,8 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
         {
           if (unlink(fullpath) < 0)
             _warning("Can't remove file %s. (%s)", path, strerror(errno));
+          if (opts->purge)
+            _purge(root, path);
         }
       }
     }

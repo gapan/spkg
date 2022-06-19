@@ -59,6 +59,7 @@ static gchar* default_bl_symopts[] = {
 
 static struct cmd_options cmd_opts = {
   .root = "/",
+  .purge = 0,
   .dryrun = 0,
   .verbosity = 2,
   .safe = 0,
@@ -89,6 +90,11 @@ static struct poptOption optsOptions[] = {
 {
   "force", 'f', 0, &cmd_opts.force, 0,
   "Force installation even if package is already installed.",
+  NULL
+},
+{
+  "purge", 'p', 0, &cmd_opts.purge, 0,
+  "When removing a package, purge configuration files from the system.",
   NULL
 },
 {
