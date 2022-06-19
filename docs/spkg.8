@@ -1,4 +1,4 @@
-.TH SPKG 8 "May 2022" "spkg"
+.TH SPKG 8 "June 2022" "spkg"
 .SH NAME
 spkg \- The Unofficial \fISlackware Linux\fR Package Manager
 .SH SYNOPSIS
@@ -59,6 +59,14 @@ Decrease verbosity level. Default is to show info
 messages and warnings. This option disables warnings
 when used once. When used twice it will completely
 disable output except for error messages.
+.TP
+\fB-p\fR | \fB--purge\fR
+When removing a package, purge configuration files from the system.
+Configuration files usually come with a ".new" suffix. When they are
+processed during installation, the ".new" suffix is removed. The
+processed files are not included in the package lists. By using this
+option, the processed configuration files are also removed from the
+system.
 .TP
 \fB-n\fR | \fB--dry-run\fR
 Don't modify filesystem or database. This may be useful when used along
