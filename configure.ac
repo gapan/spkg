@@ -1,5 +1,5 @@
 AC_PREREQ([2.68])
-AC_INIT([spkg], [1.7], [vlahavas@gmail.com])
+AC_INIT([spkg], [1.8], [vlahavas@gmail.com])
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
