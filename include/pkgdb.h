@@ -45,6 +45,10 @@ G_BEGIN_DECLS
 #define MAXPATHLEN 8192 /**< Maximum length of the path. */
 #endif
 
+#ifndef DOINSTSH_MAX_SIZE
+#define DOINSTSH_MAX_SIZE 32*1024*1024 /**< Maximum doinst.sh size (32M - should be enough) */
+#endif
+
 /** What to get when getting package from database. */
 typedef enum {
   DB_GET_FULL,         /**< get everything */

@@ -861,7 +861,7 @@ struct db_pkg* db_get_pkg(gchar* name, db_get_type type)
 
   fseek(fs, 0, SEEK_END);
   guint script_size = ftell(fs);
-  if (script_size > 4*1024*1024)
+  if (script_size > DOINSTSH_MAX_SIZE)
   {
     e_set(E_ERROR, "Script file is too big %s. (%u kB)", p->name, script_size / 1024);
     goto err_1;
