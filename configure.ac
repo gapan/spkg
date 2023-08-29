@@ -11,6 +11,7 @@ AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
+AC_PROG_RANLIB
 
 # Checks for libraries.
 AC_CHECK_LIB(Judy, [Judy1Next], [true], AC_MSG_ERROR([spkg requires Judy: http://judy.sf.net]))
