@@ -40,20 +40,15 @@ The license is Public Domain Software. See COPYING file.
 
 Download
 ----------
-* https://github.com/megous/spkg/releases
-* Zip: https://github.com/megous/spkg/zipball/master
-* tAr.GZ: https://github.com/megous/spkg/tarball/master
-* git http: git clone https://github.com/megous/spkg.git
-* git: git://github.com/megous/spkg.git
-
-Help/Wiki
-----------
-* http://spkg.megous.com/docs.php
-* http://spkg.megous.com/howto.php
+* https://github.com/gapan/spkg/releases
+* Zip: https://github.com/gapan/spkg/zipball/master
+* tAr.GZ: https://github.com/gapan/spkg/tarball/master
+* git http: git clone https://github.com/gapan/spkg.git
+* git: git://github.com/gapan/spkg.git
 
 Issues/Feedbacks
 ----------
-* https://github.com/megous/spkg/issues
+* https://github.com/gapan/spkg/issues
 * vlahavas~at~gmail~dot~com
 
 Contribution
