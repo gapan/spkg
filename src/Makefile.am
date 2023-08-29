@@ -1,7 +1,3 @@
-if WINDOWS
-SUBDIRS = win32
-endif
-
 AM_CFLAGS = \
 	-I$(top_srcdir)/include \
 	$(GLIB_CFLAGS) \
@@ -39,11 +35,7 @@ SPKG_LIB_SRC = \
 # Library build reciepe
 libspkg_a_SOURCES = $(SPKG_LIB_SRC)
 spkg_SOURCES = main.c
-if WINDOWS
-spkg_LDADD = libspkg.a win32/libwin32.a -lpopt $(GLIB_LIBS) -lJudy -lz
-else
 spkg_LDADD = libspkg.a -lpopt $(GLIB_LIBS) -lJudy -lz
-endif
 
 # Build only static spkg as spkg
 if STATIC_SPKG_ONLY

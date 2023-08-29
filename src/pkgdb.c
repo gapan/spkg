@@ -24,10 +24,6 @@
 #include "pkgdb.h"
 #include "bench.h"
 
-#ifdef __WIN32__
-extern int posix_utime (const char *path, struct utimbuf *buf);
-#endif
-
 /* private 
  ************************************************************************/
 
@@ -497,9 +493,7 @@ static gint _db_add_pkg(struct db_pkg* pkg, gchar* origname)
     e_set(E_FATAL, "Can't open package file %s. (%s)", ppath_tmp, strerror(errno));
     goto err_1;
   }
-#ifndef __WIN32__  
   fchmod(fileno(pf), 0644);
-#endif
 
   char* csize_fmt = _size_fmt(pkg->csize);
   char* usize_fmt = _size_fmt(pkg->usize);
@@ -548,11 +542,7 @@ static gint _db_add_pkg(struct db_pkg* pkg, gchar* origname)
 
   /* change mtime */
   struct utimbuf dt = { pkg->time, pkg->time };
-#ifdef __WIN32__
-  if (posix_utime(ppath_tmp, &dt) == -1)
-#else
   if (utime(ppath_tmp, &dt) == -1)
-#endif
   {
     e_set(E_ERROR, "Can't utime package entry %s. (%s)", ppath_tmp, strerror(errno));
     goto err_1;
@@ -567,9 +557,7 @@ static gint _db_add_pkg(struct db_pkg* pkg, gchar* origname)
       e_set(E_FATAL, "Can't open script file %s. (%s)", spath_tmp, strerror(errno));
       goto err_1;
     }
-#ifndef __WIN32__  
     fchmod(fileno(sf), 0755);
-#endif   
     if (fprintf(sf, "%s", pkg->doinst) < 0)
     {
       e_set(E_FATAL, "Can't write into script file %s. (%s)", spath_tmp, strerror(errno));
@@ -589,10 +577,6 @@ static gint _db_add_pkg(struct db_pkg* pkg, gchar* origname)
   }
 
   /* finally put package and script files into place */
-#ifdef __WIN32__
-  if (access(ppath, 0) == 0) 
-    remove(ppath);
-#endif      
   if (rename(ppath_tmp, ppath) < 0)
   {
     e_set(E_FATAL, "Can't finalize package database update. Rename failed %s. You'll need to fix package database by hand. (%s)", ppath_tmp, strerror(errno));
@@ -601,10 +585,6 @@ static gint _db_add_pkg(struct db_pkg* pkg, gchar* origname)
 
   if (pkg->doinst)
   {
-#ifdef __WIN32__
-    if (access(spath, 0) == 0) 
-      remove(spath);
-#endif      
     if (rename(spath_tmp, spath) < 0)
     {
       e_set(E_FATAL, "Can't finalize package database update. Rename failed %s. You'll need to fix package database by hand. (%s)", spath_tmp, strerror(errno));
@@ -896,11 +876,7 @@ static gchar* _get_date()
   static gchar buf[100];
   time_t t = time(NULL);
   struct tm* ts = localtime(&t);
-#ifdef __WIN32__
-  strftime(buf, sizeof(buf), "%F-%T", ts);
-#else 
   strftime(buf, sizeof(buf), "%F,%T", ts);
-#endif  
   return buf;
 }
 
@@ -937,10 +913,6 @@ gint db_rem_pkg(gchar* name)
     e_set(E_ERROR|DB_NOTEX, "Package is not in the database. (%s)", name);
     goto err_1;
   }
-#ifdef __WIN32__
-  if (access(rp, 0) == 0) 
-    remove(rp);
-#endif      
   if (rename(p, rp) < 0)
   {
     e_set(E_ERROR, "Package file removal failed. (%s)", strerror(errno));
@@ -948,10 +920,6 @@ gint db_rem_pkg(gchar* name)
   }
   if (sys_file_type(s, 1) == SYS_REG)
   {
-#ifdef __WIN32__
-    if (access(rs, 0) == 0) 
-      remove(rs);
-#endif      
     if (rename(s, rs) < 0)
     {
       e_set(E_ERROR, "Script file removal failed. (%s)", strerror(errno));

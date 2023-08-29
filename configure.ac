@@ -42,9 +42,6 @@ AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS([getdelim memset mkdir mkfifo putenv rmdir strchr strerror utime])
 
-# Libtool
-LT_INIT([win32-dll])
-
 # Automake
 AM_INIT_AUTOMAKE([dist-bzip2])
 AM_MAINTAINER_MODE
@@ -76,14 +73,10 @@ AC_ARG_ENABLE(legacy,
 
 AM_CONDITIONAL([LEGACY_CHECKS],[test x$legacy_checks = xyes])
 
-# Windows
-AM_CONDITIONAL(WINDOWS, test "x$version_type" = xwindows)
-
 # Output
 AC_CONFIG_FILES([
     Makefile
     src/Makefile
-    src/win32/Makefile
     include/Makefile
     docs/Makefile
     tests/Makefile

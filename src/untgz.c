@@ -16,12 +16,6 @@
 #include "untgz.h"
 #include "sys.h"
 
-#ifdef __WIN32__
-#include <windows.h>
-extern int posix_utime (const char *path, struct utimbuf *buf);
-extern int link(const char *existing, const char *newfile);
-#endif
-
 /* Enable or disable parent directory modification and access times 
    preservation. */
 #define UNTGZ_PRESERVE_DIR_TIMES 0
@@ -647,15 +641,11 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
       break;
     }
     case UNTGZ_SYM:
-#ifndef __WIN32__  
       if (symlink(s->f_link, path) == -1)
-#endif			
         e_throw(E_ERROR|UNTGZ_BADIO, "can't create symlink: %s", strerror(errno));
       break;
     case UNTGZ_FIFO:
-#ifndef __WIN32__  
       if (mkfifo(path, s->f_mode) == -1)
-#endif			
         e_throw(E_ERROR|UNTGZ_BADIO, "can't create fifo: %s", strerror(errno));
       break;
     case UNTGZ_LNK:
@@ -664,27 +654,19 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
         e_throw(E_ERROR|UNTGZ_BADIO, "can't create hardlink: %s", strerror(errno));
       break;
     case UNTGZ_CHR:
-#ifndef __WIN32__		 
 		if (mknod(path, S_IFCHR, (dev_t)((((s->f_devmaj & 0xFF) 
             << 8) & 0xFF00) | (s->f_devmin & 0xFF))) == -1)
-#endif		
         e_throw(E_ERROR|UNTGZ_BADIO, "can't create chrdev: %s", strerror(errno));
       break;
     case UNTGZ_BLK:
-#ifndef __WIN32__  
       if (mknod(path, S_IFBLK, (dev_t)((((s->f_devmaj & 0xFF) 
             << 8) & 0xFF00) | (s->f_devmin & 0xFF))) == -1)
-#endif		
         e_throw(E_ERROR|UNTGZ_BADIO, "can't create blkdev: %s", strerror(errno));
       break;
     case UNTGZ_DIR:
       /* because of the way tar stores directories, there 
          is no need to have mkdir_r here */
-#ifdef __WIN32__	 
-      if (mkdir(path) == -1 && errno != EEXIST)
-#else			
       if (mkdir(path, 0700) == -1 && errno != EEXIST)
-#endif			
         e_throw(E_ERROR|UNTGZ_BADIO, "can't create directory: %s", strerror(errno));
       break;
     default:
@@ -692,28 +674,18 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
       break;
   }
 
-#ifndef __WIN32__  
   if (chown(path, s->f_uid, s->f_gid) == -1)
     e_throw(E_ERROR|UNTGZ_BADMETA, "can't chown file: %s", strerror(errno));
-#endif  
   if (chmod(path, s->f_mode) == -1)
     e_throw(E_ERROR|UNTGZ_BADMETA, "can't chmod file: %s", strerror(errno));
   t.actime = t.modtime = s->f_mtime;  
-#ifdef __WIN32__
-  if (posix_utime(path, &t) == -1)
-#else
   if (utime(path, &t) == -1)
-#endif     
   {
     e_throw(E_ERROR|UNTGZ_BADMETA, "can't utime file: %s", strerror(errno));
   }
 
 #if UNTGZ_PRESERVE_DIR_TIMES == 1
-#ifdef __WIN32__
-  if (posix_utime(dpath, &dt) == -1)
-#else
   if (utime(dpath, &dt) == -1)
-#endif     
     e_throw(E_ERROR|UNTGZ_BADMETA, "can't utime parent directory: %s", strerror(errno));
   g_free(dpath_tmp);
 #endif

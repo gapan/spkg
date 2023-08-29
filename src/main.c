@@ -184,11 +184,7 @@ POPT_TABLEEND
 
 gboolean is_root()
 {
-#ifndef __WIN32__
   return getuid() == 0;
-#else
-  return 1;
-#endif  
 }
 
 int main(const int ac, const char* av[])
@@ -205,12 +201,7 @@ int main(const int ac, const char* av[])
 
   err = e_new();
   /* check if we have enough privileges */
-#ifndef __WIN32__
   unsetenv("LD_LIBRARY_PATH");
-#else
-  putenv("LD_LIBRARY_PATH");
-  putenv("LD_LIBRARY_PATH=");
-#endif  
 
   /* load blacklists from SPKG_CONFDIR */
   gchar** bl_symopts = load_blacklist(SPKG_CONFDIR "/symopts_blacklist");
