@@ -32,6 +32,6 @@ The license is Public Domain Software. See COPYING file.
 
 ## Credits
 
-Current Maintainer: George Vlahavas <vlahavas~at~gmail~dot~com>
-Original Author: Ondrej Jirman <megous@megous.com>
+* Current Maintainer: George Vlahavas (gapan)
+* Original Author: Ondrej Jirman (megous)
 
