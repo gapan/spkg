@@ -1,7 +1,7 @@
 // vim:et:sta:sts=2:sw=2:ts=2:tw=79:
 /*----------------------------------------------------------------------*\
 |* spkg - The Unofficial Slackware Linux Package Manager                *|
-|*                                      designed by Ondøej Jirman, 2005 *|
+|*                                      designed by OndÃ¸ej Jirman, 2005 *|
 |*----------------------------------------------------------------------*|
 |*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
@@ -15,6 +15,7 @@
 #include "sys.h"
 #include "path.h"
 #include "cmd-private.h"
+#include "cmd-common.h"
 
 /* private
  ************************************************************************/
@@ -86,11 +87,13 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
   /*
    - load package from db
    - load list of all installed paths
+   - copies the douninst.sh script (if it exists) to /var/tmp/spkg
    - remove files that has ref == 1
    - remove symlinks that has ref == 1
    - remove dirs that has ref == 1
    - update list of all installed files
    - update package database: remove package desc
+   - run the douninst.sh script
   */
 
   msg_setup(opts->verbosity);
@@ -124,9 +127,12 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
 
   _safe_breaking_point(err2);
 
-  _debug("Removing files...");
-
   gchar* root = sanitize_root_path(opts->root);
+
+  /* copy the douninst.sh script to /var/tmp/spkg/ */
+  _copy_douninst_sh(real_pkgname, opts, root);
+
+  _debug("Removing files...");
 
   gint* ptype;
   strcpy(path, "");
@@ -307,8 +313,6 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
     JSLP(ptype, pkg->paths, path);
   }
 
-  g_free(root);
-
   _debug("Removing package files from the list of all installed files...");
   db_filelist_rem_pkg_paths(pkg);
 
@@ -321,6 +325,13 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
       goto err2;
     }
   }
+
+  /* Run the douninst.sh script */
+  _debug("Running douninst.sh script...");
+
+  _run_douninst_sh(real_pkgname, opts, root);
+
+  g_free(root);
 
   _debug("Removal finished!");
 

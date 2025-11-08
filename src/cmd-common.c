@@ -617,3 +617,138 @@ void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
   e_set(E_ERROR, "Failed to extract file %s.", sane_path);
   goto done;
 }
+
+/* This just copies a file from src to dest */
+gboolean _copy_file(const gchar *src, const gchar *dest) {
+    FILE *source, *destination;
+    gchar buffer[4096];
+    gsize bytes;
+
+    /* Open source file */
+    source = fopen(src, "rb");
+    if (source == NULL) {
+        _warning("Error reading douninst.sh script: %s\n", src);
+        return FALSE;
+    }
+
+    /* Open destination file */
+    destination = fopen(dest, "wb");
+    if (destination == NULL) {
+        _warning("Error opening douninst.sh script for writing: %s\n", dest);
+        fclose(source);
+        return FALSE;
+    }
+
+    /* Copy data in chunks */
+    while ((bytes = fread(buffer, 1, sizeof(buffer), source)) > 0) {
+        if (fwrite(buffer, 1, bytes, destination) != bytes) {
+            _warning("Error writing to destination file: %s\n", dest);
+            fclose(source);
+            fclose(destination);
+            return FALSE;
+        }
+    }
+
+    /* Check for read errors */
+    if (ferror(source)) {
+        _warning("Error reading source file: %s\n", src);
+        fclose(source);
+        fclose(destination);
+        return FALSE;
+    }
+
+    fclose(source);
+    fclose(destination);
+    return TRUE;
+}
+
+
+/* Copy the douninst.sh script to /var/tmp/spkg/ */
+void _copy_douninst_sh(const gchar* pkgname, const struct cmd_options* opts, const gchar* root)
+{
+  gchar src_path[MAXPATHLEN];
+  gchar dest_path[MAXPATHLEN];
+
+  snprintf(src_path, sizeof(src_path), "%s/var/lib/pkgtools/douninst.sh/%s", root, pkgname);
+  snprintf(dest_path, sizeof(dest_path), "%s/var/tmp/spkg/%s", root, pkgname);
+
+  struct stat st;
+  if (stat(src_path, &st) == 0 && S_ISREG(st.st_mode))
+  {
+    if (!opts->no_scripts)
+    {
+      /* Create the destination directory if it doesn't exist */
+      gchar* dir_path = g_path_get_dirname(dest_path);
+      if (g_mkdir_with_parents(dir_path, 0755) != 0) {
+        _warning("Failed to create directory for moving douninst.sh script: %s", dir_path);
+        g_free(dir_path);
+        return;
+      }
+      g_free(dir_path);
+
+      /* Copy the script */
+      if (!_copy_file(src_path, dest_path)) {
+        _warning("Failed to copy douninst.sh script from %s to %s", src_path, dest_path);
+      }
+    }
+    else
+    {
+      _notice("Skipping moving douninst.sh script as --no-scripts is specified");
+    }
+  }
+  else
+  {
+    _notice("douninst.sh script not found for package %s", pkgname);
+  }
+}
+
+/* Run the douninst.sh script for the package */
+void _run_douninst_sh(const gchar* pkgname, const struct cmd_options* opts, const gchar* root)
+{
+  gchar script_path[MAXPATHLEN];
+  snprintf(script_path, sizeof(script_path), "%s/var/tmp/spkg/%s", root, pkgname);
+
+  struct stat st;
+  if (stat(script_path, &st) == 0 && S_ISREG(st.st_mode))
+  {
+    if (!opts->no_scripts)
+    {
+      gchar* cmd = g_strdup_printf("sh %s", script_path);
+      int result = system(cmd);
+      /* douninst.sh script was executed succesfully, so move it to removed_uninstall_scripts */
+      if (result == 0)
+      {
+        gchar dest_path[MAXPATHLEN];
+        snprintf(dest_path, sizeof(dest_path), "%s/var/lib/pkgtools/removed_uninstall_scripts", root);
+        /* Check if the destination directory exists, and create it if it doesn't */
+        if (stat(dest_path, &st) != 0 || !S_ISDIR(st.st_mode))
+        {
+          if (mkdir(dest_path, 0755) != 0 && errno != EEXIST)
+          {
+            _warning("Could not create directory %s", dest_path);
+            g_free(cmd);
+            return;
+          }
+        }
+        snprintf(dest_path, sizeof(dest_path), "%s/var/lib/pkgtools/removed_uninstall_scripts/%s", root, pkgname);
+        if (rename(script_path, dest_path) != 0)
+        {
+          _warning("Could not move %s script to %s.", script_path, dest_path);
+        }
+      }
+      else
+      {
+        _warning("douninst.sh script execution failed with status %d", result);
+      }
+      g_free(cmd);
+    }
+    else
+    {
+      _notice("Skipping douninst.sh script execution as --no-scripts is specified");
+    }
+  }
+  else
+  {
+    _notice("douninst.sh script not found for package %s", pkgname);
+  }
+}

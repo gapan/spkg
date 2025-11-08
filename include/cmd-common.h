@@ -11,6 +11,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <stdio.h>
+#include <glib.h>
 
 #include "misc.h"
 #include "path.h"
@@ -39,5 +41,11 @@ extern void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
                    const gchar* sane_path, const gchar* root,
                    const struct cmd_options* opts, struct error* e,
                    gboolean do_upgrade, struct db_pkg* ipkg);
+
+extern void _copy_douninst_sh(const gchar* pkgname, const struct cmd_options* opts,
+                   const gchar* root);
+
+extern void _run_douninst_sh(const gchar* pkgname, const struct cmd_options* opts,
+                   const gchar* root);
 
 #endif // SPKG__CMD_COMMON_H
