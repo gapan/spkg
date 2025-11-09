@@ -135,6 +135,7 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
    - load global filelist
    - open package tgz file
    - initialize transaction
+   - copy the douninst.sh script (if it exists) to /var/tmp/spkg
    - prepare empty db_pkg object for newly installed package
    - for each file in the package:
      - sanitize path
@@ -142,6 +143,7 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
      - extract file
    - build delete after upgrade list of files and put them into transaction
    - update package database: remove old package desc, install new package desc
+   - run the douninst.sh script
    - finish transaction
    - close package file
    - run doinst.sh
@@ -209,7 +211,6 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
     g_free(installed_pkgname);
     goto err1;
   }
-  g_free(installed_pkgname);
 
   /* EXIT: free(name), free(shortname), db_free_pkg(ipkg) */
 
@@ -250,6 +251,9 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
   gboolean has_doinst = 0;
   gchar* sane_path = NULL;
   gchar* root = sanitize_root_path(opts->root);
+
+  /* copy the douninst.sh script to /var/tmp/spkg/ */
+  _copy_douninst_sh(installed_pkgname, opts, root);
 
   /* EXIT: free(name), free(shortname), untgz_close(tgz),
      ta_finalize/rollback(), free(root), db_free_pkg(pkg),
@@ -369,6 +373,12 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
   /* update filelist */
   db_filelist_rem_pkg_paths(ipkg);
   db_filelist_add_pkg_paths(pkg);
+
+  /* Run the douninst.sh script */
+  _debug("Running douninst.sh script for previous package...");
+  _run_douninst_sh(installed_pkgname, opts, root);
+
+  g_free(installed_pkgname);
 
   /* finalize transaction */
   _debug("Finalizing transaction...");
