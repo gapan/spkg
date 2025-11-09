@@ -706,20 +706,22 @@ void _copy_douninst_sh(const gchar* pkgname, const struct cmd_options* opts, con
 void _run_douninst_sh(const gchar* pkgname, const struct cmd_options* opts, const gchar* root)
 {
   gchar script_path[MAXPATHLEN];
-  snprintf(script_path, sizeof(script_path), "%s/var/tmp/spkg/%s", root, pkgname);
+  gchar script_path_with_root[MAXPATHLEN];
+  snprintf(script_path, sizeof(script_path), "var/tmp/spkg/%s", pkgname);
+  snprintf(script_path_with_root, sizeof(script_path_with_root), "%svar/tmp/spkg/%s", root, pkgname);
 
   struct stat st;
-  if (stat(script_path, &st) == 0 && S_ISREG(st.st_mode))
+  if (stat(script_path_with_root, &st) == 0 && S_ISREG(st.st_mode))
   {
     if (!opts->no_scripts)
     {
-      gchar* cmd = g_strdup_printf("sh %s", script_path);
+      gchar* cmd = g_strdup_printf("cd %s && sh %s", root, script_path);
       int result = system(cmd);
       /* douninst.sh script was executed succesfully, so move it to removed_uninstall_scripts */
       if (result == 0)
       {
         gchar dest_path[MAXPATHLEN];
-        snprintf(dest_path, sizeof(dest_path), "%s/var/lib/pkgtools/removed_uninstall_scripts", root);
+        snprintf(dest_path, sizeof(dest_path), "%svar/log/pkgtools/removed_uninstall_scripts", root);
         /* Check if the destination directory exists, and create it if it doesn't */
         if (stat(dest_path, &st) != 0 || !S_ISDIR(st.st_mode))
         {
@@ -730,10 +732,10 @@ void _run_douninst_sh(const gchar* pkgname, const struct cmd_options* opts, cons
             return;
           }
         }
-        snprintf(dest_path, sizeof(dest_path), "%s/var/lib/pkgtools/removed_uninstall_scripts/%s", root, pkgname);
-        if (rename(script_path, dest_path) != 0)
+        snprintf(dest_path, sizeof(dest_path), "%svar/log/pkgtools/removed_uninstall_scripts/%s", root, pkgname);
+        if (rename(script_path_with_root, dest_path) != 0)
         {
-          _warning("Could not move %s script to %s.", script_path, dest_path);
+          _warning("Could not move %s script to %s.", script_path_with_root, dest_path);
         }
       }
       else
