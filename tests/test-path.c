@@ -65,7 +65,7 @@ int main(int ac, char* av[])
   sanitize_root_test(NULL, "/");
   sanitize_root_test("/", "/");
   sanitize_root_test("//", "/");
-  sanitize_root_test("", "");
+  sanitize_root_test("", "/");  /* ROOT= means ROOT=/ (19c6014) */
   sanitize_root_test("./", "");
   sanitize_root_test("./bob", "bob/");
   sanitize_root_test("bob", "bob/");

@@ -105,7 +105,7 @@ gchar* sanitize_root_path(const gchar* root)
 {
   if (root == NULL) /* NULL -> "/" (default) */
     return g_strdup("/");
-  if (*root == '\0') /* "" -> "" (current dir) */
+  if (*root == '\0') /* "" -> "/" (ROOT= means ROOT=/) */
     return g_strdup("/");
   gchar* simple = path_simplify(root);
   if (*simple == '\0' || !strcmp(simple, "/"))
