@@ -126,12 +126,14 @@ int main(int ac, char* av[])
   simplify_test("a/./b/./", "a/b");
   simplify_test("usr/lib/../../../../etc/passwd", "../../etc/passwd");
 
-  /* known bug: climbing to or above / without anything after it gives ""
-   * (the current directory) instead of "/", so --root=/.. means --root=. */
-  gchar* p;
-  XFAIL(!strcmp(p = path_simplify("/.."), "/")); g_free(p);
-  XFAIL(!strcmp(p = path_simplify("/a/../.."), "/")); g_free(p);
-  XFAIL(!strcmp(p = sanitize_root_path("/.."), "/")); g_free(p);
+  /* climbing to or above / gives / (not "", the current directory) */
+  simplify_test("/..", "/");
+  simplify_test("/../..", "/");
+  simplify_test("/a/../..", "/");
+  simplify_test("/a/..", "/");
+  simplify_test("/./..", "/");
+  sanitize_root_test("/..", "/");
+  sanitize_root_test("/a/../..", "/");
 
   return retval | check_result();
 }

@@ -92,6 +92,11 @@ gchar* path_simplify(const gchar* path)
     }
   }
 
+  /* an absolute path that climbed to (or above) the root is the root, not
+     the empty (current directory) path */
+  if (absolute && j == 1)
+    sane_pathv[j++] = "";
+
   sane_pathv[j] = 0;
   gchar* simple_path = g_strjoinv("/", sane_pathv);
 
