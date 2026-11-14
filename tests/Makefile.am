@@ -60,7 +60,8 @@ test_taction_SOURCES = test-taction.c check.h
 test_pkgdb_SOURCES = test-pkgdb.c check.h
 test_interrupt_SOURCES = test-interrupt.c check.h
 # the test interrupts commands right after these (see test-interrupt.c)
-test_interrupt_LDFLAGS = -Wl,--wrap=db_add_pkg -Wl,--wrap=db_replace_pkg
+test_interrupt_LDFLAGS = -Wl,--wrap=db_add_pkg -Wl,--wrap=db_replace_pkg \
+  -Wl,--wrap=ta_remove_move
 test_interrupt_LDADD = $(LDADD) -lpopt
 test_mkdir_SOURCES = test-mkdir.c check.h
 test_rm_SOURCES = test-rm.c check.h
