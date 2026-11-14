@@ -117,6 +117,10 @@ gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
 {
   gint has_doinst = 0;
   gchar* fullpath = g_strdup_printf("%s%s", root, sane_path);
+  /* the script is written to a temporary file that the transaction moves
+     into place, so it's removed again if the command fails */
+  gchar* temppath = g_strdup_printf("%s--###%s###", fullpath,
+                                    do_upgrade ? "upgrade" : "install");
 
   /* optimization disabled, just extract doinst script */
   if (opts->no_optsyms || is_blacklisted(pkg->shortname, opts->bl_symopts))
@@ -136,11 +140,14 @@ gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
     {
       if (!opts->dryrun)
       {
-        if (untgz_write_file(tgz, fullpath))
+        unlink(temppath); /* leftover from an interrupted run */
+        if (untgz_write_file(tgz, temppath))
         {
           e_set(E_ERROR, "Failed to extract file %s.", sane_path);
           goto err0;
         }
+        ta_move_remove(temppath, fullpath); /* both freed by the transaction */
+        temppath = fullpath = NULL;
       }
       has_doinst = 1;
     }
@@ -276,23 +283,27 @@ gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
         *doinst_buf_ptr = '\n';
         doinst_buf_ptr++;
       }
-      if (sys_write_buffer_to_file(fullpath, doinst_buf, doinst_len, e))
+      if (sys_write_buffer_to_file(temppath, doinst_buf, doinst_len, e))
       {
         e_set(E_ERROR, "Can't write buffer to file %s.", sane_path);
+        unlink(temppath);
         g_free(doinst_buf);
         g_slist_foreach(doinst, (GFunc)g_free, 0);
         g_slist_free(doinst);
         goto err0;
       }
       g_free(doinst_buf);
+      ta_move_remove(temppath, fullpath); /* both freed by the transaction */
+      temppath = fullpath = NULL;
     }
     g_slist_foreach(doinst, (GFunc)g_free, 0);
     g_slist_free(doinst);
     has_doinst = 1;
   }
 
- done:  
+ done:
  err0:
+  g_free(temppath);
   g_free(fullpath);
   return has_doinst;
  parse_failed:

@@ -290,6 +290,10 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
 
   if (!opts->dryrun)
   {
+    /* the script stays there when it isn't run (--no-scripts, --safe) */
+    gchar* doinst_path = g_strdup_printf("%sinstall/doinst.sh", root);
+    unlink(doinst_path);
+    g_free(doinst_path);
     gchar* install_path = g_strdup_printf("%sinstall", root);
     rmdir(install_path);
     g_free(install_path);

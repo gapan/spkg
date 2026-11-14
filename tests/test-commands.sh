@@ -124,11 +124,6 @@ snapshot() {
     find . -type f -exec md5sum {} + | LC_ALL=C sort)
 }
 
-# snapshot without install/ (see the install/doinst.sh rollback xfails)
-snapshot_no_install() {
-  snapshot | grep -v -e '^\./install' -e '^\. d' -e ' \./install'
-}
-
 # pack STAGEDIR PKGFILE [MEMBERS...]
 # Create a package from STAGEDIR. The compression comes from the PKGFILE
 # extension. Entries are named like makepkg does: "./" and then paths
@@ -308,6 +303,7 @@ check "exit status 0" rc_is 0
 check "doinst.sh not run" absent hello-doinst-ran
 check "config file left as .new" is_file etc/hello.conf.new
 check "symlink still created (extracted from doinst.sh)" link_to usr/lib/libhello.so libhello.so.1
+check "install/ removed" absent install
 
 begin "install: --no-fast-symlinks"
 new_root no-fast
@@ -351,6 +347,7 @@ spkg -i --safe "$PKGS/hello-1-noarch-1.tgz"
 check "exit status 0" rc_is 0
 check "doinst.sh not run" absent hello-doinst-ran
 check "symlink still created" link_to usr/lib/libhello.so libhello.so.1
+check "install/ removed" absent install
 
 begin "install: --dry-run changes nothing"
 new_root dry-install
@@ -404,7 +401,7 @@ check "package not in the database" db_lacks trunc-1.0-noarch-1
 check "no files left behind" absent usr
 check "no temporary files" [ -z "$(find "$ROOT" -name '*--###*')" ]
 # the stripped doinst.sh is written outside of the transaction
-xfail "rolled back: install/doinst.sh not left behind" absent install
+check "rolled back: install/ removed" absent install
 
 begin "install: garbage package"
 new_root garbage
@@ -668,6 +665,14 @@ check "changed config left as .new" content_is etc/hello.conf.new "setting=2"
 check "existing config kept" content_is etc/hello.conf "setting=1"
 check "no temporary files" [ -z "$(find "$ROOT" -name '*--###*')" ]
 
+begin "upgrade: --no-scripts"
+new_root upgrade-no-scripts
+spkg -i "$PKGS/hello-1-noarch-1.tgz"
+spkg -u --no-scripts "$PKGS/hello-2-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "doinst.sh not run" content_is hello-doinst-ran "doinst -install 1"
+check "install/ removed" absent install
+
 begin "upgrade: shared file stays when the other owner drops it"
 new_root upgrade-shared
 make_shared one
@@ -718,13 +723,13 @@ check "upgraded" db_has hello-2-noarch-1
 begin "upgrade: truncated package is rolled back"
 new_root upgrade-truncated
 spkg -i "$PKGS/hello-1-noarch-1.tgz"
-before=$(snapshot_no_install)
+before=$(snapshot)
 cp "$PKGS/trunc-1.0-noarch-1.tgz" "$PKGS/hello-3-noarch-1.tgz"
 spkg -u "$PKGS/hello-3-noarch-1.tgz"
 check "exit status 2" rc_is 2
 check "old version still in the database" db_has hello-1-noarch-1
-check "tree unchanged (apart from install/)" [ "$before" = "$(snapshot_no_install)" ]
-xfail "rolled back: install/doinst.sh not left behind" absent install
+check "tree unchanged" [ "$before" = "$(snapshot)" ]
+check "rolled back: install/ removed" absent install
 
 begin "upgrade: --dry-run changes nothing"
 new_root dry-upgrade
@@ -791,13 +796,13 @@ check "nothing stored" [ -z "$(ls "$ROOT/var/lib/pkgtools/douninst.sh")" ]
 begin "upgrade: failed upgrade keeps the old script"
 new_root upgrade-douninst-rollback
 spkg -i "$PKGS/hello-1-noarch-1.tgz"
-before=$(snapshot_no_install)
+before=$(snapshot)
 cp "$PKGS/brokenuninst-1-noarch-1.tgz" "$PKGS/hello-4-noarch-1.tgz"
 spkg -u "$PKGS/hello-4-noarch-1.tgz"
 check "exit status 2" rc_is 2
 check "old script not run" log_is "doinst 1"
 check "old script still stored" douninst_stored hello-1-noarch-1
-check "tree unchanged (apart from install/)" [ "$before" = "$(snapshot_no_install)" ]
+check "tree unchanged" [ "$before" = "$(snapshot)" ]
 
 begin "upgrade: --dry-run doesn't run douninst.sh"
 new_root upgrade-douninst-dry
