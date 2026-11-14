@@ -19,6 +19,28 @@
 
 #define e_set(n, fmt, args...) e_add(e, "upgrade", __func__, n, fmt, ##args)
 
+/* TRUE if a parent directory of path is something else than a directory
+   in the new package (a symlink, usually). It is created on finalize,
+   before the leftovers are removed, so removing path then would follow it
+   and delete the new package's file with the same name. The old directory
+   itself is removed by the symlink creation (like the "rm -rf" before
+   "ln -sf" in doinst.sh) or was removed when the file replaced it. */
+static gboolean _under_non_dir(struct db_pkg* pkg, const gchar* path)
+{
+  gchar parent[MAXPATHLEN];
+  gchar* slash;
+
+  g_strlcpy(parent, path, sizeof(parent));
+  while ((slash = strrchr(parent, '/')) != NULL)
+  {
+    *slash = '\0';
+    db_path_type t = db_pkg_get_path(pkg, parent);
+    if (t != DB_PATH_NONE && t != DB_PATH_DIR)
+      return TRUE;
+  }
+  return FALSE;
+}
+
 static void _delete_leftovers(struct db_pkg* pkg, struct db_pkg* ipkg,
                               const gchar* root, const struct cmd_options* opts,
                               struct error* e)
@@ -47,6 +69,13 @@ static void _delete_leftovers(struct db_pkg* pkg, struct db_pkg* ipkg,
     /* skip paths we don't want to remove */
     if (!strcmp(path, "install") ||!strncmp(path, "install/", 8) || !strcmp(path, "."))
       goto skip;
+
+    /* inside a directory that becomes a symlink or file in the new package */
+    if (_under_non_dir(pkg, path))
+    {
+      _debug("Not removing %s (its directory is replaced)", path);
+      goto skip;
+    }
 
     /* get refs to this path from the global filelist */
     gint refs = db_filelist_get_path_refs(path);

@@ -1358,6 +1358,114 @@ else
 fi
 
 # ---------------------------------------------------------------------
+# upgrade: a directory becomes a symlink or the other way round
+# ---------------------------------------------------------------------
+#
+# "app" ships usr/share/app/data/ either as a real directory, or as a
+# symlink data -> data-N created by doinst.sh (the way makepkg packages
+# symlinks) with the same files in data-N/.
+
+# app_dir VERSION : data/ is a directory
+app_dir() {
+  _st=$TMP/stage-app-$1
+  rm -rf "$_st"; mkdir -p "$_st/usr/share/app/data/sub"
+  echo "f $1" > "$_st/usr/share/app/data/f"
+  echo "g $1" > "$_st/usr/share/app/data/sub/g"
+  pack "$_st" "app-$1-noarch-1.tgz"
+}
+# app_link VERSION : data -> data-VERSION, from doinst.sh
+app_link() {
+  _st=$TMP/stage-app-$1
+  rm -rf "$_st"; mkdir -p "$_st/usr/share/app/data-$1/sub" "$_st/install"
+  echo "f $1" > "$_st/usr/share/app/data-$1/f"
+  echo "g $1" > "$_st/usr/share/app/data-$1/sub/g"
+  echo "( cd usr/share/app ; rm -rf data )" > "$_st/install/doinst.sh"
+  echo "( cd usr/share/app ; ln -sf data-$1 data )" >> "$_st/install/doinst.sh"
+  pack "$_st" "app-$1-noarch-1.tgz"
+}
+app_dir 1
+app_link 2
+app_dir 3
+
+begin "upgrade: directory replaced by a symlink to a new directory"
+new_root dir-to-link
+spkg -i "$PKGS/app-1-noarch-1.tgz"
+spkg -u "$PKGS/app-2-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "symlink" link_to usr/share/app/data data-2
+check "new files kept" content_is usr/share/app/data-2/f "f 2"
+check "new files in subdirectories kept" content_is usr/share/app/data-2/sub/g "g 2"
+check "files reachable through the symlink" content_is usr/share/app/data/f "f 2"
+
+begin "upgrade: symlink replaced by a directory"
+spkg -u "$PKGS/app-3-noarch-1.tgz"
+check "exit status 0" rc_is 0
+xfail "real directory" is_dir usr/share/app/data
+xfail "new files in it" content_is usr/share/app/data/f "f 3"
+xfail "new files in subdirectories" content_is usr/share/app/data/sub/g "g 3"
+check "old symlink target removed" absent usr/share/app/data-2
+xfail "no warning about the symlink" sh -c '! grep -q "behind the symlink" "$1"' - "$OUT"
+spkg -d app
+check "remove: exit status 0" rc_is 0
+xfail "remove: nothing left" absent usr/share/app
+
+begin "upgrade: failed upgrade from a symlink to a directory is rolled back"
+new_root link-to-dir-rollback
+spkg -i "$PKGS/app-2-noarch-1.tgz"
+before=$(snapshot)
+# the directory comes first in the archive, then a large file that is cut
+st=$TMP/stage-app-big
+rm -rf "$st"; cp -a "$TMP/stage-app-3" "$st"
+head -c 300000 /dev/urandom > "$st/usr/share/app/data/big"
+pack "$st" app-4-noarch-1.tgz ./ ./usr/ ./usr/share/ ./usr/share/app/ \
+  ./usr/share/app/data/ ./usr/share/app/data/f ./usr/share/app/data/big
+mkdir -p "$TMP/cut"
+head -c $(($(stat -c %s "$PKGS/app-4-noarch-1.tgz") / 2)) "$PKGS/app-4-noarch-1.tgz" \
+  > "$TMP/cut/app-4-noarch-1.tgz"
+spkg -u "$TMP/cut/app-4-noarch-1.tgz"
+check "exit status 2" rc_is 2
+check "symlink restored" link_to usr/share/app/data data-2
+check "tree unchanged" [ "$before" = "$(snapshot)" ]
+
+begin "upgrade: a symlink spkg didn't install is still followed"
+new_root admin-link
+mkdir -p "$ROOT/usr/share/app/elsewhere"
+ln -s elsewhere "$ROOT/usr/share/app/data"
+spkg -i "$PKGS/app-1-noarch-1.tgz"
+spkg -u "$PKGS/app-3-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "symlink kept" link_to usr/share/app/data elsewhere
+check "files behind it" content_is usr/share/app/elsewhere/f "f 3"
+
+begin "upgrade: directory replaced by a symlink inside the archive"
+if [ "${SPKG_LEGACY_CHECKS:-0}" = 1 ]; then
+  echo "    skipped, symlinks in the archive are rejected"
+else
+  # like app_link 2, with the symlink in the archive instead of doinst.sh
+  st=$TMP/stage-app-5
+  rm -rf "$st"; cp -a "$TMP/stage-app-2" "$st"; rm -rf "$st/install"
+  mv "$st/usr/share/app/data-2" "$st/usr/share/app/data-5"
+  ln -s data-5 "$st/usr/share/app/data"
+  pack "$st" app-5-noarch-1.tgz ./ ./usr/ ./usr/share/ ./usr/share/app/ \
+    ./usr/share/app/data-5/ ./usr/share/app/data-5/f ./usr/share/app/data-5/sub/ \
+    ./usr/share/app/data-5/sub/g ./usr/share/app/data
+  new_root dir-to-archive-link
+  spkg -i "$PKGS/app-1-noarch-1.tgz"
+  spkg -u "$PKGS/app-5-noarch-1.tgz"
+  check "exit status 0" rc_is 0
+  check "symlink" link_to usr/share/app/data data-5
+  check "new files kept" content_is usr/share/app/data-5/f "f 2"
+  check "new files in subdirectories kept" content_is usr/share/app/data-5/sub/g "g 2"
+
+  begin "upgrade: symlink inside the archive replaced by a directory"
+  spkg -u "$PKGS/app-3-noarch-1.tgz"
+  check "exit status 0" rc_is 0
+  xfail "real directory" is_dir usr/share/app/data
+  xfail "new files in it" content_is usr/share/app/data/f "f 3"
+  check "old symlink target removed" absent usr/share/app/data-5
+fi
+
+# ---------------------------------------------------------------------
 # several packages in one command
 # ---------------------------------------------------------------------
 #
