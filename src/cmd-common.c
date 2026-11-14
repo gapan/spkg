@@ -452,8 +452,34 @@ void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
           _debug("Directory already exists %s", sane_path);
         }
       }
+      else if (ex_type == SYS_SYM && ex_deref_type == SYS_DIR &&
+               (orig_ptype == DB_PATH_FILE || orig_ptype == DB_PATH_SYMLINK))
+      {
+        /* the upgraded package's own symlink becomes a real directory: move
+           the symlink aside (it's put back on rollback, removed on
+           finalize), so the new files don't go through it */
+        _notice("Replacing symlink with directory %s", sane_path);
+        if (!opts->dryrun)
+        {
+          gchar* aside = g_strdup_printf("%s--###symlink###", fullpath);
+          unlink(aside); /* leftover from an interrupted run */
+          if (rename(fullpath, aside) == -1)
+          {
+            e_set(E_ERROR, "Can't move symlink out of the way. (%s: %s)", sane_path, strerror(errno));
+            g_free(aside);
+            goto extract_failed;
+          }
+          ta_remove_move(aside, g_strdup(fullpath));
+          if (untgz_write_file(tgz, fullpath))
+            goto extract_failed;
+        }
+        ta_keep_remove(fullpath, 1);
+        fullpath = NULL;
+      }
       else if (ex_type == SYS_SYM && ex_deref_type == SYS_DIR)
       {
+        /* a symlink that isn't the package's (made by the admin): keep it
+           and install into the directory behind it */
         _warning("Directory already exists *behind the symlink* on filesystem. This may break upgrade/remove if you change that symlink in the future. (%s)", sane_path);
       }
       else if (ex_type == SYS_NONE)

@@ -175,6 +175,16 @@ void ta_lmeta_nothing(gchar* path, gint owner, gint group, time_t mtime)
   a->mtime = mtime;
 }
 
+void ta_remove_move(gchar* path, gchar* orig_path)
+{
+  g_assert(path != 0);
+  g_assert(orig_path != 0);
+  struct action* a = _ta_insert(&_ta.list, REMOVE, MOVE);
+  a->path1 = path;
+  a->path2 = orig_path;
+  a->is_dir = FALSE;
+}
+
 void ta_remove_nothing(gchar* path, gint is_dir)
 {
   g_assert(path != 0);
@@ -371,7 +381,18 @@ gint ta_rollback()
   for (l=_ta.list; l!=0; l=l->next)
   {
     struct action* a = l->data;
-    if (a->on_rollback == REMOVE)
+    if (a->on_rollback == MOVE)
+    {
+      _debug("Moving %s back to %s", a->path1, a->path2);
+      if (!_ta.dryrun)
+      {
+        if (rename(a->path1, a->path2) == -1)
+        {
+          _warning("Failed to move %s back to %s (%s)", a->path1, a->path2, strerror(errno));
+        }
+      }
+    }
+    else if (a->on_rollback == REMOVE)
     {
       if (a->is_dir)
       {

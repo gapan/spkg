@@ -83,6 +83,9 @@ static void setup(void)
   CHECK(chmod("t/perm", 0600) == 0);
   CHECK(sys_mkdir_p("t/gone/sub") == 0);      /* removed on finalize */
   put("t/gone/sub/file", "x");
+  /* a symlink replaced by a directory: moved aside, the directory made */
+  CHECK(symlink("newdir", "t/todir--###symlink###") == 0);
+  CHECK(sys_mkdir_p("t/todir") == 0);
 }
 
 /* The same set of actions for the finalize, rollback and dry-run cases. */
@@ -104,6 +107,9 @@ static void register_actions(void)
   ta_lmeta_nothing(D("t/forcesym"), getuid(), getgid(), LINK_MTIME);
   ta_forcelink_nothing(D("t/forcelink"), D("t/existing"));
   ta_chperm_nothing(D("t/perm"), 0644, getuid(), getgid());
+  /* rolled back in reverse: the directory goes before the symlink returns */
+  ta_remove_move(D("t/todir--###symlink###"), D("t/todir"));
+  ta_keep_remove(D("t/todir"), 1);
 }
 
 static void test_finalize(void)
@@ -128,6 +134,8 @@ static void test_finalize(void)
   CHECK(same_file("t/forcelink", "t/existing"));
   CHECK(mode_is("t/perm", 0644));
   CHECK_INT(sys_file_type("t/gone", 0), SYS_NONE);
+  CHECK_INT(sys_file_type("t/todir", 0), SYS_DIR);
+  CHECK_INT(sys_file_type("t/todir--###symlink###", 0), SYS_NONE);
   e_free(e);
 }
 
@@ -153,6 +161,9 @@ static void test_rollback(void)
   CHECK(content_is("t/forcelink", "in the way"));
   CHECK(mode_is("t/perm", 0600));
   CHECK(content_is("t/gone/sub/file", "x"));
+  /* the symlink is back in place of the directory */
+  CHECK(link_to("t/todir", "newdir"));
+  CHECK_INT(sys_file_type("t/todir--###symlink###", 0), SYS_NONE);
   e_free(e);
 }
 
@@ -179,6 +190,8 @@ static void test_dryrun(void)
     CHECK(content_is("t/forcelink", "in the way"));
     CHECK(mode_is("t/perm", 0600));
     CHECK(content_is("t/gone/sub/file", "x"));
+    CHECK(link_to("t/todir--###symlink###", "newdir"));
+    CHECK_INT(sys_file_type("t/todir", 0), SYS_DIR);
   }
   e_free(e);
 }

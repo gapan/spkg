@@ -111,6 +111,15 @@ extern void ta_chperm_nothing(gchar* path, gint mode, gint owner, gint group);
  */
 extern void ta_lmeta_nothing(gchar* path, gint owner, gint group, time_t mtime);
 
+/** Remove file on finalize, move it back to its original path on
+ * rollback. For a file that was moved out of the way (renamed to path)
+ * during the transaction.
+ *
+ * @param path Current path of the file.
+ * @param orig_path Path it was moved away from.
+ */
+extern void ta_remove_move(gchar* path, gchar* orig_path);
+
 /** Remove file/directory on finalize, do nothing on rollback.
  * If path is directory, it removal will be done in the reverse order
  * at the end of the transaction. This helps to simplify upgrade command.

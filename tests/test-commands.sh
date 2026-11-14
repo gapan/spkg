@@ -1400,14 +1400,14 @@ check "files reachable through the symlink" content_is usr/share/app/data/f "f 2
 begin "upgrade: symlink replaced by a directory"
 spkg -u "$PKGS/app-3-noarch-1.tgz"
 check "exit status 0" rc_is 0
-xfail "real directory" is_dir usr/share/app/data
-xfail "new files in it" content_is usr/share/app/data/f "f 3"
-xfail "new files in subdirectories" content_is usr/share/app/data/sub/g "g 3"
+check "real directory" is_dir usr/share/app/data
+check "new files in it" content_is usr/share/app/data/f "f 3"
+check "new files in subdirectories" content_is usr/share/app/data/sub/g "g 3"
 check "old symlink target removed" absent usr/share/app/data-2
-xfail "no warning about the symlink" sh -c '! grep -q "behind the symlink" "$1"' - "$OUT"
+check "no warning about the symlink" sh -c '! grep -q "behind the symlink" "$1"' - "$OUT"
 spkg -d app
 check "remove: exit status 0" rc_is 0
-xfail "remove: nothing left" absent usr/share/app
+check "remove: nothing left" absent usr/share/app
 
 begin "upgrade: failed upgrade from a symlink to a directory is rolled back"
 new_root link-to-dir-rollback
@@ -1460,8 +1460,8 @@ else
   begin "upgrade: symlink inside the archive replaced by a directory"
   spkg -u "$PKGS/app-3-noarch-1.tgz"
   check "exit status 0" rc_is 0
-  xfail "real directory" is_dir usr/share/app/data
-  xfail "new files in it" content_is usr/share/app/data/f "f 3"
+  check "real directory" is_dir usr/share/app/data
+  check "new files in it" content_is usr/share/app/data/f "f 3"
   check "old symlink target removed" absent usr/share/app/data-5
 fi
 
