@@ -1414,9 +1414,7 @@ else
   check "spkg exit status 0" rc_is 0
   check "same files and database names" same_tree "$PT" "$SP"
   check "same file list in the entry" same_file_list "$PT" "$SP" hello-1-noarch-1
-  # spkg writes the empty description lines as "hello: ", installpkg copies
-  # them from slack-desc as they are ("hello:")
-  xfail "same database entry" same_entry "$PT" "$SP" hello-1-noarch-1
+  check "same database entry" same_entry "$PT" "$SP" hello-1-noarch-1
   check "same doinst.sh stored" same_file "$PT/$db/scripts/hello-1-noarch-1" "$SP/$db/scripts/hello-1-noarch-1"
   check "same douninst.sh stored" same_file "$PT/$db/douninst.sh/hello-1-noarch-1" "$SP/$db/douninst.sh/hello-1-noarch-1"
   check "same douninst.sh mode" [ "$(stat -c %a "$PT/$db/douninst.sh/hello-1-noarch-1")" = \

@@ -168,7 +168,8 @@ gchar* gen_slackdesc(const gchar* sname, gchar* desc[MAX_SLACKDESC_LINES])
     if (desc[i] == 0)
       break;
     g_strlcat(buf, sname, MAXLNLEN * MAX_SLACKDESC_LINES);
-    g_strlcat(buf, ": ", MAXLNLEN * MAX_SLACKDESC_LINES);
+    /* empty lines are "name:" like in slack-desc, without a trailing space */
+    g_strlcat(buf, desc[i][0] ? ": " : ":", MAXLNLEN * MAX_SLACKDESC_LINES);
     g_strlcat(buf, desc[i], MAXLNLEN * MAX_SLACKDESC_LINES);
     g_strlcat(buf, "\n", MAXLNLEN * MAX_SLACKDESC_LINES);
   }

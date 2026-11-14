@@ -120,5 +120,11 @@ int main(int ac, char* av[])
   CHECK_STR(gen, "pkg: first\npkg: second\n");
   g_free(gen);
 
+  /* empty lines have no trailing space, like in slack-desc */
+  gchar* dsc_empty[MAX_SLACKDESC_LINES] = { "first", "", "third", NULL };
+  gen = gen_slackdesc("pkg", dsc_empty);
+  CHECK_STR(gen, "pkg: first\npkg:\npkg: third\n");
+  g_free(gen);
+
   return check_result();
 }
