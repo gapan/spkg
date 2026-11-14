@@ -16,7 +16,7 @@ make                    # builds src/libspkg.a and src/spkg
 ```
 
 Configure options that change the code:
-- `--enable-static-spkg` builds `spkg.static` alongside the dynamic `spkg`. `--enable-static-spkg=only` builds only a static `spkg` (used by `spkg.SlackBuild`) and skips installing libspkg/pkg-config. Both need static versions (`.a`) of popt, glib and the libraries glib uses (pcre2; taken from `pkg-config --static`), Judy and zlib. Slackware ships only some of them, so the others must be built first.
+- `--enable-static-spkg` builds `spkg.static` alongside the dynamic `spkg`. `--enable-static-spkg=only` builds only a static `spkg` (what a package build uses, so spkg keeps working while glibc is upgraded) and skips installing libspkg/pkg-config. Both need static versions (`.a`) of popt, glib and the libraries glib uses (pcre2; taken from `pkg-config --static`), Judy and zlib. Slackware ships only some of them, so the others must be built first.
 - `--enable-assume-broken-pkgdb` defines `ASSUME_BROKEN_PKGDB`, which normalizes `//` paths in the package DB.
 - `--disable-legacy` turns off `LEGACY_CHECKS` (for example, the check that rejects symlinks inside the archive).
 - `--enable-sanitizers` builds everything with ASan and UBSan, for running the tests (not with `--enable-static-spkg`). Leaks fail the tests too; `make check ASAN_OPTIONS=detect_leaks=0` turns leak detection off.
