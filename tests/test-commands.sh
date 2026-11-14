@@ -806,6 +806,19 @@ check "glob: exit status 0" rc_is 0
 check "glob: lists other" output_has "other-1.0-noarch-1"
 check "glob: hello filtered out" [ -z "$(grep hello "$OUT")" ]
 
+begin "list: sorted by name"
+new_root list-sorted
+make_shared zeta
+make_shared alpha
+spkg -i "$PKGS/zeta-1.0-noarch-1.tgz" "$PKGS/hello-1-noarch-1.tgz" "$PKGS/alpha-1.0-noarch-1.tgz"
+spkg -l
+check "exit status 0" rc_is 0
+check "sorted" [ "$(cat "$OUT")" = "$(printf 'alpha-1.0-noarch-1\nhello-1-noarch-1\nzeta-1.0-noarch-1')" ]
+spkg -l -v
+check "verbose: exit status 0" rc_is 0
+check "verbose: sorted" [ "$(sed -n 's/^| \([^ ]*\) .*|$/\1/p' "$OUT")" = \
+  "$(printf 'alpha-1.0-noarch-1\nhello-1-noarch-1\nzeta-1.0-noarch-1')" ]
+
 begin "list: root without a package database"
 new_root list-nodb
 spkg -l
