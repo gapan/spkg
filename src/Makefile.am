@@ -35,14 +35,17 @@ SPKG_LIB_SRC = \
 # Library build reciepe
 libspkg_a_SOURCES = $(SPKG_LIB_SRC)
 spkg_SOURCES = main.c
-spkg_LDADD = libspkg.a -lpopt $(GLIB_LIBS) -lJudy -lz
+SPKG_LDADD = libspkg.a -lpopt $(GLIB_LIBS) -lJudy -lz
+# static builds need static versions of all these libraries
+SPKG_STATIC_LDADD = libspkg.a -lpopt $(GLIB_STATIC_LIBS) -lJudy -lz
 
 # Build only static spkg as spkg
 if STATIC_SPKG_ONLY
 
 bin_PROGRAMS = spkg
 noinst_LIBRARIES = libspkg.a
-spkg_LDFLAGS = -all-static
+spkg_LDADD = $(SPKG_STATIC_LDADD)
+spkg_LDFLAGS = -static
 
 else
 
@@ -51,16 +54,18 @@ if STATIC_SPKG
 
 bin_PROGRAMS = spkg spkg.static
 lib_LIBRARIES = libspkg.a
+spkg_LDADD = $(SPKG_LDADD)
 
-spkg_static_LDADD = $(spkg_LDADD)
+spkg_static_LDADD = $(SPKG_STATIC_LDADD)
 spkg_static_SOURCES = main.c
-spkg_static_LDFLAGS = -all-static
+spkg_static_LDFLAGS = -static
 
 else
 # Build dynamic spkg binary
 
 bin_PROGRAMS = spkg
 lib_LIBRARIES = libspkg.a
+spkg_LDADD = $(SPKG_LDADD)
 
 endif
 

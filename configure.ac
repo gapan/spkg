@@ -67,6 +67,13 @@ AC_ARG_ENABLE(static-spkg,
 AM_CONDITIONAL([STATIC_SPKG],[test "x$create_static" = "xyes"])
 AM_CONDITIONAL([STATIC_SPKG_ONLY],[test "x$create_static" = "xonly"])
 
+# A static spkg needs the libraries glib itself is linked with (pcre2,
+# libatomic, pthread...), which pkg-config lists with --static.
+if test "x$create_static" != xno; then
+  GLIB_STATIC_LIBS=`$PKG_CONFIG --static --libs glib-2.0`
+fi
+AC_SUBST(GLIB_STATIC_LIBS)
+
 AC_ARG_ENABLE(legacy,
   AS_HELP_STRING([--disable-legacy],
                  [Disable legacy checks, like symlinks in the archive. (EXPERIMENTAL)]),
