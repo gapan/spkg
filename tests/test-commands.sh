@@ -471,6 +471,72 @@ else
 fi
 
 # ---------------------------------------------------------------------
+# install: file metadata
+# ---------------------------------------------------------------------
+#
+# Owners, modes (with setuid/setgid/sticky bits), mtimes, fifos and device
+# nodes come from the archive. The stage directory is
+# made under fakeroot too, so tar records the fake owners and devices.
+
+# make_meta VERSION: version 2 changes the owner and mode of "owned"
+make_meta() {
+  _v=$1 _st=$TMP/stage-meta-$1
+  rm -rf "$_st"
+  mkdir -p "$_st/usr/bin" "$_st/usr/share/meta/private" "$_st/usr/share/meta/shared" \
+           "$_st/dev"
+  echo "suid" > "$_st/usr/bin/suid"; chmod 4755 "$_st/usr/bin/suid"
+  echo "sgid" > "$_st/usr/bin/sgid"; chgrp 5678 "$_st/usr/bin/sgid"; chmod 2755 "$_st/usr/bin/sgid"
+  echo "owned $_v" > "$_st/usr/share/meta/owned"
+  if [ "$_v" = 1 ]; then
+    chown 1234:5678 "$_st/usr/share/meta/owned"; chmod 640 "$_st/usr/share/meta/owned"
+  else
+    chown 4321:8765 "$_st/usr/share/meta/owned"; chmod 600 "$_st/usr/share/meta/owned"
+  fi
+  echo "old" > "$_st/usr/share/meta/old"
+  touch -d "2001-02-03 04:05:06 UTC" "$_st/usr/share/meta/old"
+  chmod 700 "$_st/usr/share/meta/private"
+  chown 1234:5678 "$_st/usr/share/meta/shared"; chmod 3775 "$_st/usr/share/meta/shared"
+  mkfifo -m 600 "$_st/dev/fifo"
+  mknod -m 620 "$_st/dev/chr" c 4 64
+  mknod -m 660 "$_st/dev/blk" b 8 1
+  mknod -m 600 "$_st/dev/big" c 259 300
+  (cd "$_st" && tar --numeric-owner --transform 's,^\./\(.\),\1,S' -cf - .) \
+    | gzip > "$PKGS/meta-$_v-noarch-1.tgz"
+}
+make_meta 1
+make_meta 2
+
+# meta_is PATH FORMAT EXPECTED: stat -c FORMAT of PATH (not following symlinks)
+meta_is() {
+  _got=$(LC_ALL=C stat -c "$2" "$ROOT/$1" 2>&1)
+  [ "$_got" = "$3" ] || { echo "    $1: '$_got', want '$3'"; return 1; }
+}
+
+begin "install: file metadata"
+new_root meta
+spkg -i "$PKGS/meta-1-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "setuid file" meta_is usr/bin/suid "%a %u %g" "4755 0 0"
+check "setgid file" meta_is usr/bin/sgid "%a %u %g" "2755 0 5678"
+check "owner and mode" meta_is usr/share/meta/owned "%a %u %g" "640 1234 5678"
+check "mtime" meta_is usr/share/meta/old "%Y" "$(date -d '2001-02-03 04:05:06 UTC' +%s)"
+check "private directory" meta_is usr/share/meta/private "%a %F" "700 directory"
+check "setgid sticky directory" meta_is usr/share/meta/shared "%a %u %g" "3775 1234 5678"
+check "fifo" meta_is dev/fifo "%F %a" "fifo 600"
+check "character device" meta_is dev/chr "%F %a %Hr %Lr" "character special file 620 4 64"
+check "block device" meta_is dev/blk "%F %a %Hr %Lr" "block special file 660 8 1"
+# device numbers are packed into 8 bits each
+xfail "device with numbers above 255" meta_is dev/big "%F %Hr %Lr" "character special file 259 300"
+check "device nodes in the file list" db_lists meta-1-noarch-1 dev/chr
+
+begin "upgrade: file metadata changes"
+spkg -u "$PKGS/meta-2-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "new owner and mode" meta_is usr/share/meta/owned "%a %u %g" "600 4321 8765"
+check "new content" content_is usr/share/meta/owned "owned 2"
+check "setuid kept" meta_is usr/bin/suid "%a %u %g" "4755 0 0"
+
+# ---------------------------------------------------------------------
 # install: broken and malicious packages
 # ---------------------------------------------------------------------
 
@@ -588,6 +654,29 @@ if [ "${SPKG_LEGACY_CHECKS:-0}" = 1 ]; then
 else
   check "exit status 0" rc_is 0
   check "symlink installed" link_to usr/bin/link real
+fi
+
+begin "install: metadata of a symlink inside the archive"
+if [ "${SPKG_LEGACY_CHECKS:-0}" = 1 ]; then
+  echo "    skipped, symlinks in the archive are rejected"
+else
+  st=$TMP/stage-symlink-meta
+  rm -rf "$st"; mkdir -p "$st/usr/bin"
+  echo bin > "$st/usr/bin/real"
+  chown 1234:5678 "$st/usr/bin/real"; chmod 640 "$st/usr/bin/real"
+  ln -s real "$st/usr/bin/link"
+  chown -h 4321:8765 "$st/usr/bin/link"
+  touch -h -d "2002-03-04 05:06:07 UTC" "$st/usr/bin/link"
+  (cd "$st" && tar --numeric-owner --no-recursion -cf - ./usr/ ./usr/bin/ ./usr/bin/real ./usr/bin/link) \
+    | gzip > "$PKGS/symlink-meta-1.0-noarch-1.tgz"
+  new_root symlink-meta
+  spkg -i "$PKGS/symlink-meta-1.0-noarch-1.tgz"
+  check "exit status 0" rc_is 0
+  # the symlink is created on finalize, without the owner and mtime from
+  # the archive (tar -xp in installpkg sets them)
+  xfail "symlink owner" meta_is usr/bin/link "%u %g" "4321 8765"
+  xfail "symlink mtime" meta_is usr/bin/link "%Y" "$(date -d '2002-03-04 05:06:07 UTC' +%s)"
+  check "target untouched" meta_is usr/bin/real "%a %u %g" "640 1234 5678"
 fi
 
 # ---------------------------------------------------------------------
