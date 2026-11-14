@@ -55,7 +55,7 @@ Core modules:
   - It handles `douninst.sh` scripts (`var/lib/pkgtools/douninst.sh/`), which run on remove and upgrade.
 - **cmd-upgrade** combines install of the new package with removal of the old package's leftover files, all inside one transaction.
 
-Code is GLib-based (`gchar`, `GSList`, `g_*` allocation) and documented with Doxygen-style comments. The man page is `docs/spkg.8`. Update it when you add or change CLI options. Release notes go in `NEWS`, and the version number is set in `configure.ac`.
+Code is GLib-based (`gchar`, `GSList`, `g_*` allocation) and documented with Doxygen-style comments. The man page is `docs/spkg.8`. Update it when you add or change CLI options. `PKGTOOLS-DIFFERENCES.md` lists every way spkg behaves differently from pkgtools; update it when a change adds, removes or alters such a difference. Release notes go in `NEWS`, and the version number is set in `configure.ac`.
 
 ## Style
 

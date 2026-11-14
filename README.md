@@ -14,7 +14,8 @@ implemented in C and optimized for speed.
 * Dry-run mode, in which filesystem is not touched.
 * Safe mode for installing untrusted packages.
 * Rollback and safe cancel functionality.
-* You can use spkg and pkgtools side by side.
+* You can use spkg and pkgtools side by side. Where spkg behaves
+  differently is listed in [PKGTOOLS-DIFFERENCES.md](PKGTOOLS-DIFFERENCES.md).
 * You can be informed about all actions spkg does if you turn on verbose mode.
 * Everything is libified. You can implement new commands easily with libspkg;
   its API is documented in the headers in `include/`.

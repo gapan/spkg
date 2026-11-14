@@ -2,7 +2,7 @@ ACLOCAL_AMFLAGS = -I m4
 AUTOMAKE_OPTIONS = foreign
 SUBDIRS = src include docs tests
 
-EXTRA_DIST = BENCHMARKS README.md libspkg.pc.in slack-desc slack-required spkg.SlackBuild
+EXTRA_DIST = BENCHMARKS PKGTOOLS-DIFFERENCES.md README.md libspkg.pc.in slack-desc slack-required spkg.SlackBuild
 CLEANFILES = libspkg.pc
 
 if !STATIC_SPKG_ONLY
