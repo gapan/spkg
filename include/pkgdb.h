@@ -197,6 +197,9 @@ extern void db_free_query(GSList* pkgs, db_query_type type);
  * - name: kdebase-3.3-i486-1
  * - file: kdebase-3.3-i486-1.tgz
  *
+ * If a shortname matches several installed packages, the most recently
+ * installed one (with the newest database entry) is returned.
+ *
  * @param name Namespec.
  * @return Full package name.
  */

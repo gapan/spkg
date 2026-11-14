@@ -1147,7 +1147,9 @@ gchar* db_get_package_name(const gchar* namespec)
     g_free(searched_name);
   }
 
-  /* try to use namespec as shortname */
+  /* try to use namespec as shortname; if several versions are installed,
+     take the most recently installed one (newest entry), like removepkg */
+  time_t newest = 0;
   rewinddir(d);
   while ((de = readdir(d)) != NULL)
   {
@@ -1159,10 +1161,20 @@ gchar* db_get_package_name(const gchar* namespec)
       continue;
     if (!strcmp(namespec, cur_shortname))
     {
+      gchar* entry = g_strdup_printf("%s/%s", _db.pkgdir, cur_name);
+      struct stat st;
+      time_t mtime = stat(entry, &st) == 0 ? st.st_mtime : 0;
+      g_free(entry);
+      /* same time: the larger name, so the choice doesn't depend on the
+         directory order */
+      if (pkgname == NULL || mtime > newest ||
+          (mtime == newest && strcmp(cur_name, pkgname) > 0))
+      {
+        g_free(pkgname);
         pkgname = g_strdup(cur_name);
-        g_free(cur_shortname);
-        goto done;
+        newest = mtime;
       }
+    }
     g_free(cur_shortname);
   }
 

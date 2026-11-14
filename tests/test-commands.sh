@@ -315,20 +315,38 @@ check "shared file kept" content_is usr/bin/hello "hello 2"
 check "file only the removed version had is gone" absent usr/share/hello/v1.txt
 check "file of the other version kept" content_is usr/share/hello/v2.txt "data 2"
 
-# Which version a short name picks when several are installed is not
-# checked: spkg takes the first one the directory listing returns, while
-# removepkg takes the most recently installed one.
-begin "remove: by short name with two versions installed removes one"
+# Like removepkg, a short name picks the most recently installed version
+# (the newest database entry). The entries' mtimes are set, so the
+# directory order doesn't matter.
+# installed_at PKGNAME TIME : set the install time of PKGNAME
+installed_at() { touch -d "$2" "$ROOT/var/lib/pkgtools/packages/$1"; }
+
+begin "remove: by short name removes the most recently installed version"
 new_root force-remove
 spkg -i "$PKGS/hello-1-noarch-1.tgz"
 spkg -i -f "$PKGS/hello-2-noarch-1.tgz"
+# the entry created first is the newest one
+installed_at hello-2-noarch-1 "2020-01-01 12:00"
+installed_at hello-1-noarch-1 "2021-01-01 12:00"
 spkg -d hello
 check "exit status 0" rc_is 0
-check "exactly one version left" [ "$(ls "$ROOT/var/lib/pkgtools/packages" | wc -l)" = 1 ]
+check "newest version removed" db_lacks hello-1-noarch-1
+check "older version kept" db_has hello-2-noarch-1
 spkg -d hello
 check "second remove exit status 0" rc_is 0
 check "database empty" [ -z "$(ls "$ROOT/var/lib/pkgtools/packages")" ]
 check "all files gone" absent usr/bin/hello
+
+begin "remove: by short name, the other way round"
+new_root force-remove-2
+spkg -i "$PKGS/hello-2-noarch-1.tgz"
+spkg -i -f "$PKGS/hello-1-noarch-1.tgz"
+installed_at hello-1-noarch-1 "2020-01-01 12:00"
+installed_at hello-2-noarch-1 "2021-01-01 12:00"
+spkg -d hello
+check "exit status 0" rc_is 0
+check "newest version removed" db_lacks hello-2-noarch-1
+check "other version kept" db_has hello-1-noarch-1
 
 # upgradepkg removes every other installed version of the package.
 make_hello 3
