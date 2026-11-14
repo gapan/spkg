@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
 #include <time.h>
@@ -46,7 +47,7 @@ static struct transaction _ta = {
 /* action list handling */
 typedef enum {
   MOVE, KEEP, LINK, FORCELINK, SYMLINK, CHPERM, FORCESYMLINK, REMOVE,
-  NOTHING
+  LMETA, NOTHING
 } t_action;
 
 struct action {
@@ -58,6 +59,7 @@ struct action {
   gint mode;
   gint owner;
   gint group;
+  time_t mtime;
 };
 
 static struct action* _ta_insert(
@@ -161,6 +163,16 @@ void ta_chperm_nothing(gchar* path, gint mode, gint owner, gint group)
   a->mode = mode;
   a->owner = owner;
   a->group = group;
+}
+
+void ta_lmeta_nothing(gchar* path, gint owner, gint group, time_t mtime)
+{
+  g_assert(path != 0);
+  struct action* a = _ta_insert(&_ta.list, LMETA, NOTHING);
+  a->path1 = path;
+  a->owner = owner;
+  a->group = group;
+  a->mtime = mtime;
 }
 
 void ta_remove_nothing(gchar* path, gint is_dir)
@@ -286,6 +298,21 @@ gint ta_finalize()
         {
           _warning("Failed to change owner on %s to %d:%d (%s)", a->path1, a->owner, a->group, strerror(errno));
         }
+      }
+    }
+    else if (a->on_finalize == LMETA)
+    {
+      _debug("Changing owner and mtime of %s", a->path1);
+      if (!_ta.dryrun)
+      {
+        struct timespec ts[2] = {
+          { .tv_sec = a->mtime, .tv_nsec = 0 },
+          { .tv_sec = a->mtime, .tv_nsec = 0 }
+        };
+        if (lchown(a->path1, a->owner, a->group) == -1)
+          _warning("Failed to change owner on %s to %d:%d (%s)", a->path1, a->owner, a->group, strerror(errno));
+        if (utimensat(AT_FDCWD, a->path1, ts, AT_SYMLINK_NOFOLLOW) == -1)
+          _warning("Failed to change mtime on %s (%s)", a->path1, strerror(errno));
       }
     }
     else if (a->on_finalize == REMOVE)

@@ -688,10 +688,8 @@ else
   new_root symlink-meta
   spkg -i "$PKGS/symlink-meta-1.0-noarch-1.tgz"
   check "exit status 0" rc_is 0
-  # the symlink is created on finalize, without the owner and mtime from
-  # the archive (tar -xp in installpkg sets them)
-  xfail "symlink owner" meta_is usr/bin/link "%u %g" "4321 8765"
-  xfail "symlink mtime" meta_is usr/bin/link "%Y" "$(date -d '2002-03-04 05:06:07 UTC' +%s)"
+  check "symlink owner" meta_is usr/bin/link "%u %g" "4321 8765"
+  check "symlink mtime" meta_is usr/bin/link "%Y" "$(date -d '2002-03-04 05:06:07 UTC' +%s)"
   check "target untouched" meta_is usr/bin/real "%a %u %g" "640 1234 5678"
 fi
 

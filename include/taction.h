@@ -19,6 +19,7 @@ ta_finalize() or ta_rollback() to end transaction.
 #define SPKG__TRANSACTION_H
 
 #include <glib.h>
+#include <time.h>
 #include "error.h"
 
 G_BEGIN_DECLS
@@ -98,6 +99,17 @@ extern void ta_forcesymlink_nothing(gchar* path, gchar* tgt_path);
  * @param group Group.
  */
 extern void ta_chperm_nothing(gchar* path, gint mode, gint owner, gint group);
+
+/** Set owner and mtime of a symlink itself (not of its target) on
+ * finalize, do nothing on rollback. Use it after \ref ta_symlink_nothing
+ * or \ref ta_forcesymlink_nothing for the same path.
+ *
+ * @param path Symlink path.
+ * @param owner Owner.
+ * @param group Group.
+ * @param mtime Modification time.
+ */
+extern void ta_lmeta_nothing(gchar* path, gint owner, gint group, time_t mtime);
 
 /** Remove file/directory on finalize, do nothing on rollback.
  * If path is directory, it removal will be done in the reverse order

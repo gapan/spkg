@@ -52,6 +52,15 @@ static gboolean same_file(const gchar* a, const gchar* b)
 
 #define D(s) g_strdup(s) /* ta_* functions take ownership of paths */
 
+#define LINK_MTIME 1000000000 /* mtime set on the symlinks */
+
+/* mtime of path itself (a symlink isn't followed) */
+static time_t lmtime(const gchar* path)
+{
+  struct stat st;
+  return lstat(path, &st) == 0 ? st.st_mtime : -1;
+}
+
 /* remove the test tree from a previous case */
 static gint sh_rm(void)
 {
@@ -90,7 +99,9 @@ static void register_actions(void)
   /* the hardlink target only exists after the move above: checks order */
   ta_link_nothing(D("t/hardlink"), D("t/existing"));
   ta_symlink_nothing(D("t/symlink"), D("existing"));
+  ta_lmeta_nothing(D("t/symlink"), getuid(), getgid(), LINK_MTIME);
   ta_forcesymlink_nothing(D("t/forcesym"), D("existing"));
+  ta_lmeta_nothing(D("t/forcesym"), getuid(), getgid(), LINK_MTIME);
   ta_forcelink_nothing(D("t/forcelink"), D("t/existing"));
   ta_chperm_nothing(D("t/perm"), 0644, getuid(), getgid());
 }
@@ -111,6 +122,9 @@ static void test_finalize(void)
   CHECK(same_file("t/hardlink", "t/existing"));
   CHECK(link_to("t/symlink", "existing"));
   CHECK(link_to("t/forcesym", "existing"));
+  CHECK_INT(lmtime("t/symlink"), LINK_MTIME);
+  CHECK_INT(lmtime("t/forcesym"), LINK_MTIME);
+  CHECK(lmtime("t/existing") != LINK_MTIME); /* the target is untouched */
   CHECK(same_file("t/forcelink", "t/existing"));
   CHECK(mode_is("t/perm", 0644));
   CHECK_INT(sys_file_type("t/gone", 0), SYS_NONE);

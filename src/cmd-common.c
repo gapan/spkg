@@ -448,16 +448,22 @@ void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
       goto extract_failed;
 #else
       _debug("Symlink detected: %s -> %s", sane_path, tgz->f_link);
+      /* the symlink is created on finalize, so that later entries of the
+         archive can't be extracted through it; its owner and mtime are
+         set right after it's created */
+      gchar* meta_path = g_strdup(fullpath);
       if (ex_type == SYS_NONE)
       {
         ta_symlink_nothing(fullpath, g_strdup(tgz->f_link)); /* target is freed by db_free_pkg(), dup by taction finalize/rollback */
         fullpath = NULL;
+        ta_lmeta_nothing(meta_path, tgz->f_uid, tgz->f_gid, tgz->f_mtime);
       }
       else
       {
         if (opts->safe)
         {
           e_set(E_ERROR, "Can't create symlink over existing %s. (%s)", ex_type == SYS_DIR ? "directory" : "file", sane_path);
+          g_free(meta_path);
           goto extract_failed;
         }
         else
@@ -465,6 +471,7 @@ void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
           _warning("%s exists, where symlink should be created. It will be removed. (%s)", ex_type == SYS_DIR ? "Directory" : "File", sane_path);
           ta_forcesymlink_nothing(fullpath, g_strdup(tgz->f_link));
           fullpath = NULL;
+          ta_lmeta_nothing(meta_path, tgz->f_uid, tgz->f_gid, tgz->f_mtime);
         }
       }
 #endif
