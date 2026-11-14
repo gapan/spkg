@@ -115,6 +115,15 @@ extern guint g_strv_length_compat(gchar **str_array);
  */
 extern gchar** load_blacklist(const gchar* path);
 
+/** Join two blacklists. The strings aren't copied, only the vector is
+ * new (free it with g_free()).
+ *
+ * @param a First blacklist, or NULL.
+ * @param b Second blacklist, or NULL.
+ * @return String vector with the entries of both.
+ */
+extern gchar** merge_blacklists(gchar** a, gchar** b);
+
 /** Check if given string is in blacklist.
  *
  * @param str String to check.

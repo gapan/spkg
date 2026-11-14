@@ -89,7 +89,10 @@ install it instead.
 \fB--no-fast-symlinks\fR
 Spkg by default parses doinst.sh for symlink creation code and removes
 it from the script. This improves execution times of doinst.sh. Use
-this option to disable such optimizations.
+this option to disable such optimizations. They are always disabled
+for aaa_base, aaa_glibc-solibs, glibc-solibs and glibc, whose install
+scripts must run exactly as written, and for the packages listed in
+/etc/spkg/symopts_blacklist (see \fBFILES\fR).
 .TP
 \fB--no-scripts\fR
 Disable postinstallation script.
@@ -123,6 +126,12 @@ Display spkg version.
 .SH FILES
 .IP "/var/lib/pkgtools/{packages,scripts}"
 Package database.
+.IP "/etc/spkg/symopts_blacklist"
+Packages whose doinst.sh is run as it is, as with \fB--no-fast-symlinks\fR:
+one package base name (such as \fIglibc\fR) per line. Empty lines and
+lines starting with # are ignored. The packages are added to the built-in
+list (aaa_base, aaa_glibc-solibs, glibc-solibs, glibc), which can't be
+shortened.
 .SH EXAMPLES
 .TP
 spkg -i <packages>   [--install]

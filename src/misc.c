@@ -357,6 +357,20 @@ gchar** load_blacklist(const gchar* path)
   return bl;
 }
 
+gchar** merge_blacklists(gchar** a, gchar** b)
+{
+  guint na = a ? g_strv_length(a) : 0;
+  guint nb = b ? g_strv_length(b) : 0;
+  gchar** bl = g_new0(gchar*, na + nb + 1);
+  guint i;
+
+  for (i = 0; i < na; i++)
+    bl[i] = a[i];
+  for (i = 0; i < nb; i++)
+    bl[na + i] = b[i];
+  return bl;
+}
+
 gboolean is_blacklisted(const gchar* str, gchar** blacklist)
 {
   gchar** i = blacklist;

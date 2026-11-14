@@ -52,6 +52,23 @@ int main(int ac, char* av[])
   /* NULL arguments are handled */
   CHECK(!is_blacklisted(NULL, bl));
   CHECK(!is_blacklisted("bla", NULL));
+
+  /* a loaded blacklist adds to the built-in one */
+  gchar* builtin[] = { "glibc", "aaa_base", NULL };
+  gchar** merged = merge_blacklists(builtin, bl);
+  CHECK_INT(g_strv_length(merged), 8);
+  CHECK(is_blacklisted("glibc", merged));
+  CHECK(is_blacklisted("aaa_base", merged));
+  CHECK(is_blacklisted("bla", merged));
+  CHECK(is_blacklisted("asdf asd", merged));
+  CHECK(!is_blacklisted("bin", merged));
+  g_free(merged);
+  merged = merge_blacklists(builtin, NULL);
+  CHECK_INT(g_strv_length(merged), 2);
+  g_free(merged);
+  merged = merge_blacklists(NULL, NULL);
+  CHECK_INT(g_strv_length(merged), 0);
+  g_free(merged);
   g_strfreev(bl);
 
   /* missing file */

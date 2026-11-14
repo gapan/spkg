@@ -205,10 +205,12 @@ int main(const int ac, const char* av[])
   /* check if we have enough privileges */
   unsetenv("LD_LIBRARY_PATH");
 
-  /* load blacklists from SPKG_CONFDIR */
+  /* packages listed in SPKG_CONFDIR/symopts_blacklist are added to the
+     built-in ones, which can't be taken off (their install scripts must
+     run as written, see default_bl_symopts) */
   gchar** bl_symopts = load_blacklist(SPKG_CONFDIR "/symopts_blacklist");
   if (bl_symopts)
-    cmd_opts.bl_symopts = bl_symopts;
+    cmd_opts.bl_symopts = merge_blacklists(default_bl_symopts, bl_symopts);
 
   /* preset ROOT */
   cmd_opts.root = getenv("ROOT");
