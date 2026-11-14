@@ -34,6 +34,7 @@ static const struct pkgname_case pkgnames[] = {
   { "foo-1.0-noarch-1.tgz", { ".", "foo", "1.0", "noarch", "1", "foo-1.0-noarch-1" } },
   { "foo-1.0-noarch-1.tlz", { ".", "foo", "1.0", "noarch", "1", "foo-1.0-noarch-1" } },
   { "foo-1.0-noarch-1.tbr", { ".", "foo", "1.0", "noarch", "1", "foo-1.0-noarch-1" } },
+  { "foo-1.0-noarch-1.tbz", { ".", "foo", "1.0", "noarch", "1", "foo-1.0-noarch-1" } },
   { "foo-1.0-noarch-1.tar", { ".", "foo", "1.0", "noarch", "1", "foo-1.0-noarch-1" } },
   /* unknown extensions are part of the build (untgz rejects the file later) */
   { "foo-1.0-noarch-1.zip", { ".", "foo", "1.0", "noarch", "1.zip", "foo-1.0-noarch-1.zip" } },

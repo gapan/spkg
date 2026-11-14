@@ -57,7 +57,7 @@ pkgtools options spkg doesn't have:
 | `.tgz` | gzip | gzip, decompressed by spkg itself (zlib) |
 | `.txz` | xz | xz, through `xzdec` |
 | `.tlz` | lzip (`plzip` if installed) | lzip (`plzip` if installed) |
-| `.tbz` | bzip2 | not supported |
+| `.tbz` | bzip2 (`lbzip2` if installed) | bzip2 (`lbzip2` if installed) |
 | `.tbr` | not supported | brotli, through `brotli` |
 | `.tar` | not supported | uncompressed tar |
 

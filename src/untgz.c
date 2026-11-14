@@ -35,6 +35,7 @@
 enum {
   COMPTYPE_GZIP,
   COMPTYPE_LZIP,
+  COMPTYPE_BZIP2,
   COMPTYPE_XZ,
   COMPTYPE_BRO,
   COMPTYPE_NONE
@@ -217,14 +218,15 @@ static union tar_block* read_next_block(struct untgz_state* s, gboolean is_heade
 }
 
 /* At the end of the archive, check that an external decompressor (xzdec,
-   lzip, brotli) succeeded. They check the data they wrote only afterwards
+   lzip, bzip2, brotli) succeeded. They check the data they wrote only afterwards
    (xz at the end of each block), so corrupted data may already have been
    extracted: the failure must make the whole package fail, so the command
    rolls back. Reads what's left of its output, then waits for it. */
 static void check_decompressor(struct untgz_state* s)
 {
   struct untgz_state_internal* i = s->i;
-  if (i->comptype != COMPTYPE_LZIP && i->comptype != COMPTYPE_XZ &&
+  if (i->comptype != COMPTYPE_LZIP && i->comptype != COMPTYPE_BZIP2 &&
+      i->comptype != COMPTYPE_XZ &&
       i->comptype != COMPTYPE_BRO)
     return;
   if (i->fp == NULL)
@@ -289,6 +291,8 @@ struct untgz_state* untgz_open(const gchar* tgzfile, struct error* e)
 
   if (g_str_has_suffix(tgzfile, ".tgz"))
     comptype = COMPTYPE_GZIP;
+  else if (g_str_has_suffix(tgzfile, ".tbz"))
+    comptype = COMPTYPE_BZIP2;
   else if (g_str_has_suffix(tgzfile, ".tlz"))
     comptype = COMPTYPE_LZIP;
   else if (g_str_has_suffix(tgzfile, ".txz"))
@@ -312,19 +316,22 @@ struct untgz_state* untgz_open(const gchar* tgzfile, struct error* e)
       return NULL;
     }
   }
-  else if (comptype == COMPTYPE_LZIP)
+  else if (comptype == COMPTYPE_LZIP || comptype == COMPTYPE_BZIP2)
   {
-    /* like installpkg: plzip (multithreaded) if it's there, else lzip */
+    /* like installpkg: the multithreaded version (plzip, lbzip2) if it's
+       there, else lzip or bzip2 */
+    const gchar* fast = comptype == COMPTYPE_LZIP ? "plzip" : "lbzip2";
+    const gchar* plain = comptype == COMPTYPE_LZIP ? "lzip" : "bzip2";
     const gchar* tool = NULL;
     gchar* found;
-    if ((found = g_find_program_in_path("plzip")) != NULL)
-      tool = "plzip";
-    else if ((found = g_find_program_in_path("lzip")) != NULL)
-      tool = "lzip";
+    if ((found = g_find_program_in_path(fast)) != NULL)
+      tool = fast;
+    else if ((found = g_find_program_in_path(plain)) != NULL)
+      tool = plain;
     g_free(found);
     if (tool == NULL)
     {
-      _e_set(e, E_ERROR, "lzip or plzip is needed to decompress %s, but neither was found", tgzfile);
+      _e_set(e, E_ERROR, "%s or %s is needed to decompress %s, but neither was found", plain, fast, tgzfile);
       return NULL;
     }
     gchar* escaped = g_shell_quote(tgzfile);
@@ -402,7 +409,8 @@ void untgz_close(struct untgz_state* s)
 
   if (i->comptype == COMPTYPE_GZIP)
     gzclose(i->gzf);
-  else if (i->comptype == COMPTYPE_LZIP || i->comptype == COMPTYPE_XZ ||
+  else if (i->comptype == COMPTYPE_LZIP || i->comptype == COMPTYPE_BZIP2 ||
+           i->comptype == COMPTYPE_XZ ||
            i->comptype == COMPTYPE_BRO)
   {
     /* already closed when the end of the archive was reached */

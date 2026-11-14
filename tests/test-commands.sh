@@ -136,6 +136,7 @@ pack() {
     *.txz) _comp="xz" ;;
     *.tlz) _comp="lzip -c" ;;
     *.tbr) _comp="brotli -c" ;;
+    *.tbz) _comp="bzip2 -c" ;;
     *.tar) _comp="cat" ;;
   esac
   if [ $# -eq 0 ]; then
@@ -373,11 +374,12 @@ check "uninstall scripts of both old versions ran" \
   [ "$(grep -c '^douninst [12] ' "$ROOT/script-log")" = 2 ]
 check "library symlink of the new version kept" link_to usr/lib/libhello.so libhello.so.3
 
-for ext in txz tlz tbr tar; do
+for ext in txz tlz tbz tbr tar; do
   case $ext in
     txz) tool=xzdec ;;
     tlz) tool=lzip ;;
     tbr) tool=brotli ;;
+    tbz) tool=bzip2 ;;
     tar) tool=tar ;;
   esac
   begin "install: .$ext package"
@@ -414,6 +416,46 @@ if [ -x /usr/bin/lzip ] && [ -x /bin/sh ] && [ ! -e /bin/plzip ] && [ ! -e /bin/
   check "not installed" db_lacks hello-1-noarch-1
 else
   echo "    skipped, needs lzip in /usr/bin and neither lzip nor plzip in /bin"
+fi
+
+# .tbz is decompressed with lbzip2 if it's there, bzip2 otherwise, like
+# installpkg does.
+begin "install: .tbz with bzip2 only"
+bzip2_path=$(command -v bzip2)
+if [ -n "$bzip2_path" ]; then
+  st=$TMP/stage-bz
+  rm -rf "$st"; mkdir -p "$st/usr/share/bz"; echo "bz 1" > "$st/usr/share/bz/file"
+  pack "$st" bz-1-noarch-1.tbz
+  mkdir -p "$TMP/bzbin" "$TMP/emptybin"; ln -sf "$bzip2_path" "$TMP/bzbin/bzip2"
+  new_root tbz-bzip2
+  PATH="$TMP/bzbin" "$SPKG" --root="$ROOT" -i "$PKGS/bz-1-noarch-1.tbz" >"$OUT" 2>&1
+  rc=$?
+  check "exit status 0" rc_is 0
+  check "file content" content_is usr/share/bz/file "bz 1"
+
+  begin "install: .tbz without bzip2 or lbzip2"
+  new_root tbz-none
+  PATH="$TMP/emptybin" "$SPKG" --root="$ROOT" -i "$PKGS/bz-1-noarch-1.tbz" >"$OUT" 2>&1
+  rc=$?
+  check "exit status 2" rc_is 2
+  check "says what's missing" output_has "bzip2 or lbzip2 is needed"
+  check "not installed" db_lacks bz-1-noarch-1
+
+  # bzip2 keeps a checksum per block: a corrupted byte must fail the package
+  begin "install: corrupted .tbz package"
+  st=$TMP/stage-bzbad
+  rm -rf "$st"; mkdir -p "$st/usr/share/bzbad"
+  head -c 300000 /dev/urandom > "$st/usr/share/bzbad/random"
+  pack "$st" bzbad-1-noarch-1.tbz
+  mkdir -p "$TMP/bad"; cp "$PKGS/bzbad-1-noarch-1.tbz" "$TMP/bad/"
+  printf '\125' | dd of="$TMP/bad/bzbad-1-noarch-1.tbz" bs=1 seek=150000 conv=notrunc 2>/dev/null
+  new_root tbz-corrupt
+  spkg -i "$TMP/bad/bzbad-1-noarch-1.tbz"
+  check "exit status 2" rc_is 2
+  check "not in the database" db_lacks bzbad-1-noarch-1
+  check "no files left behind" absent usr/share/bzbad
+else
+  echo "    skipped, bzip2 not found"
 fi
 
 begin "install: .tlz in the old lzma format is rejected"

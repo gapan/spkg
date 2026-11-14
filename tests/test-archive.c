@@ -471,6 +471,7 @@ int main(int ac, char* av[])
     { "test.txz", "xzdec",  "xz" },
     { "test.tlz", "lzip",   "lzip -c" },
     { "test.tbr", "brotli", "brotli -c" },
+    { "test.tbz", "bzip2",  "bzip2 -c" },
   };
   guint i;
   for (i = 0; i < G_N_ELEMENTS(formats); i++)
