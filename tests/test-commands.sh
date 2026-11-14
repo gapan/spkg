@@ -393,6 +393,45 @@ for ext in txz tlz tbr tar; do
   check "file content" content_is usr/bin/hello "hello 1"
 done
 
+# xz checks its data only at the end of each block, after it has written
+# it, so a corrupted byte in a file's data reaches spkg; xzdec's exit
+# status must make the package fail. Random data is stored by xz as it
+# is, so the flipped byte isn't noticed while decompressing.
+begin "install: corrupted .txz package"
+if ! command -v xz >/dev/null 2>&1 || ! command -v xzdec >/dev/null 2>&1; then
+  echo "    skipped, xz or xzdec not found"
+else
+  # bad_txz NAME VERSION : $TMP/bad/NAME-VERSION-noarch-1.txz with a corrupted file
+  bad_txz() {
+    _st=$TMP/stage-bad-$1-$2
+    rm -rf "$_st"; mkdir -p "$_st/usr/share/$1"
+    head -c 300000 /dev/urandom > "$_st/usr/share/$1/random"
+    echo "$1 $2" > "$_st/usr/share/$1/version"
+    pack "$_st" "$1-$2-noarch-1.txz"
+    mkdir -p "$TMP/bad"
+    cp "$PKGS/$1-$2-noarch-1.txz" "$TMP/bad/"
+    printf '\125' | dd of="$TMP/bad/$1-$2-noarch-1.txz" bs=1 seek=150000 conv=notrunc 2>/dev/null
+  }
+  bad_txz xzbad 1
+  new_root xz-corrupt
+  spkg -i "$TMP/bad/xzbad-1-noarch-1.txz"
+  check "exit status 2" rc_is 2
+  check "reports corruption" output_has "Package file is corrupted"
+  check "not in the database" db_lacks xzbad-1-noarch-1
+  check "no files left behind" absent usr/share/xzbad
+  check "no temporary files" [ -z "$(find "$ROOT" -name '*--###*')" ]
+  spkg -i "$PKGS/xzbad-1-noarch-1.txz"
+  check "intact package installs" rc_is 0
+
+  begin "upgrade: corrupted .txz package is rolled back"
+  bad_txz xzbad 2
+  before=$(snapshot)
+  spkg -u "$TMP/bad/xzbad-2-noarch-1.txz"
+  check "exit status 2" rc_is 2
+  check "old version still installed" db_has xzbad-1-noarch-1
+  check "tree unchanged" [ "$before" = "$(snapshot)" ]
+fi
+
 begin "install: hardlinks"
 st=$TMP/stage-links
 mkdir -p "$st/usr/share/links"

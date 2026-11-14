@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <setjmp.h>
 #include <sys/sysmacros.h>
+#include <sys/wait.h>
 #include <zlib.h>
 
 #include "untgz.h"
@@ -215,6 +216,37 @@ static union tar_block* read_next_block(struct untgz_state* s, gboolean is_heade
   return (union tar_block*)i->bpos;
 }
 
+/* At the end of the archive, check that an external decompressor (xzdec,
+   lzma, brotli) succeeded. They check the data they wrote only afterwards
+   (xz at the end of each block), so corrupted data may already have been
+   extracted: the failure must make the whole package fail, so the command
+   rolls back. Reads what's left of its output, then waits for it. */
+static void check_decompressor(struct untgz_state* s)
+{
+  struct untgz_state_internal* i = s->i;
+  if (i->comptype != COMPTYPE_LZMA && i->comptype != COMPTYPE_XZ &&
+      i->comptype != COMPTYPE_BRO)
+    return;
+  if (i->fp == NULL)
+    return;
+
+  while (fread(i->bbuf, 1, BLOCKBUFSIZE, i->fp) > 0)
+    ;
+  gint status = pclose(i->fp);
+  i->fp = NULL;
+  i->bpos = i->bend = i->bbuf; /* the buffer was overwritten */
+  if (status != 0)
+  {
+    i->eof = 0;
+    if (status == -1)
+      e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] corrupted tgz archive (can't check the decompressor: %s)", i->blockid, strerror(errno));
+    else if (WIFEXITED(status))
+      e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] corrupted tgz archive (decompressor failed with status %d)", i->blockid, WEXITSTATUS(status));
+    else
+      e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] corrupted tgz archive (decompressor was killed)", i->blockid);
+  }
+}
+
 /* append two strings (reallocate memmory) */
 static gchar* strnappend(gchar* dst, gchar* src, gsize size)
 {
@@ -359,7 +391,11 @@ void untgz_close(struct untgz_state* s)
     gzclose(i->gzf);
   else if (i->comptype == COMPTYPE_LZMA || i->comptype == COMPTYPE_XZ ||
            i->comptype == COMPTYPE_BRO)
-    pclose(i->fp);
+  {
+    /* already closed when the end of the archive was reached */
+    if (i->fp)
+      pclose(i->fp);
+  }
   else
     fclose(i->fp);
 
@@ -438,6 +474,7 @@ gint untgz_get_header(struct untgz_state* s)
     {
       /* empty header => end of archive */
       i->eof = 1;
+      check_decompressor(s);
       return 1;
     }
 

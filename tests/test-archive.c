@@ -407,6 +407,56 @@ static void check_ustar_prefix(void)
   e_free(e);
 }
 
+/* xz checks the data it wrote only at the end of a block: the reader must
+ * report the decompressor's failure at the end of the archive. Random data
+ * is stored by xz as it is, so the flipped byte doesn't stop decoding. */
+static void check_decompressor_status(void)
+{
+  if (!have("xz") || !have("xzdec"))
+  {
+    printf("decompressor status skipped, xz or xzdec not found\n");
+    return;
+  }
+  printf("decompressor status\n");
+  CHECK(sh("mkdir -p rnd && head -c 300000 /dev/urandom > rnd/random && "
+           "tar -C rnd -cf - random | xz > rnd.txz && cp rnd.txz bad.txz && "
+           "printf '\\125' | dd of=bad.txz bs=1 seek=150000 conv=notrunc 2>/dev/null") == 0);
+
+  struct error* e = e_new();
+  const gchar* files[] = { "rnd.txz", "bad.txz" };
+  guint f;
+  for (f = 0; f < G_N_ELEMENTS(files); f++)
+  {
+    struct untgz_state* tgz = untgz_open(files[f], e);
+    CHECK(tgz != NULL);
+    if (!tgz)
+      continue;
+    gint rv;
+    gchar* buf = NULL;
+    gsize len;
+    while ((rv = untgz_get_header(tgz)) == 0)
+    {
+      if (untgz_write_data(tgz, &buf, &len) < 0)
+        break;
+      g_free(buf);
+      buf = NULL;
+    }
+    if (f == 0)
+    {
+      CHECK_INT(rv, 1);   /* intact: end of archive */
+      CHECK(e_ok(e));
+    }
+    else
+    {
+      CHECK_INT(rv, -1);  /* corrupted: reported at the end */
+      CHECK(e_errno(e) & UNTGZ_CORRUPT);
+    }
+    e_clean(e);
+    untgz_close(tgz);
+  }
+  e_free(e);
+}
+
 int main(int ac, char* av[])
 {
   gchar* tmp = check_enter_tmpdir();
@@ -442,6 +492,7 @@ int main(int ac, char* av[])
   check_extract("test.tgz");
   check_broken();
   check_ustar_prefix();
+  check_decompressor_status();
 
   CHECK(chdir("/") == 0);
   CHECK_INT(sys_rm_rf(tmp), 0);
