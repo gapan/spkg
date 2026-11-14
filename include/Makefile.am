@@ -1,5 +1,6 @@
 EXTRA_DIST = \
 	bench.h \
+	cmd-common.h \
 	commands.h \
 	error.h \
 	message.h \
