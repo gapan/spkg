@@ -370,8 +370,8 @@ static void check_ustar_prefix(void)
   if (tgz)
   {
     CHECK_INT(untgz_get_header(tgz), 0);
-    /* known bug: the prefix field is ignored, so the path is truncated */
-    XFAIL(tgz->f_name && !strcmp(tgz->f_name, path));
+    /* the path is put back together from the prefix and name fields */
+    CHECK_STR(tgz->f_name, path);
     untgz_close(tgz);
   }
   e_free(e);

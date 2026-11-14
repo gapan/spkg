@@ -494,7 +494,15 @@ gint untgz_get_header(struct untgz_state* s)
   }
 
   if (s->f_name == 0)
-    s->f_name = g_strndup(b->h.name, SHORTNAMESIZE);
+  {
+    /* POSIX ustar archives (magic "ustar\0", unlike GNU's "ustar  \0")
+       store long paths split into the prefix and name fields */
+    if (!memcmp(b->h.magic, "ustar", sizeof(b->h.magic)) && b->h.prefix[0])
+      s->f_name = g_strdup_printf("%.*s/%.*s",
+        (int)sizeof(b->h.prefix), b->h.prefix, SHORTNAMESIZE, b->h.name);
+    else
+      s->f_name = g_strndup(b->h.name, SHORTNAMESIZE);
+  }
   /* just one more (unnecessary) check */
   else if (strncmp(s->f_name, b->h.name, SHORTNAMESIZE-1)) /* -1 because it's zero terminated */
     e_throw(E_ERROR|UNTGZ_CORRUPT, "[block:%d] corrupted tgz archive (longname mismatch)", i->blockid);
