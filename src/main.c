@@ -325,7 +325,23 @@ int main(const int ac, const char* av[])
   /* open db */
   gboolean readonly = cmd_opts.dryrun || !is_root();
   if (db_open(cmd_opts.root, readonly, err))
+  {
+    if (readonly && (e_errno(err) & DB_NOTEX))
+    {
+      /* explain why the database isn't simply created */
+      e_print(err);
+      if (cmd_opts.dryrun)
+        fprintf(stderr, "With --dry-run, spkg doesn't create the package database. "
+          "Check the --root directory, or install a package there without "
+          "--dry-run first.\n");
+      else
+        fprintf(stderr, "Only root can create the package database. "
+          "Check the --root directory, or run spkg as root.\n");
+      status = 2;
+      goto out;
+    }
     goto err_2;
+  }
 
   switch (command)
   {

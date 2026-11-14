@@ -358,6 +358,24 @@ spkg -i -n "$PKGS/hello-1-noarch-1.tgz"
 check "exit status 0" rc_is 0
 check "tree unchanged" [ "$before" = "$(snapshot)" ]
 
+begin "install: --dry-run on a root without a package database"
+new_root dry-no-db
+spkg -i -n "$PKGS/hello-1-noarch-1.tgz"
+check "exit status 2" rc_is 2
+check "says what's missing" output_has "There is no package database in $ROOT/"
+check "explains" output_has "With --dry-run, spkg doesn't create the package database"
+check "root left empty" [ -z "$(ls -A "$ROOT")" ]
+
+begin "install: --dry-run on a database with only packages/"
+new_root dry-partial-db
+make_shared one
+spkg -i "$PKGS/one-1.0-noarch-1.tgz"
+rm -rf "$ROOT/var/lib/pkgtools/setup" "$ROOT/var/log/pkgtools"
+before=$(snapshot)
+spkg -i -n "$PKGS/hello-1-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "tree unchanged" [ "$before" = "$(snapshot)" ]
+
 begin "install: invalid package name"
 new_root bad-name
 cp "$PKGS/hello-1-noarch-1.tgz" "$PKGS/hello.tgz"

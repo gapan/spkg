@@ -93,7 +93,6 @@ gint db_open(const gchar* root, gboolean readonly, struct error* e)
   }
   _db.pkgdir = g_strdup_printf("%s/lib/pkgtools/packages", _db.topdir);
   _db.scrdir = g_strdup_printf("%s/lib/pkgtools/scripts", _db.topdir);
-  g_free(sane_root);
 
   /* check db dirs */
   for (d = checkdirs; *d != NULL; d++)
@@ -104,8 +103,17 @@ gint db_open(const gchar* root, gboolean readonly, struct error* e)
     {
       if (readonly)
       {
-        e_set(E_FATAL, "Package database directory does not exist and can't be created in readonly mode. (%s)", tmpdir);
+        /* reading needs only the package entries (scripts are optional),
+           the other directories are needed for changes only */
+        if (strcmp(*d, "lib/pkgtools/packages"))
+        {
+          g_free(tmpdir);
+          continue;
+        }
+        e_set(E_FATAL|DB_NOTEX, "There is no package database in %s (%s doesn't exist).",
+              *sane_root ? sane_root : "the current directory", tmpdir);
         g_free(tmpdir);
+        g_free(sane_root);
         goto err_1;
       }
       sys_rm_rf(tmpdir);
@@ -116,11 +124,13 @@ gint db_open(const gchar* root, gboolean readonly, struct error* e)
       {
         e_set(E_FATAL, "Can't access package database directory. (%s)", tmpdir);
         g_free(tmpdir);
+        g_free(sane_root);
         goto err_1;
       }
     }
     g_free(tmpdir);
   }
+  g_free(sane_root);
 
   if (!readonly)
   {

@@ -70,9 +70,22 @@ static void test_open(void)
 
   /* readonly mode doesn't create the database */
   CHECK_INT(db_open(root, TRUE, e), 1);
-  CHECK(!e_ok(e));
+  CHECK(e_errno(e) & DB_NOTEX);
+  CHECK(e_string(e) && strstr(e_string(e), "There is no package database"));
   e_clean(e);
   CHECK(!exists("var"));
+
+  /* for reading, the package entries are enough (as in older databases);
+   * nothing is created */
+  CHECK(sys_mkdir_p("partial/var/lib/pkgtools/packages") == 0);
+  gchar* partial = g_build_filename(root, "partial", NULL);
+  CHECK_INT(db_open(partial, TRUE, e), 0);
+  CHECK(e_ok(e));
+  db_close();
+  g_free(partial);
+  CHECK(!exists("partial/var/lib/pkgtools/scripts"));
+  CHECK(!exists("partial/var/log"));
+  CHECK(sys_rm_rf("partial") == 0);
 
   CHECK_INT(db_open(root, FALSE, e), 0);
   CHECK(e_ok(e));
