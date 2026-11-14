@@ -181,7 +181,7 @@ config() {
   fi
 }
 config etc/hello.conf.new
-echo "doinst \$1 $_v" > hello-doinst-ran
+echo "doinst [\$*] $_v" > hello-doinst-ran
 echo "doinst $_v" >> script-log
 ( cd usr/lib ; rm -rf libhello.so )
 ( cd usr/lib ; ln -sf libhello.so.$_v libhello.so )
@@ -238,7 +238,7 @@ check "files installed" is_file usr/bin/hello
 check "file content" content_is usr/bin/hello "hello 1"
 check "file mode preserved" mode_is usr/bin/hello 755
 check "nested file installed" is_file usr/share/hello/v1.txt
-check "doinst.sh ran with -install" content_is hello-doinst-ran "doinst -install 1"
+check "doinst.sh ran without arguments" content_is hello-doinst-ran "doinst [] 1"
 check "symlink from doinst.sh created" link_to usr/lib/libhello.so libhello.so.1
 check "config file moved into place" content_is etc/hello.conf "setting=1"
 check "config .new file consumed" absent etc/hello.conf.new
@@ -401,7 +401,7 @@ begin "install: --no-fast-symlinks"
 new_root no-fast
 spkg -i --no-fast-symlinks "$PKGS/hello-1-noarch-1.tgz"
 check "exit status 0" rc_is 0
-check "doinst.sh ran" content_is hello-doinst-ran "doinst -install 1"
+check "doinst.sh ran" content_is hello-doinst-ran "doinst [] 1"
 check "symlink created by doinst.sh" link_to usr/lib/libhello.so libhello.so.1
 
 begin "install: --no-fast-symlinks --no-scripts"
@@ -1011,7 +1011,7 @@ check "new file installed" is_file usr/share/hello/v2.txt
 check "leftover file removed" absent usr/share/hello/v1.txt
 check "leftover library removed" absent usr/lib/libhello.so.1
 check "symlink retargeted" link_to usr/lib/libhello.so libhello.so.2
-check "doinst.sh of new version ran" content_is hello-doinst-ran "doinst -install 2"
+check "doinst.sh of new version ran" content_is hello-doinst-ran "doinst [] 2"
 check "changed config left as .new" content_is etc/hello.conf.new "setting=2"
 check "existing config kept" content_is etc/hello.conf "setting=1"
 check "no temporary files" [ -z "$(find "$ROOT" -name '*--###*')" ]
@@ -1021,7 +1021,7 @@ new_root upgrade-no-scripts
 spkg -i "$PKGS/hello-1-noarch-1.tgz"
 spkg -u --no-scripts "$PKGS/hello-2-noarch-1.tgz"
 check "exit status 0" rc_is 0
-check "doinst.sh not run" content_is hello-doinst-ran "doinst -install 1"
+check "doinst.sh not run" content_is hello-doinst-ran "doinst [] 1"
 check "install/ removed" absent install
 
 begin "upgrade: shared file stays when the other owner drops it"
@@ -1362,8 +1362,6 @@ check "files removed" absent usr
 # - The package sizes in the database entry: installpkg writes du -h of
 #   the package and the size of the tar stream, spkg whole kilobytes of the
 #   package and of the files in it.
-# - spkg runs doinst.sh with -install as $1, installpkg without arguments
-#   (hello-doinst-ran records it).
 # - installpkg creates var/lib/pkgtools/setup/tmp.
 # - The names of the entries in var/log/pkgtools/removed_*: removepkg
 #   keeps the package name, upgradepkg adds -upgraded-<time>, spkg adds
@@ -1387,10 +1385,8 @@ pt() {
 # timestamps of removed entries taken out.
 pt_tree() {
   (cd "$1" &&
-    find . \( -path ./var -o -path ./hello-doinst-ran \) -prune -o \
-      -printf '%p %y %m %u %g %s %l\n' | LC_ALL=C sort &&
-    find . \( -path ./var -o -path ./hello-doinst-ran \) -prune -o \
-      -type f -exec md5sum {} + | LC_ALL=C sort &&
+    find . -path ./var -prune -o -printf '%p %y %m %u %g %s %l\n' | LC_ALL=C sort &&
+    find . -path ./var -prune -o -type f -exec md5sum {} + | LC_ALL=C sort &&
     for _d in var/lib/pkgtools/packages var/lib/pkgtools/scripts \
               var/lib/pkgtools/douninst.sh var/log/pkgtools/removed_packages \
               var/log/pkgtools/removed_scripts \
