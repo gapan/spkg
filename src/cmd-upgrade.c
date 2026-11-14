@@ -131,10 +131,10 @@ static void _delete_leftovers(struct db_pkg* pkg, struct db_pkg* ipkg,
         /* don't remove symlinks to critical libc libraries */
         if (_check_libc_libs(path) == 0 && *ptype == DB_PATH_SYMLINK) {
           _debug("Libc library (%s). Not removing symlink.", path);
-        } else {
-          _debug("Removing file %s (postponed)", path);
-          ta_remove_nothing(fullpath, FALSE);
+          goto skip_free;
         }
+        _debug("Removing file %s (postponed)", path);
+        ta_remove_nothing(fullpath, FALSE);
         fullpath = NULL;
       }
     }
