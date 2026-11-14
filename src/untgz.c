@@ -11,6 +11,7 @@
 #include <utime.h>
 #include <fcntl.h>
 #include <setjmp.h>
+#include <sys/sysmacros.h>
 #include <zlib.h>
 
 #include "untgz.h"
@@ -685,13 +686,11 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
         e_throw(E_ERROR|UNTGZ_BADIO, "can't create hardlink: %s", strerror(errno));
       break;
     case UNTGZ_CHR:
-		if (mknod(path, S_IFCHR, (dev_t)((((s->f_devmaj & 0xFF) 
-            << 8) & 0xFF00) | (s->f_devmin & 0xFF))) == -1)
+      if (mknod(path, S_IFCHR, makedev(s->f_devmaj, s->f_devmin)) == -1)
         e_throw(E_ERROR|UNTGZ_BADIO, "can't create chrdev: %s", strerror(errno));
       break;
     case UNTGZ_BLK:
-      if (mknod(path, S_IFBLK, (dev_t)((((s->f_devmaj & 0xFF) 
-            << 8) & 0xFF00) | (s->f_devmin & 0xFF))) == -1)
+      if (mknod(path, S_IFBLK, makedev(s->f_devmaj, s->f_devmin)) == -1)
         e_throw(E_ERROR|UNTGZ_BADIO, "can't create blkdev: %s", strerror(errno));
       break;
     case UNTGZ_DIR:

@@ -525,8 +525,7 @@ check "setgid sticky directory" meta_is usr/share/meta/shared "%a %u %g" "3775 1
 check "fifo" meta_is dev/fifo "%F %a" "fifo 600"
 check "character device" meta_is dev/chr "%F %a %Hr %Lr" "character special file 620 4 64"
 check "block device" meta_is dev/blk "%F %a %Hr %Lr" "block special file 660 8 1"
-# device numbers are packed into 8 bits each
-xfail "device with numbers above 255" meta_is dev/big "%F %Hr %Lr" "character special file 259 300"
+check "device with numbers above 255" meta_is dev/big "%F %Hr %Lr" "character special file 259 300"
 check "device nodes in the file list" db_lists meta-1-noarch-1 dev/chr
 
 begin "upgrade: file metadata changes"
