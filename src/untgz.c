@@ -686,14 +686,30 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
       break;
   }
 
-  if (chown(path, s->f_uid, s->f_gid) == -1)
-    e_throw(E_ERROR|UNTGZ_BADMETA, "can't chown file: %s", strerror(errno));
-  if (chmod(path, s->f_mode) == -1)
-    e_throw(E_ERROR|UNTGZ_BADMETA, "can't chmod file: %s", strerror(errno));
-  t.actime = t.modtime = s->f_mtime;  
-  if (utime(path, &t) == -1)
+  if (s->f_type == UNTGZ_SYM)
   {
-    e_throw(E_ERROR|UNTGZ_BADMETA, "can't utime file: %s", strerror(errno));
+    /* set metadata of the symlink itself, never of its target (symlinks
+       have no mode of their own) */
+    struct timespec ts[2] = {
+      { .tv_sec = s->f_mtime, .tv_nsec = 0 },
+      { .tv_sec = s->f_mtime, .tv_nsec = 0 }
+    };
+    if (lchown(path, s->f_uid, s->f_gid) == -1)
+      e_throw(E_ERROR|UNTGZ_BADMETA, "can't chown symlink: %s", strerror(errno));
+    if (utimensat(AT_FDCWD, path, ts, AT_SYMLINK_NOFOLLOW) == -1)
+      e_throw(E_ERROR|UNTGZ_BADMETA, "can't utime symlink: %s", strerror(errno));
+  }
+  else
+  {
+    if (chown(path, s->f_uid, s->f_gid) == -1)
+      e_throw(E_ERROR|UNTGZ_BADMETA, "can't chown file: %s", strerror(errno));
+    if (chmod(path, s->f_mode) == -1)
+      e_throw(E_ERROR|UNTGZ_BADMETA, "can't chmod file: %s", strerror(errno));
+    t.actime = t.modtime = s->f_mtime;
+    if (utime(path, &t) == -1)
+    {
+      e_throw(E_ERROR|UNTGZ_BADMETA, "can't utime file: %s", strerror(errno));
+    }
   }
 
 #if UNTGZ_PRESERVE_DIR_TIMES == 1

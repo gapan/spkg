@@ -240,9 +240,9 @@ static void check_extract(const gchar* name)
       /* the symlink points to out/file */
       CHECK_INT(untgz_write_file(tgz, "out/symlink"), 0);
       CHECK_INT(sys_file_type("out/symlink", 0), SYS_SYM);
-      /* known bug: chown/chmod/utime follow the new symlink and change its
-       * target (spkg itself creates symlinks via the transaction layer) */
-      XFAIL(stat("out/file", &st) == 0 && (st.st_mode & 07777) == 0600);
+      /* metadata is set on the symlink itself, its target is untouched */
+      CHECK(stat("out/file", &st) == 0 && (st.st_mode & 07777) == 0600);
+      CHECK(lstat("out/symlink", &st) == 0 && st.st_mtime == 1000000000);
     }
   }
   CHECK(e_ok(e));
