@@ -263,6 +263,71 @@ check "reports skip" output_has "Skipping package hello-2-noarch-1"
 check "new version not installed" db_lacks hello-2-noarch-1
 check "files untouched" content_is usr/bin/hello "hello 1"
 
+# --force installs a second version next to the first one. Both are in the
+# database and own the files they have in common, like installpkg does when
+# it's given a package whose base name is already installed.
+begin "install: --force installs another version next to the installed one"
+new_root force
+spkg -i "$PKGS/hello-1-noarch-1.tgz"
+spkg -i -f "$PKGS/hello-2-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "old version still in the database" db_has hello-1-noarch-1
+check "new version in the database" db_has hello-2-noarch-1
+check "shared file has the new content" content_is usr/bin/hello "hello 2"
+check "file of the old version kept" content_is usr/share/hello/v1.txt "data 1"
+check "file of the new version" content_is usr/share/hello/v2.txt "data 2"
+check "both own the shared file" sh -c \
+  'grep -qx usr/bin/hello "$1/hello-1-noarch-1" && grep -qx usr/bin/hello "$1/hello-2-noarch-1"' \
+  - "$ROOT/var/lib/pkgtools/packages"
+spkg -l hello
+check "list exit status 0" rc_is 0
+check "list shows the old version" output_has "^hello-1-noarch-1$"
+check "list shows the new version" output_has "^hello-2-noarch-1$"
+
+begin "install: --force with the same version is still skipped"
+spkg -i -f "$PKGS/hello-2-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "reports skip" output_has "Skipping package hello-2-noarch-1"
+
+begin "remove: one of two versions by full name"
+spkg -d hello-1-noarch-1
+check "exit status 0" rc_is 0
+check "removed from the database" db_lacks hello-1-noarch-1
+check "other version still in the database" db_has hello-2-noarch-1
+check "shared file kept" content_is usr/bin/hello "hello 2"
+check "file only the removed version had is gone" absent usr/share/hello/v1.txt
+check "file of the other version kept" content_is usr/share/hello/v2.txt "data 2"
+
+# Which version a short name picks when several are installed is not
+# checked: spkg takes the first one the directory listing returns, while
+# removepkg takes the most recently installed one.
+begin "remove: by short name with two versions installed removes one"
+new_root force-remove
+spkg -i "$PKGS/hello-1-noarch-1.tgz"
+spkg -i -f "$PKGS/hello-2-noarch-1.tgz"
+spkg -d hello
+check "exit status 0" rc_is 0
+check "exactly one version left" [ "$(ls "$ROOT/var/lib/pkgtools/packages" | wc -l)" = 1 ]
+spkg -d hello
+check "second remove exit status 0" rc_is 0
+check "database empty" [ -z "$(ls "$ROOT/var/lib/pkgtools/packages")" ]
+check "all files gone" absent usr/bin/hello
+
+# upgradepkg removes every other installed version of the package.
+make_hello 3
+begin "upgrade: with two versions installed"
+new_root force-upgrade
+spkg -i "$PKGS/hello-1-noarch-1.tgz"
+spkg -i -f "$PKGS/hello-2-noarch-1.tgz"
+spkg -u "$PKGS/hello-3-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "new version in the database" db_has hello-3-noarch-1
+check "file content" content_is usr/bin/hello "hello 3"
+xfail "no other version left in the database" \
+  [ "$(ls "$ROOT/var/lib/pkgtools/packages")" = hello-3-noarch-1 ]
+xfail "files of the old versions removed" \
+  sh -c '! [ -e "$1/usr/share/hello/v1.txt" ] && ! [ -e "$1/usr/share/hello/v2.txt" ]' - "$ROOT"
+
 for ext in txz tlz tbr tar; do
   case $ext in
     txz) tool=xzdec ;;
@@ -839,7 +904,8 @@ check "script still stored" douninst_stored hello-1-noarch-1
 
 begin "upgrade: to a version without douninst.sh"
 new_root upgrade-douninst-dropped
-st=$TMP/stage-hello-3
+st=$TMP/stage-hello-3-nodouninst
+rm -rf "$st"
 cp -a "$TMP/stage-hello-2" "$st"
 rm "$st/install/douninst.sh"
 pack "$st" hello-3-noarch-1.tgz
