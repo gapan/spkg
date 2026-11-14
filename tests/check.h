@@ -49,6 +49,21 @@ static gint check_failures = 0;
     } \
   } while (0)
 
+/* Known bug: cond describes the correct behaviour and is expected to be
+ * false for now. Once it holds (the bug got fixed), the test fails with
+ * XPASS so the XFAIL can be turned into a CHECK. */
+#define XFAIL(cond) \
+  do { \
+    if (cond) \
+    { \
+      printf("XPASS %s:%d: %s (known bug fixed? turn this into a CHECK)\n", \
+        __FILE__, __LINE__, #cond); \
+      check_failures++; \
+    } \
+    else \
+      printf("XFAIL %s:%d: %s\n", __FILE__, __LINE__, #cond); \
+  } while (0)
+
 static __inline__ gint check_result(void)
 {
   if (check_failures)

@@ -9,7 +9,9 @@
 #include <string.h>
 
 #include "path.h"
+#include "misc.h"
 #include "bench.h"
+#include "check.h"
 
 static gint retval = 0;
 
@@ -37,6 +39,32 @@ void sanitize_root_test(gchar* in, gchar* ok)
   else
     printf("OK: \"%s\" -> \"%s\"\n", in, out);
   g_free(out);
+}
+
+void slashes_test(gchar* in, gchar* ok)
+{
+  gchar* out = path_sanitize_slashes(in);
+  CHECK_STR(out, ok);
+  g_free(out);
+}
+
+/* elements of a path joined by '|' */
+void elements_test(gchar* in, gchar* ok)
+{
+  gchar** v = path_get_elements(in);
+  gchar* joined = g_strjoinv("|", v);
+  CHECK_STR(joined, ok);
+  /* an empty path has no elements; otherwise one more than separators */
+  guint want = 0;
+  if (*ok)
+  {
+    gchar* c;
+    for (want = 1, c = ok; *c; c++)
+      want += *c == '|';
+  }
+  CHECK_INT(g_strv_length_compat(v), want);
+  g_free(joined);
+  g_strfreev(v);
 }
 
 int main(int ac, char* av[])
@@ -70,5 +98,40 @@ int main(int ac, char* av[])
   sanitize_root_test("./bob", "bob/");
   sanitize_root_test("bob", "bob/");
 
-  return retval;
+  printf("sanitize slashes tests\n");
+
+  slashes_test("//a//b//", "/a/b");
+  slashes_test("/a/b", "/a/b");
+  slashes_test("a///b", "a/b");
+  slashes_test("a/", "a");
+  slashes_test("/", "/");
+  slashes_test("//", "/");
+  slashes_test("", "");
+  slashes_test("./a/../b/", "./a/../b"); /* only slashes are touched */
+
+  printf("path elements tests\n");
+
+  elements_test("a/b/c", "a|b|c");
+  elements_test("/a/b", "|a|b");    /* absolute: empty first element */
+  elements_test("//a//b//", "|a|b");
+  elements_test("a", "a");
+  elements_test("/", "|");
+  elements_test("", "");
+
+  /* path_simplify() keeps what it can't resolve and never fails */
+  simplify_test("", "");
+  simplify_test(".", "");
+  simplify_test("..", "..");
+  simplify_test("/a/../../b", "/b");
+  simplify_test("a/./b/./", "a/b");
+  simplify_test("usr/lib/../../../../etc/passwd", "../../etc/passwd");
+
+  /* known bug: climbing to or above / without anything after it gives ""
+   * (the current directory) instead of "/", so --root=/.. means --root=. */
+  gchar* p;
+  XFAIL(!strcmp(p = path_simplify("/.."), "/")); g_free(p);
+  XFAIL(!strcmp(p = path_simplify("/a/../.."), "/")); g_free(p);
+  XFAIL(!strcmp(p = sanitize_root_path("/.."), "/")); g_free(p);
+
+  return retval | check_result();
 }
