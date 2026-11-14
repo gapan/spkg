@@ -1,7 +1,7 @@
 ----------------------------------------------------------------
 spkg - Release Notes
 ----------------------------------------------------------------
-2026-11-14: spkg 2.0
+2026-11-15: spkg 2.0
 
   Uninstall scripts. Packages can ship an install/douninst.sh, like with
   Slackware 15.0 pkgtools. spkg stores it as
@@ -75,6 +75,11 @@ spkg - Release Notes
   The documentation is now the man page and README.md; the old docs were
   removed, and the sources were converted to UTF-8. Win32 support was
   removed.
+
+  The official website is now https://github.com/gapan/spkg.
+
+  The SlackBuild and its slack-desc and slack-required files are no
+  longer part of the source.
 
 2022-06-20: spkg 1.7
 
