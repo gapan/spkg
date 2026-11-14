@@ -118,9 +118,13 @@ union tar_block {
 
 #define _e_set(e, n, fmt, args...) e_add(e, "untgz", __func__, n, fmt, ##args)
 
+/* after a corrupt archive error the stream position is unknown, so all
+   further operations are blocked (UNTGZ_BLOCKED) */
 #define e_throw(n, fmt, args...) \
   G_STMT_START { \
   e_set(n, fmt, ##args); \
+  if ((n) & UNTGZ_CORRUPT) \
+    s->i->errblock = 1; \
   e_jump(); \
   } G_STMT_END
 

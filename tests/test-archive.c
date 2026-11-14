@@ -286,9 +286,13 @@ static void check_broken(void)
     e_clean(e);
     /* no more entries after an error */
     CHECK(untgz_get_header(tgz) != 0);
-    /* known bug: errblock is never set, so the reader isn't blocked after
-     * an error as documented for UNTGZ_BLOCKED */
-    XFAIL(e_errno(e) & UNTGZ_BLOCKED);
+    /* the reader stays blocked after a corrupt archive error */
+    CHECK(e_errno(e) & UNTGZ_BLOCKED);
+    e_clean(e);
+    gchar* buf2 = NULL;
+    gsize len2;
+    CHECK_INT(untgz_write_data(tgz, &buf2, &len2), -1);
+    CHECK(e_errno(e) & UNTGZ_BLOCKED);
     e_clean(e);
     untgz_close(tgz);
   }
