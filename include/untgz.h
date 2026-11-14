@@ -146,10 +146,12 @@ extern gint untgz_get_header(struct untgz_state* s);
 
 /** Write data for the current file to the buffer.
  *
- * If file is empty, len will be set to 0 and buf will be unchanged.
- * If file has no data (s->data == 0), do nothing.
+ * The buffer is allocated with g_malloc() and freed by the caller. It is
+ * zero terminated (not counted in len), so for an empty file buf points
+ * to an empty string and len is 0.
  *
- * Buffer is appended with 0 byte. (zero terminated)
+ * If the current entry has no data (it isn't a regular file, or its data
+ * was already read or written), buf and len are left unchanged.
  *
  * @param s Pointer to the \ref untgz_state object.
  * @param buf Pointer to the pointer that will be updated with the address
