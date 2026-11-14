@@ -591,6 +591,74 @@ else
 fi
 
 # ---------------------------------------------------------------------
+# database lock
+# ---------------------------------------------------------------------
+#
+# Commands that change the database take the lock on packages/.lock and
+# give up after about 2 seconds. -l and --dry-run don't take it.
+
+if ! command -v flock >/dev/null 2>&1; then
+  begin "lock"
+  echo "    skipped, flock not found"
+else
+  # hold_lock: take the lock in the background until release_lock
+  hold_lock() {
+    rm -f "$TMP/lock-held"; touch "$TMP/lock-hold"
+    ( exec 9>"$ROOT/var/lib/pkgtools/packages/.lock"
+      flock 9 && touch "$TMP/lock-held"
+      while [ -e "$TMP/lock-hold" ]; do sleep 0.1; done ) &
+    lock_pid=$!
+    _n=0
+    while [ ! -e "$TMP/lock-held" ] && [ $_n -lt 100 ]; do sleep 0.1; _n=$((_n + 1)); done
+  }
+  release_lock() { rm -f "$TMP/lock-hold"; wait $lock_pid; }
+  lock_free() { flock -n "$ROOT/var/lib/pkgtools/packages/.lock" true; }
+
+  begin "lock: install while the database is locked"
+  new_root lock
+  spkg -i "$PKGS/hello-1-noarch-1.tgz"
+  check "lock released after the install" lock_free
+  hold_lock
+  before=$(snapshot)
+  spkg -i "$PKGS/links-1.0-noarch-1.tgz"
+  check "exit status 2" rc_is 2
+  check "reports the lock" output_has "database is already locked"
+  check "tree unchanged" [ "$before" = "$(snapshot)" ]
+
+  begin "lock: upgrade and remove while the database is locked"
+  spkg -u "$PKGS/hello-2-noarch-1.tgz"
+  check "upgrade exit status 2" rc_is 2
+  spkg -d hello
+  check "remove exit status 2" rc_is 2
+  check "tree unchanged" [ "$before" = "$(snapshot)" ]
+
+  begin "lock: list and --dry-run don't need the lock"
+  # -l only reads the database, but as root it opens it for writing and
+  # waits for the lock
+  spkg -l
+  xfail "list as root exit status 0" sh -c '[ "$1" = 0 ]' - "$rc"
+  if [ "$SPKG_REAL_UID" != 0 ]; then
+    env -u LD_PRELOAD -u FAKEROOTKEY "$SPKG" --root="$ROOT" -l >"$OUT" 2>&1
+    rc=$?
+    check "list as a user exit status 0" rc_is 0
+    check "list as a user output" output_has "^hello-1-noarch-1$"
+  fi
+  spkg -u -n "$PKGS/hello-2-noarch-1.tgz"
+  check "dry-run exit status 0" rc_is 0
+  check "tree unchanged" [ "$before" = "$(snapshot)" ]
+  release_lock
+
+  begin "lock: waits for a lock that is released soon"
+  hold_lock
+  ( sleep 0.5; rm -f "$TMP/lock-hold" ) &
+  spkg -i "$PKGS/links-1.0-noarch-1.tgz"
+  wait
+  check "exit status 0" rc_is 0
+  check "installed" db_has links-1.0-noarch-1
+  check "lock released" lock_free
+fi
+
+# ---------------------------------------------------------------------
 # list
 # ---------------------------------------------------------------------
 
