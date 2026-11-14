@@ -585,7 +585,7 @@ static gint _db_add_pkg(struct db_pkg* pkg, gchar* origname)
   if (rename(ppath_tmp, ppath) < 0)
   {
     e_set(E_FATAL, "Can't finalize package database update. Rename failed %s. You'll need to fix package database by hand. (%s)", ppath_tmp, strerror(errno));
-    goto err_1;
+    goto err_keep_tmp;
   }
 
   if (pkg->doinst)
@@ -593,7 +593,7 @@ static gint _db_add_pkg(struct db_pkg* pkg, gchar* origname)
     if (rename(spath_tmp, spath) < 0)
     {
       e_set(E_FATAL, "Can't finalize package database update. Rename failed %s. You'll need to fix package database by hand. (%s)", spath_tmp, strerror(errno));
-      goto err_1;
+      goto err_keep_tmp;
     }
   }
 
@@ -607,7 +607,12 @@ static gint _db_add_pkg(struct db_pkg* pkg, gchar* origname)
   e_set(E_FATAL, "Can't write into package file %s. (%s)", ppath_tmp, strerror(errno));
   fclose(pf);
  err_1:
-  /* just ingore errors here */
+  /* the database wasn't changed: drop the temporary files, if any */
+  unlink(ppath_tmp);
+  unlink(spath_tmp);
+ err_keep_tmp:
+  /* the original entry may be gone already: keep the temporary files,
+     they are needed to fix the database by hand */
   g_free(ppath);
   g_free(spath);
   g_free(ppath_tmp);

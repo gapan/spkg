@@ -508,7 +508,7 @@ static void test_remove_replace(void)
   e_clean(e);
   db_free_pkg(p);
   CHECK(!exists(PKGDIR "ghost-2.0-noarch-1"));
-  XFAIL(!exists(PKGDIR ".ghost-2.0-noarch-1")); /* temporary entry left behind */
+  CHECK(!exists(PKGDIR ".ghost-2.0-noarch-1")); /* no temporary entry left */
 
   db_close();
 }
