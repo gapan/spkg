@@ -162,10 +162,9 @@ static void test_lock(void)
   CHECK_INT(db_open(root, TRUE, e), 0);
   db_close();
 
-  /* Known bug: sys_lock_trywait() returns success after the first retry
-   * even though it doesn't hold the lock, so this open succeeds. */
+  /* waits for the lock (about 2s), then gives up */
   gint rv = db_open(root, FALSE, e);
-  XFAIL(rv == 1);
+  CHECK_INT(rv, 1);
   if (rv == 0)
     db_close();
   e_clean(e);

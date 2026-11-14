@@ -215,6 +215,7 @@ gint sys_lock_trywait(gint fd, gint timeout, struct error* e)
         return 1;
       } 
       usleep(100000); /* 100ms */
+      continue;
     }
     /* got it! */
     return 0;
