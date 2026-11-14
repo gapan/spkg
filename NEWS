@@ -1,6 +1,129 @@
 ----------------------------------------------------------------
 spkg - Release Notes
 ----------------------------------------------------------------
+2026-11-14: spkg 2.0
+
+  Uninstall scripts. Packages can ship an install/douninst.sh, like with
+  Slackware 15.0 pkgtools. spkg stores it as
+  /var/lib/pkgtools/douninst.sh/<package>, adds it to the package's file
+  list, runs it after the package's files are removed (on removal and on
+  upgrade, for the old version), and then moves it to
+  /var/log/pkgtools/removed_uninstall_scripts. While it runs, its copy is
+  kept in /var/lib/pkgtools/setup/tmp/spkg, which only root can access.
+  --no-scripts skips it, --dry-run doesn't run it.
+
+  Package formats: .tbz (bzip2) packages are supported. .tlz packages are
+  now tar.lz (lzip), like in pkgtools, instead of lzma; plzip and lbzip2
+  are used when they are installed, like installpkg does. A package is
+  rejected and rolled back when the decompressor reports an error: a
+  corrupted .txz used to be installed with the damaged files. Long paths
+  in POSIX ustar archives are supported.
+
+  Upgrades:
+  - An interrupted upgrade could leave no version of the package in the
+    database.
+  - When a directory was replaced by a symlink (as doinst.sh does for
+    versioned directories), the new version's files with the same names
+    were deleted.
+  - When a symlink of the old version was replaced by a directory, the
+    new files were written through the symlink. It is now replaced with
+    a real directory.
+  - With several versions of a package installed (--force), all the
+    other versions are removed, like upgradepkg does.
+  - A package installed earlier in the same command (--install-new) could
+    lose files shared with a package upgraded after it.
+
+  Packages whose install script runs as written (aaa_base,
+  aaa_glibc-solibs, glibc-solibs, glibc, and anything installed with
+  --no-fast-symlinks) now get their install script stored in the
+  database and their symlinks tracked, so removing and upgrading them
+  handles the symlinks like pkgtools does. Before, upgrading glibc after
+  it was installed with pkgtools removed most of its library symlinks
+  until the new install script made them again. bin was removed from
+  this list, and /etc/spkg/symopts_blacklist now adds packages to it
+  instead of replacing it.
+
+  ldconfig runs at most once per command, after the last package, and
+  also for versioned libraries (libfoo.so.1.2.3) and removals.
+
+  Compatibility with pkgtools:
+  - doinst.sh is run without arguments (it got -install).
+  - A short package name with several versions installed picks the most
+    recently installed one.
+  - The var/log/{packages,scripts,setup} and var/log/removed_* symlinks
+    are created like installpkg and removepkg do.
+  - Empty slack-desc lines are stored without a trailing space.
+  - Device nodes get their full major and minor numbers (above 255 they
+    were wrong), and symlinks inside the archive their owner and mtime.
+  - PKGTOOLS-DIFFERENCES.md lists the remaining differences.
+
+  Other fixes:
+  - The package database lock didn't work.
+  - Files extracted partly (from a truncated archive) and install/doinst.sh
+    are no longer left behind.
+  - --list doesn't need the database lock or create a database; a missing
+    database is explained in read-only mode.
+  - The root is quoted for gtk-update-icon-cache.
+  - Several crashes and memory leaks.
+  - The static build (--enable-static-spkg) works again with current gcc.
+
+  New test suite: "make check" runs unit tests and end-to-end tests that
+  install, upgrade and remove packages in a temporary root, and compare
+  the results with pkgtools when it's installed. --enable-sanitizers
+  builds with AddressSanitizer and UndefinedBehaviorSanitizer for it.
+
+  The documentation is now the man page and README.md; the old docs were
+  removed, and the sources were converted to UTF-8. Win32 support was
+  removed.
+
+2022-06-20: spkg 1.7
+
+  Add --purge option. When removing a package, it also removes the
+  configuration files that were installed as .new and renamed by the
+  install script.
+
+  Allow install scripts up to 32MB. Some packages have doinst.sh scripts
+  bigger than the old 4MB limit, because they create tens of thousands of
+  symlinks.
+
+2022-05-24: spkg 1.6
+
+  Allow replacing a file with a directory or a directory with a file
+  during installation too, not only during upgrades.
+
+  Update the package database directories in the man page.
+
+  Some code refactoring.
+
+2022-05-22: spkg 1.5
+
+  Allow replacing a file with a directory, and a directory with a file,
+  during upgrades. If the old file or directory can't be removed, the
+  upgrade fails.
+
+  Update the maintainer details in the man page.
+
+2022-01-21: spkg 1.4
+
+  Read package sizes of 1GB and more from the package database (such as
+  "1.1G" for kernel-source).
+
+2022-01-20: spkg 1.3
+
+  Use the Slackware 15.0 package database layout: /var/lib/pkgtools for
+  packages, scripts and setup, and /var/log/pkgtools for the removed
+  entries.
+
+  Don't optimize symlink creation for aaa_glibc-solibs, the Slackware 15.0
+  name of glibc-solibs.
+
+  Update the links in the README.
+
+2018-05-04: spkg 1.2
+
+  Update for newer versions of brotli, whose program is now called brotli
+  instead of bro.
+
 2017-06-07: spkg 1.1
 
   Fix breakage when upgrading the glibc-solibs package. Do not remove
