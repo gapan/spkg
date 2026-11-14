@@ -403,6 +403,44 @@ check "no temporary files" [ -z "$(find "$ROOT" -name '*--###*')" ]
 # the stripped doinst.sh is written outside of the transaction
 check "rolled back: install/ removed" absent install
 
+begin "install: package truncated in the middle of a file"
+st=$TMP/stage-bigfile
+mkdir -p "$st/usr/share/big"
+echo small > "$st/usr/share/big/a"
+head -c 3000000 /dev/urandom > "$st/usr/share/big/blob"
+for v in 1 2; do
+  pack "$st" bigfile-$v-noarch-1.tar ./ usr/ usr/share/ usr/share/big/ \
+    usr/share/big/a usr/share/big/blob
+done
+size=$(stat -c %s "$PKGS/bigfile-2-noarch-1.tar")
+head -c $((size / 2)) "$PKGS/bigfile-2-noarch-1.tar" > "$PKGS/bigtrunc-2-noarch-1.tar"
+new_root bigtrunc
+spkg -i "$PKGS/bigtrunc-2-noarch-1.tar"
+check "exit status 2" rc_is 2
+check "no partial file left" absent usr/share/big/blob
+check "everything rolled back" absent usr
+check "package not in the database" db_lacks bigtrunc-2-noarch-1
+
+begin "install: truncated file replacing an existing one"
+new_root bigtrunc-replace
+mkdir -p "$ROOT/usr/share/big"
+echo local > "$ROOT/usr/share/big/blob"
+spkg -i "$PKGS/bigtrunc-2-noarch-1.tar"
+check "exit status 2" rc_is 2
+check "existing file untouched" content_is usr/share/big/blob local
+check "no temporary files" [ -z "$(find "$ROOT" -name '*--###*')" ]
+check "nothing else left" absent usr/share/big/a
+
+begin "upgrade: package truncated in the middle of a file"
+new_root bigtrunc-upgrade
+spkg -i "$PKGS/bigfile-1-noarch-1.tar"
+cp "$PKGS/bigtrunc-2-noarch-1.tar" "$PKGS/bigfile-2-noarch-1.tar"
+before=$(snapshot)
+spkg -u "$PKGS/bigfile-2-noarch-1.tar"
+check "exit status 2" rc_is 2
+check "old version still in the database" db_has bigfile-1-noarch-1
+check "tree unchanged" [ "$before" = "$(snapshot)" ]
+
 begin "install: garbage package"
 new_root garbage
 printf 'this is not a tar archive\n%.0s' $(seq 100) | gzip > "$PKGS/garbage-1.0-noarch-1.tgz"

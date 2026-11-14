@@ -297,6 +297,35 @@ static void check_broken(void)
     untgz_close(tgz);
   }
 
+  /* the same, extracting to disk: the partial file is removed, the reader
+   * is blocked, and files extracted before are kept */
+  tgz = untgz_open("trunc.tar", e);
+  CHECK(tgz != NULL);
+  if (tgz)
+  {
+    CHECK(sh("rm -rf part && mkdir part") == 0);
+    gint rv = 0;
+    while (untgz_get_header(tgz) == 0)
+    {
+      if (tgz->f_type != UNTGZ_REG)
+        continue;
+      gchar* out = g_build_filename("part", strrchr(tgz->f_name, '/') + 1, NULL);
+      rv = untgz_write_file(tgz, out);
+      g_free(out);
+      if (rv < 0)
+        break;
+    }
+    CHECK_INT(rv, -1);
+    CHECK(e_errno(e) & UNTGZ_CORRUPT);
+    e_clean(e);
+    CHECK_INT(sys_file_type("part/big", 0), SYS_NONE);
+    CHECK_INT(sys_file_type("part/file", 0), SYS_REG);
+    CHECK_INT(untgz_get_header(tgz), -1);
+    CHECK(e_errno(e) & UNTGZ_BLOCKED);
+    e_clean(e);
+    untgz_close(tgz);
+  }
+
   /* truncated gzip stream */
   CHECK(sh("head -c 300 test.tgz > trunc.tgz") == 0);
   tgz = untgz_open("trunc.tgz", e);

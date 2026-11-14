@@ -584,6 +584,10 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
   union tar_block* b;
   gchar* path;
   gsize remaining;
+  /* a regular file being written: closed and removed again on errors
+     (volatile, because they're changed after setjmp()) */
+  FILE* volatile f = NULL;
+  gchar* volatile partial = NULL;
 #if UNTGZ_PRESERVE_DIR_TIMES == 1
   gchar *dpath_tmp = 0, *dpath;
   struct utimbuf dt;
@@ -605,6 +609,15 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
 #if UNTGZ_PRESERVE_DIR_TIMES == 1
     g_free(dpath_tmp);
 #endif
+    /* don't leave a partially written file behind; the rest of its data
+       is somewhere in the stream, so nothing more can be read either */
+    if (f)
+      fclose(f);
+    if (partial)
+    {
+      unlink(partial);
+      i->errblock = 1;
+    }
     e_set(E_PASS, "error thrown");
     goto err_0;
   }
@@ -633,9 +646,10 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
       if (!i->data)
         goto ret_1;
       remaining = s->f_size;
-      FILE* f = fopen(path, "w");
+      f = fopen(path, "w");
       if (f == 0)
         e_throw(E_ERROR|UNTGZ_BADIO, "can't open file for writing: %s", strerror(errno));
+      partial = path;
       if (setvbuf(f, i->wbuf, _IOFBF, WRITEBUFSIZE))
         e_throw(E_ERROR|UNTGZ_BADIO, "can't setup write buffer");
       while (G_LIKELY(remaining > 0))
@@ -649,8 +663,13 @@ gint untgz_write_file(struct untgz_state* s, gchar* altname)
         stop_timer(7);
         remaining = remaining<=BLOCKSIZE?0:remaining-BLOCKSIZE;
       }
-      fclose(f);
       i->data = 0;
+      /* the last buffered data is written here, so check for errors */
+      FILE* written = f;
+      f = NULL;
+      if (fclose(written) != 0)
+        e_throw(E_ERROR|UNTGZ_BADIO, "can't write to a file: %s", strerror(errno));
+      partial = NULL; /* complete */
       break;
     }
     case UNTGZ_SYM:
