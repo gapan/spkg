@@ -1047,6 +1047,61 @@ check "douninst.sh not run" log_is "doinst 1"
 check "tree unchanged" [ "$before" = "$(snapshot)" ]
 
 # ---------------------------------------------------------------------
+# several packages in one command
+# ---------------------------------------------------------------------
+#
+# A package that fails doesn't stop the others: each one is installed,
+# upgraded or removed on its own, and the exit status is 2 if any failed.
+
+MULTI=$TMP/multi
+mkdir -p "$MULTI"
+# truncate PKGFILE OUTFILE: the first 2/3 of a package
+truncate_pkg() { head -c $(($(stat -c %s "$1") * 2 / 3)) "$1" > "$2"; }
+truncate_pkg "$PKGS/hello-1-noarch-1.tgz" "$MULTI/broken-1.0-noarch-1.tgz"
+st=$TMP/stage-links-2
+rm -rf "$st"; cp -a "$TMP/stage-links" "$st"
+echo "data 2" > "$st/usr/share/links/c"
+pack "$st" links-2.0-noarch-1.tgz
+truncate_pkg "$PKGS/links-2.0-noarch-1.tgz" "$MULTI/links-2.0-noarch-1.tgz"
+
+begin "install: several packages, one of them broken"
+new_root multi-install
+spkg -i "$PKGS/hello-1-noarch-1.tgz" "$MULTI/broken-1.0-noarch-1.tgz" \
+  "$PKGS/links-1.0-noarch-1.tgz"
+check "exit status 2" rc_is 2
+check "first package installed" db_has hello-1-noarch-1
+check "broken package not installed" db_lacks broken-1.0-noarch-1
+check "package after the broken one installed" db_has links-1.0-noarch-1
+check "files of the first package" content_is usr/bin/hello "hello 1"
+check "files of the last package" content_is usr/share/links/a data
+check "no temporary files" [ -z "$(find "$ROOT" -name '*--###*')" ]
+
+begin "install: several packages, one missing"
+new_root multi-missing
+spkg -i "$MULTI/nothere-1.0-noarch-1.tgz" "$PKGS/hello-1-noarch-1.tgz"
+check "exit status 2" rc_is 2
+check "the other package installed" db_has hello-1-noarch-1
+
+begin "upgrade: several packages, one of them broken"
+new_root multi-upgrade
+spkg -i "$PKGS/hello-1-noarch-1.tgz" "$PKGS/links-1.0-noarch-1.tgz"
+spkg -u "$MULTI/links-2.0-noarch-1.tgz" "$PKGS/hello-2-noarch-1.tgz"
+check "exit status 2" rc_is 2
+check "broken upgrade rolled back" db_has links-1.0-noarch-1
+check "broken package not in the database" db_lacks links-2.0-noarch-1
+check "files of the broken upgrade untouched" absent usr/share/links/c
+check "other package upgraded" db_has hello-2-noarch-1
+check "other package's files" content_is usr/bin/hello "hello 2"
+
+begin "remove: several packages, one not installed"
+spkg -d hello nothere links
+check "exit status 2" rc_is 2
+check "reports missing package" output_has "Package not found"
+check "first package removed" db_lacks hello-2-noarch-1
+check "package after the missing one removed" db_lacks links-1.0-noarch-1
+check "files removed" absent usr
+
+# ---------------------------------------------------------------------
 # compatibility with pkgtools
 # ---------------------------------------------------------------------
 #
