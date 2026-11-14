@@ -361,6 +361,10 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
   pkg->usize = tgz->usize/1024;
   pkg->csize = tgz->csize/1024;
 
+  /* last chance to stop: once the database is updated, the old entry is
+     gone, so the upgrade is finished even if a signal arrives */
+  _safe_breaking_point(err3);
+
   /* add package to the database */
   _debug("Updating package database...");
   if (!opts->dryrun)
@@ -370,7 +374,6 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
       e_set(E_ERROR,"Can't add package to the database.");
       goto err3;
     }
-    _safe_breaking_point(err4);
   }
 
   /* delete leftover files:
@@ -457,8 +460,6 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
   g_free(shortname);
   return 0;
 
- err4:
-  db_rem_pkg(name);
  err3:
   _debug("Rolling back...");
   g_free(sane_path);

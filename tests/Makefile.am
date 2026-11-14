@@ -12,6 +12,7 @@ TESTS = \
   test-archive \
   test-taction \
   test-pkgdb \
+  test-interrupt \
   test-blacklist \
   test-mkdir \
   test-rm \
@@ -40,6 +41,7 @@ check_PROGRAMS = \
   test-archive \
   test-taction \
   test-pkgdb \
+  test-interrupt \
   test-blacklist \
   test-mkdir \
   test-rm \
@@ -57,6 +59,10 @@ test_misc_SOURCES = test-misc.c check.h
 test_archive_SOURCES = test-archive.c check.h
 test_taction_SOURCES = test-taction.c check.h
 test_pkgdb_SOURCES = test-pkgdb.c check.h
+test_interrupt_SOURCES = test-interrupt.c check.h
+# the test interrupts commands right after these (see test-interrupt.c)
+test_interrupt_LDFLAGS = -Wl,--wrap=db_add_pkg -Wl,--wrap=db_replace_pkg
+test_interrupt_LDADD = $(LDADD) -lpopt
 test_mkdir_SOURCES = test-mkdir.c check.h
 test_rm_SOURCES = test-rm.c check.h
 
