@@ -1136,6 +1136,135 @@ check "douninst.sh not run" log_is "doinst 1"
 check "tree unchanged" [ "$before" = "$(snapshot)" ]
 
 # ---------------------------------------------------------------------
+# output and helper programs
+# ---------------------------------------------------------------------
+
+# A root where installing hello-1 gives a warning (the existing file is
+# replaced).
+warn_root() {
+  new_root output
+  mkdir -p "$ROOT/usr/bin"; echo old > "$ROOT/usr/bin/hello"
+}
+
+begin "output: default shows info and warnings"
+warn_root
+spkg -i "$PKGS/hello-1-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "info" output_has "^Installing package hello-1-noarch-1"
+check "warning" output_has "^WARNING: File already exist usr/bin/hello"
+check "no notices" sh -c '! grep -q "^ --> " "$1"' - "$OUT"
+
+begin "output: -q hides warnings"
+warn_root
+spkg -i -q "$PKGS/hello-1-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "info" output_has "^Installing package hello-1-noarch-1"
+check "no warning" sh -c '! grep -q "^WARNING" "$1"' - "$OUT"
+
+begin "output: -qq shows only errors"
+warn_root
+spkg -i -qq "$PKGS/hello-1-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "no output" [ ! -s "$OUT" ]
+spkg -i -qq "$TMP/nothere-1.0-noarch-1.tgz"
+check "error exit status 2" rc_is 2
+check "error shown" output_has "^ERROR: Package file does not exist"
+
+begin "output: -v shows notices"
+warn_root
+spkg -i -v "$PKGS/hello-1-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "files" output_has "^ --> Installing file usr/bin/hello"
+check "script" output_has "^ --> Running post-installation script"
+check "no debug messages" sh -c '! grep -q "Extracting symlinks" "$1"' - "$OUT"
+
+begin "output: -vv shows debug messages"
+warn_root
+spkg -i -vv "$PKGS/hello-1-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "debug" output_has "^ --> Extracting symlinks from the post-installation script"
+
+begin "output: -v and -q together"
+warn_root
+spkg -i -v -q "$PKGS/hello-1-noarch-1.tgz"
+check "exit status 1" rc_is 1
+check "reports the conflict" output_has "Verbose or quiet?"
+check "nothing installed" db_lacks hello-1-noarch-1
+
+# spkg runs /sbin/ldconfig -r ROOT when the package has a *.so file and
+# ROOT has etc/ld.so.conf, and /usr/bin/gtk-update-icon-cache on ROOT's
+# hicolor theme when the package has a *.desktop file. Both leave a file
+# behind that shows they ran.
+st=$TMP/stage-solib
+rm -rf "$st"; mkdir -p "$st/usr/lib"
+echo "lib" > "$st/usr/lib/libtest.so.1"; echo "lib" > "$st/usr/lib/libtest.so"
+pack "$st" solib-1.0-noarch-1.tgz
+st=$TMP/stage-desktop
+rm -rf "$st"; mkdir -p "$st/usr/share/applications" "$st/usr/share/icons/hicolor/16x16/apps"
+printf '[Desktop Entry]\nName=Test\nExec=true\nIcon=test\n' > "$st/usr/share/applications/test.desktop"
+printf '[Icon Theme]\nName=Hicolor\nDirectories=16x16/apps\n\n[16x16/apps]\nSize=16\n' \
+  > "$st/usr/share/icons/hicolor/index.theme"
+: > "$st/usr/share/icons/hicolor/16x16/apps/test.png"
+pack "$st" desktop-1.0-noarch-1.tgz
+ld_cache() { is_file etc/ld.so.cache; }
+ld_root() { new_root "$1"; mkdir -p "$ROOT/etc"; : > "$ROOT/etc/ld.so.conf"; }
+icon_cache() { is_file usr/share/icons/hicolor/icon-theme.cache; }
+
+if [ -x /sbin/ldconfig ]; then
+  begin "install: runs ldconfig for a shared library"
+  ld_root ldconfig
+  spkg -i "$PKGS/solib-1.0-noarch-1.tgz"
+  check "exit status 0" rc_is 0
+  check "ldconfig ran" ld_cache
+
+  begin "install: --no-ldconfig"
+  ld_root no-ldconfig
+  spkg -i --no-ldconfig "$PKGS/solib-1.0-noarch-1.tgz"
+  check "exit status 0" rc_is 0
+  check "ldconfig not run" absent etc/ld.so.cache
+
+  begin "install: no ldconfig without a shared library"
+  ld_root no-solib
+  spkg -i "$PKGS/links-1.0-noarch-1.tgz"
+  check "ldconfig not run" absent etc/ld.so.cache
+
+  begin "upgrade: --no-ldconfig"
+  spkg -i --no-ldconfig "$PKGS/solib-1.0-noarch-1.tgz"
+  spkg -u --reinstall --no-ldconfig "$PKGS/solib-1.0-noarch-1.tgz"
+  check "exit status 0" rc_is 0
+  check "ldconfig not run" absent etc/ld.so.cache
+  spkg -u --reinstall "$PKGS/solib-1.0-noarch-1.tgz"
+  check "without it, ldconfig ran" ld_cache
+else
+  begin "ldconfig"
+  echo "    skipped, /sbin/ldconfig not found"
+fi
+
+if [ -x /usr/bin/gtk-update-icon-cache ]; then
+  begin "install: runs gtk-update-icon-cache for a .desktop file"
+  new_root icons
+  spkg -i "$PKGS/desktop-1.0-noarch-1.tgz"
+  check "exit status 0" rc_is 0
+  check "icon cache created" icon_cache
+
+  begin "install: --no-gtk-update-icon-cache"
+  new_root no-icons
+  spkg -i --no-gtk-update-icon-cache "$PKGS/desktop-1.0-noarch-1.tgz"
+  check "exit status 0" rc_is 0
+  check "icon cache not created" absent usr/share/icons/hicolor/icon-theme.cache
+
+  begin "upgrade: --no-gtk-update-icon-cache"
+  spkg -u --reinstall --no-gtk-update-icon-cache "$PKGS/desktop-1.0-noarch-1.tgz"
+  check "exit status 0" rc_is 0
+  check "icon cache not created" absent usr/share/icons/hicolor/icon-theme.cache
+  spkg -u --reinstall "$PKGS/desktop-1.0-noarch-1.tgz"
+  check "without it, icon cache created" icon_cache
+else
+  begin "gtk-update-icon-cache"
+  echo "    skipped, /usr/bin/gtk-update-icon-cache not found"
+fi
+
+# ---------------------------------------------------------------------
 # several packages in one command
 # ---------------------------------------------------------------------
 #
