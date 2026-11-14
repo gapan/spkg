@@ -129,10 +129,9 @@ static void query_closed_db(void)
 static void test_closed(void)
 {
   printf("closed database\n");
-  /* Known bug: functions called on a closed database report DB_NOPEN to
-   * the error object of the database, which is NULL by then, so e_add()
-   * aborts. */
-  XFAIL(survives(query_closed_db));
+  /* functions called on a closed database fail; there is no error object
+   * to report DB_NOPEN to then, which used to abort in e_add() */
+  CHECK(survives(query_closed_db));
 }
 
 /* A second writer must not get the database while the first holds the

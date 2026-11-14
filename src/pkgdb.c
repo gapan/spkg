@@ -41,7 +41,12 @@ struct db_state {
 
 static struct db_state _db; // yeah, this is really not uninitialized
 
-#define e_set(n, fmt, args...) e_add(_db.err, "pkgdb", __func__, n, fmt, ##args)
+/* without an open database there is no error object to report to */
+#define e_set(n, fmt, args...) \
+  G_STMT_START { \
+    if (_db.err) \
+      e_add(_db.err, "pkgdb", __func__, n, fmt, ##args); \
+  } G_STMT_END
 
 #define _db_open_check(v) \
   if (!_db.is_open) \

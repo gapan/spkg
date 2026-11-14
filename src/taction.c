@@ -20,7 +20,12 @@
 /* private
  ************************************************************************/
 
-#define e_set(n, fmt, args...) e_add(_ta.err, "taction", __func__, n, fmt, ##args)
+/* without an active transaction there is no error object to report to */
+#define e_set(n, fmt, args...) \
+  G_STMT_START { \
+    if (_ta.err) \
+      e_add(_ta.err, "taction", __func__, n, fmt, ##args); \
+  } G_STMT_END
 #define _e_set(e, n, fmt, args...) e_add(e, "taction", __func__, n, fmt, ##args)
 
 struct transaction {

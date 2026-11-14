@@ -188,10 +188,9 @@ static void test_state(void)
   CHECK_INT(ta_finalize(), 0);
   CHECK(e_ok(e));
 
-  /* Finishing a transaction that wasn't started should return 1 with
-   * TA_NACTIVE. Known bug: the error goes to the error object of the last
-   * transaction, which is NULL by then, so e_add() aborts. Run it in a
-   * child so the abort doesn't take the test down. */
+  /* Finishing a transaction that wasn't started returns 1. There is no
+   * error object to report to then, which used to abort in e_add(), so
+   * this runs in a child process. */
   gint i;
   for (i = 0; i < 2; i++)
   {
@@ -206,7 +205,7 @@ static void test_state(void)
     }
     gint status;
     CHECK(waitpid(pid, &status, 0) == pid);
-    XFAIL(WIFEXITED(status) && WEXITSTATUS(status) == 1);
+    CHECK(WIFEXITED(status) && WEXITSTATUS(status) == 1);
   }
   e_free(e);
 }
