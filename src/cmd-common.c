@@ -164,6 +164,41 @@ void _read_slackdesc(struct untgz_state* tgz, struct db_pkg* pkg)
   }
 }
 
+/* For a doinst.sh that runs as written (blacklisted packages and
+ * --no-fast-symlinks): store the script in the package database and add
+ * the symlinks it makes to the package's paths, like installpkg and
+ * removepkg treat them, so they're removed with the package and kept
+ * across upgrades. Nothing is created here; the script makes the
+ * symlinks itself, in its own order. buf is taken over. */
+static void _record_doinst_links(struct db_pkg* pkg, gchar* buf)
+{
+  gchar *b, *end, *ln = NULL, *n = buf;
+
+  while (iter_str_lines(&b, &end, &n, &ln))
+  {
+    gchar *link_dir, *link_name, *link_target;
+    if (parse_createlink(ln, &link_dir, &link_name, &link_target))
+    {
+      gchar* link_path = g_strdup_printf("%s/%s", link_dir, link_name);
+      gchar* sane_link_path = path_simplify(link_path);
+      if (_unsafe_path(sane_link_path))
+        _warning("Install script makes a symlink with an unsafe path, it isn't recorded. (%s)", sane_link_path);
+      else if (db_pkg_add_path(pkg, sane_link_path, DB_PATH_SYMLINK))
+        _warning("Symlink path is too long, it isn't recorded. (%s)", sane_link_path);
+      g_free(sane_link_path);
+      g_free(link_path);
+      g_free(link_dir);
+      g_free(link_name);
+      g_free(link_target);
+    }
+    g_free(ln);
+    ln = NULL;
+  }
+
+  /* the full script is stored in the database (freed by db_free_pkg()) */
+  pkg->doinst = buf;
+}
+
 gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
                    const gchar* root, const gchar* sane_path,
                    const struct cmd_options* opts, struct error* e,
@@ -179,6 +214,9 @@ gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
   /* optimization disabled, just extract doinst script */
   if (opts->no_optsyms || is_blacklisted(pkg->shortname, opts->bl_symopts))
   {
+    gchar* script = NULL;
+    gsize script_len;
+
     _debug("Symlink optimization is disabled.");
     if (opts->safe)
     {
@@ -200,11 +238,28 @@ gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
           e_set(E_ERROR, "Failed to extract file %s.", sane_path);
           goto err0;
         }
+        /* read it back to store it in the database */
+        if (!g_file_get_contents(temppath, &script, &script_len, NULL))
+        {
+          _warning("Can't read the install script back, it isn't stored in the database. (%s)", sane_path);
+          script = NULL;
+        }
         ta_move_remove(temppath, fullpath); /* both freed by the transaction */
         temppath = fullpath = NULL;
       }
       has_doinst = 1;
     }
+    /* nothing was written (safe or dry-run mode): read it from the archive */
+    if (script == NULL && (opts->safe || opts->dryrun))
+    {
+      if (untgz_write_data(tgz, &script, &script_len))
+      {
+        e_set(E_ERROR, "Failed to read post-installation script into buffer.");
+        goto err0;
+      }
+    }
+    if (script)
+      _record_doinst_links(pkg, script);
     goto done;
   }
 

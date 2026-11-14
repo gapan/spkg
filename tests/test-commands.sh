@@ -421,6 +421,12 @@ spkg -i --no-fast-symlinks "$PKGS/hello-1-noarch-1.tgz"
 check "exit status 0" rc_is 0
 check "doinst.sh ran" content_is hello-doinst-ran "doinst [] 1"
 check "symlink created by doinst.sh" link_to usr/lib/libhello.so libhello.so.1
+check "doinst.sh stored in the database" \
+  sh -c 'cmp -s "$1/var/lib/pkgtools/scripts/hello-1-noarch-1" "$2/install/doinst.sh"' \
+  - "$ROOT" "$TMP/stage-hello-1"
+spkg -d hello
+check "remove: exit status 0" rc_is 0
+check "remove: symlink removed" absent usr/lib/libhello.so
 
 begin "install: --no-fast-symlinks --no-scripts"
 new_root no-fast-no-scripts
@@ -1389,6 +1395,80 @@ else
 fi
 
 # ---------------------------------------------------------------------
+# packages whose doinst.sh runs as written (glibc and the like)
+# ---------------------------------------------------------------------
+#
+# A fake glibc-solibs (on the built-in blacklist) built like the real one:
+# the libraries are in lib64/incoming/, doinst.sh copies them into lib64/
+# and only then makes the symlinks. spkg must not create the symlinks
+# itself, but it stores the script and records the symlinks, so that
+# removing and upgrading the package handles them like pkgtools does.
+# doinst.sh logs which symlinks exist when it starts.
+
+# make_glibc VERSION LIB... : libraries libLIB-VERSION.so, links libLIB.so.6
+make_glibc() {
+  _v=$1; shift
+  _st=$TMP/stage-glibc-$_v
+  rm -rf "$_st"; mkdir -p "$_st/lib64/incoming" "$_st/install"
+  {
+    echo 'for l in lib64/lib*.so.6; do [ -L "$l" ] && echo "start $l -> $(readlink "$l")"; done >> glibc-log'
+    echo '( cd lib64/incoming ; for f in * ; do cp -a $f .. ; done )'
+  } > "$_st/install/doinst.sh"
+  for _l; do
+    echo "lib$_l $_v" > "$_st/lib64/incoming/lib$_l-$_v.so"
+    echo "( cd lib64 ; rm -rf lib$_l.so.6 )" >> "$_st/install/doinst.sh"
+    echo "( cd lib64 ; ln -sf lib$_l-$_v.so lib$_l.so.6 )" >> "$_st/install/doinst.sh"
+  done
+  pack "$_st" "glibc-solibs-$_v-x86_64-1.tgz"
+}
+make_glibc 1 c m
+make_glibc 2 c m
+make_glibc 3 c # drops libm
+glibc_log() { cat "$ROOT/glibc-log" 2>/dev/null | paste -sd ';' -; }
+glibc_log_is() { [ "$(glibc_log)" = "$1" ] || { echo "    glibc-log: $(glibc_log)"; return 1; }; }
+
+begin "install: blacklisted package"
+new_root glibc
+spkg -i -v "$PKGS/glibc-solibs-1-x86_64-1.tgz"
+check "exit status 0" rc_is 0
+check "spkg didn't create the symlinks" sh -c '! grep -q "Creating symlink" "$1"' - "$OUT"
+check "doinst.sh ran as written" link_to lib64/libc.so.6 libc-1.so
+check "libraries copied by doinst.sh" content_is lib64/libm-1.so "libm 1"
+check "doinst.sh stored in the database" \
+  sh -c 'cmp -s "$1/var/lib/pkgtools/scripts/glibc-solibs-1-x86_64-1" "$2/install/doinst.sh"' \
+  - "$ROOT" "$TMP/stage-glibc-1"
+
+begin "upgrade: blacklisted package keeps its symlinks until doinst.sh runs"
+: > "$ROOT/glibc-log"
+spkg -u "$PKGS/glibc-solibs-2-x86_64-1.tgz"
+check "exit status 0" rc_is 0
+check "symlinks there when doinst.sh started" \
+  glibc_log_is "start lib64/libc.so.6 -> libc-1.so;start lib64/libm.so.6 -> libm-1.so"
+check "new symlinks" link_to lib64/libm.so.6 libm-2.so
+check "new script stored" \
+  sh -c 'cmp -s "$1/var/lib/pkgtools/scripts/glibc-solibs-2-x86_64-1" "$2/install/doinst.sh"' \
+  - "$ROOT" "$TMP/stage-glibc-2"
+
+begin "upgrade: blacklisted package drops a symlink"
+spkg -u "$PKGS/glibc-solibs-3-x86_64-1.tgz"
+check "exit status 0" rc_is 0
+check "symlink of the dropped library removed" absent lib64/libm.so.6
+check "other symlinks" link_to lib64/libc.so.6 libc-3.so
+
+begin "remove: blacklisted package removes its symlinks"
+spkg -d glibc-solibs
+check "exit status 0" rc_is 0
+check "symlink removed" absent lib64/libc.so.6
+
+begin "install: --dry-run with a blacklisted package"
+new_root glibc-dry
+spkg -i "$PKGS/links-1.0-noarch-1.tgz"
+before=$(snapshot)
+spkg -i -n "$PKGS/glibc-solibs-1-x86_64-1.tgz"
+check "exit status 0" rc_is 0
+check "tree unchanged" [ "$before" = "$(snapshot)" ]
+
+# ---------------------------------------------------------------------
 # upgrade: a directory becomes a symlink or the other way round
 # ---------------------------------------------------------------------
 #
@@ -1733,6 +1813,25 @@ else
   ROOT=$SP; spkg -u "$PKGS/hello-2-noarch-1.tgz"
   check "same result as spkg -u" same_tree "$PT" "$SP"
   check "same scripts ran" [ "$(cat "$PT/script-log")" = "$(cat "$SP/script-log")" ]
+
+  # installpkg stores the script, so spkg knows the old version's symlinks
+  begin "pkgtools: spkg -u keeps the symlinks of a blacklisted package installed by installpkg"
+  rm -rf "$SP"; mkdir "$SP"
+  pt "$SP" installpkg "$PKGS/glibc-solibs-1-x86_64-1.tgz"
+  check "installpkg exit status 0" rc_is 0
+  : > "$SP/glibc-log"
+  ROOT=$SP; spkg -u "$PKGS/glibc-solibs-2-x86_64-1.tgz"
+  check "exit status 0" rc_is 0
+  check "symlinks there when doinst.sh started" \
+    glibc_log_is "start lib64/libc.so.6 -> libc-1.so;start lib64/libm.so.6 -> libm-1.so"
+  check "new symlinks" link_to lib64/libm.so.6 libm-2.so
+
+  begin "pkgtools: removepkg removes the symlinks of a blacklisted package installed by spkg"
+  rm -rf "$SP"; mkdir "$SP"
+  ROOT=$SP; spkg -i "$PKGS/glibc-solibs-1-x86_64-1.tgz"
+  pt "$SP" removepkg glibc-solibs
+  check "removepkg exit status 0" rc_is 0
+  check "symlinks removed" sh -c '! [ -L "$1/lib64/libc.so.6" ] && ! [ -L "$1/lib64/libm.so.6" ]' - "$SP"
 
   begin "pkgtools: spkg reads a database entry written by installpkg"
   pt_pair "$PKGS/hello-1-noarch-1.tgz"
