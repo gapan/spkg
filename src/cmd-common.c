@@ -130,6 +130,7 @@ void _gtk_update_icon_cache(const gchar* root, const struct cmd_options* opts)
       else if (rv > 0)
         _warning("Program /usr/bin/gtk-update-icon-cache failed. (%d)", rv);
     }
+    g_free(cmd);
   }
   else
   {
