@@ -134,7 +134,7 @@ pack() {
   case $_file in
     *.tgz) _comp="gzip -9" ;;
     *.txz) _comp="xz" ;;
-    *.tlz) _comp="lzma" ;;
+    *.tlz) _comp="lzip -c" ;;
     *.tbr) _comp="brotli -c" ;;
     *.tar) _comp="cat" ;;
   esac
@@ -376,7 +376,7 @@ check "library symlink of the new version kept" link_to usr/lib/libhello.so libh
 for ext in txz tlz tbr tar; do
   case $ext in
     txz) tool=xzdec ;;
-    tlz) tool=lzma ;;
+    tlz) tool=lzip ;;
     tbr) tool=brotli ;;
     tar) tool=tar ;;
   esac
@@ -392,6 +392,43 @@ for ext in txz tlz tbr tar; do
   check "package is in the database" db_has hello-1-noarch-1
   check "file content" content_is usr/bin/hello "hello 1"
 done
+
+# .tlz is tar.lz (lzip), like in pkgtools: plzip is used if it's there,
+# lzip otherwise. The old lzma format isn't supported any more.
+begin "install: .tlz with lzip only"
+if [ -x /usr/bin/lzip ] && [ -x /bin/sh ] && [ ! -e /bin/plzip ] && [ ! -e /bin/lzip ]; then
+  make_hello 1 tlz
+  mkdir -p "$TMP/lzbin"; ln -sf /usr/bin/lzip "$TMP/lzbin/lzip"
+  new_root tlz-lzip
+  PATH="$TMP/lzbin:/bin" "$SPKG" --root="$ROOT" -i "$PKGS/hello-1-noarch-1.tlz" >"$OUT" 2>&1
+  rc=$?
+  check "exit status 0" rc_is 0
+  check "file content" content_is usr/bin/hello "hello 1"
+
+  begin "install: .tlz without lzip or plzip"
+  new_root tlz-none
+  PATH="/bin" "$SPKG" --root="$ROOT" -i "$PKGS/hello-1-noarch-1.tlz" >"$OUT" 2>&1
+  rc=$?
+  check "exit status 2" rc_is 2
+  check "says what's missing" output_has "lzip or plzip is needed"
+  check "not installed" db_lacks hello-1-noarch-1
+else
+  echo "    skipped, needs lzip in /usr/bin and neither lzip nor plzip in /bin"
+fi
+
+begin "install: .tlz in the old lzma format is rejected"
+if command -v lzma >/dev/null 2>&1 && command -v lzip >/dev/null 2>&1; then
+  st=$TMP/stage-oldlzma
+  rm -rf "$st"; mkdir -p "$st/usr/share/oldlzma"; echo x > "$st/usr/share/oldlzma/x"
+  (cd "$st" && tar --owner=root --group=root -cf - .) | lzma > "$PKGS/oldlzma-1-noarch-1.tlz"
+  new_root tlz-lzma
+  spkg -i "$PKGS/oldlzma-1-noarch-1.tlz"
+  check "exit status 2" rc_is 2
+  check "not installed" db_lacks oldlzma-1-noarch-1
+  check "no files" absent usr/share/oldlzma
+else
+  echo "    skipped, lzma or lzip not found"
+fi
 
 # xz checks its data only at the end of each block, after it has written
 # it, so a corrupted byte in a file's data reaches spkg; xzdec's exit

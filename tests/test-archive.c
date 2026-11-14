@@ -469,7 +469,7 @@ int main(int ac, char* av[])
     { "test.tar", NULL,     "cat" },
     { "test.tgz", NULL,     "gzip -9" },
     { "test.txz", "xzdec",  "xz" },
-    { "test.tlz", "lzma",   "lzma" },
+    { "test.tlz", "lzip",   "lzip -c" },
     { "test.tbr", "brotli", "brotli -c" },
   };
   guint i;
