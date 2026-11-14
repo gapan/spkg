@@ -244,8 +244,9 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
     _safe_breaking_point(err4);
   }
 
-  /* update filelist */
-//  db_filelist_add_pkg_paths(pkg);
+  /* update the list of all installed files, if an earlier upgrade or
+     remove in the same command loaded it, so they see this package's files */
+  db_filelist_add_pkg_paths(pkg);
 
   /* finalize transaction */
   _debug("Finalizing transaction...");

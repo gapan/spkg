@@ -218,6 +218,10 @@ void db_filelist_rem_pkg_paths(const struct db_pkg* pkg)
   gint rc;
   Word_t *p1, *p2;
 
+  /* nothing to update; when it's loaded, it's read from the database */
+  if (!_db.filelist_loaded)
+    return;
+
   strcpy(path, "");
   JSLF(p1, pkg->paths, path);
   while (p1 != NULL)
@@ -243,6 +247,10 @@ void db_filelist_add_pkg_paths(const struct db_pkg* pkg)
 {
   gchar path[MAXPATHLEN];
   Word_t *p1, *p2;
+
+  /* nothing to update; when it's loaded, it's read from the database */
+  if (!_db.filelist_loaded)
+    return;
 
   strcpy(path, "");
   JSLF(p1, pkg->paths, path);

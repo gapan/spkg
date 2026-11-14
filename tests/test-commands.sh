@@ -1349,6 +1349,42 @@ check "first package removed" db_lacks hello-2-noarch-1
 check "package after the missing one removed" db_lacks links-1.0-noarch-1
 check "files removed" absent usr
 
+# The first upgrade loads the list of who owns which file. A package
+# installed later in the same command must be added to it, or a later
+# upgrade that drops a file they share deletes it.
+# make_files NAME VERSION FILE... : a package with files in usr/share/multi
+make_files() {
+  _n=$1 _v=$2; shift 2
+  _st=$TMP/stage-$_n-$_v
+  rm -rf "$_st"; mkdir -p "$_st/usr/share/multi"
+  for _f; do echo "$_n $_v" > "$_st/usr/share/multi/$_f"; done
+  pack "$_st" "$_n-$_v-noarch-1.tgz"
+}
+make_files aaa 1 a.txt
+make_files aaa 2 a.txt
+make_files bbb 1 shared.txt b.txt
+make_files bbb 2 b.txt
+make_files ccc 1 shared.txt c.txt
+
+begin "upgrade: package installed earlier in the same command keeps its files"
+new_root multi-owners
+spkg -i "$PKGS/aaa-1-noarch-1.tgz" "$PKGS/bbb-1-noarch-1.tgz"
+spkg -u --install-new "$PKGS/aaa-2-noarch-1.tgz" "$PKGS/ccc-1-noarch-1.tgz" \
+  "$PKGS/bbb-2-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "all upgraded or installed" sh -c \
+  '[ "$(ls "$1")" = "$(printf "aaa-2-noarch-1\nbbb-2-noarch-1\nccc-1-noarch-1")" ]' \
+  - "$ROOT/var/lib/pkgtools/packages"
+check "file of the installed package kept" is_file usr/share/multi/shared.txt
+
+begin "remove: package installed earlier in the same command keeps its files"
+new_root multi-owners-remove
+spkg -i "$PKGS/aaa-1-noarch-1.tgz" "$PKGS/bbb-1-noarch-1.tgz"
+spkg -u --install-new "$PKGS/aaa-2-noarch-1.tgz" "$PKGS/ccc-1-noarch-1.tgz"
+spkg -d bbb ccc
+check "exit status 0" rc_is 0
+check "shared file removed with its last owner" absent usr/share/multi/shared.txt
+
 # ---------------------------------------------------------------------
 # compatibility with pkgtools
 # ---------------------------------------------------------------------

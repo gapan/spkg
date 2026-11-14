@@ -221,13 +221,15 @@ extern void db_filelist_free();
  */
 extern gulong db_filelist_get_path_refs(const gchar* path);
 
-/** Add paths from the package to the filelist.
+/** Add paths from the package to the filelist. Does nothing if the
+ * filelist isn't loaded.
  *
  * @param pkg Package object.
  */
 extern void db_filelist_add_pkg_paths(const struct db_pkg* pkg);
 
-/** Remove paths from the package from the filelist.
+/** Remove paths from the package from the filelist. Does nothing if the
+ * filelist isn't loaded.
  *
  * @param pkg Package object.
  */
