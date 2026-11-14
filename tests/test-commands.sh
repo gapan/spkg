@@ -1577,6 +1577,97 @@ else
 fi
 
 # ---------------------------------------------------------------------
+# unusual file names and roots
+# ---------------------------------------------------------------------
+#
+# Spaces (also leading and trailing ones), non-ASCII, shell glob and
+# quoting characters, and a leading dash, in file and directory names.
+# Newlines can't be stored in the package database (one path per line,
+# like in pkgtools).
+
+ODD_NAMES="with space|  leading| trailing  |ünïcödé ελληνικά|*star|[brackets]|-dash|quote'd|dollar\$x|back\\slash|#hash|tab	name"
+
+# make_odd VERSION : usr/share/odd/<each name> and usr/share/odd/dir with space/<each name>;
+# version 2 drops "*star"
+make_odd() {
+  _st=$TMP/stage-odd-$1
+  rm -rf "$_st"; mkdir -p "$_st/usr/share/odd/dir with space"
+  _ifs=$IFS; IFS='|'
+  for _n in $ODD_NAMES; do
+    [ "$1" = 2 ] && [ "$_n" = "*star" ] && continue
+    printf '%s %s\n' "$_n" "$1" > "$_st/usr/share/odd/$_n"
+    printf '%s %s\n' "$_n" "$1" > "$_st/usr/share/odd/dir with space/$_n"
+  done
+  IFS=$_ifs
+  pack "$_st" "odd-$1-noarch-1.tgz"
+}
+make_odd 1
+make_odd 2
+
+# odd_files VERSION : all files there with the content of VERSION
+odd_files() {
+  _ifs=$IFS; IFS='|'
+  for _n in $ODD_NAMES; do
+    [ "$1" = 2 ] && [ "$_n" = "*star" ] && continue
+    for _d in usr/share/odd "usr/share/odd/dir with space"; do
+      if [ "$(cat "$ROOT/$_d/$_n" 2>/dev/null)" != "$_n $1" ]; then
+        echo "    wrong or missing: $_d/$_n"; IFS=$_ifs; return 1
+      fi
+    done
+  done
+  IFS=$_ifs
+}
+# odd_listed PKGNAME : every name is in the file list
+odd_listed() {
+  _ifs=$IFS; IFS='|'
+  for _n in $ODD_NAMES; do
+    grep -qxF -- "usr/share/odd/$_n" "$ROOT/var/lib/pkgtools/packages/$1" ||
+      { echo "    not in the file list: $_n"; IFS=$_ifs; return 1; }
+  done
+  IFS=$_ifs
+}
+
+begin "install: unusual file names"
+new_root odd
+spkg -i "$PKGS/odd-1-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "all files" odd_files 1
+check "all in the file list" odd_listed odd-1-noarch-1
+check "no stray files" [ "$(ls -A "$ROOT/usr/share/odd" | wc -l)" = 13 ]
+
+begin "upgrade: unusual file names"
+spkg -u "$PKGS/odd-2-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "all files have the new content" odd_files 2
+check "dropped file removed" absent "usr/share/odd/*star"
+check "dropped file in the subdirectory removed" absent "usr/share/odd/dir with space/*star"
+check "files with glob characters kept" is_file "usr/share/odd/[brackets]"
+
+begin "remove: unusual file names"
+spkg -d odd
+check "exit status 0" rc_is 0
+check "everything removed" absent usr/share/odd
+
+# The root is quoted in the commands spkg runs (doinst.sh, douninst.sh,
+# ldconfig, gtk-update-icon-cache).
+begin "install: root with spaces and quotes"
+new_root "odd root \$x 'q' \"dq\""
+mkdir -p "$ROOT/etc"; : > "$ROOT/etc/ld.so.conf"
+spkg -i "$PKGS/hello-1-noarch-1.tgz" "$PKGS/solib-1.0-noarch-1.tgz" "$PKGS/desktop-1.0-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "doinst.sh ran" content_is hello-doinst-ran "doinst [] 1"
+check "no warnings" sh -c '! grep -q "^WARNING" "$1"' - "$OUT"
+if [ -x /sbin/ldconfig ]; then
+  check "ldconfig ran" ld_cache
+fi
+if [ -x /usr/bin/gtk-update-icon-cache ]; then
+  check "gtk-update-icon-cache ran" icon_cache
+fi
+spkg -d hello
+check "remove: exit status 0" rc_is 0
+check "remove: douninst.sh ran" log_is "doinst 1;douninst 1 saw "
+
+# ---------------------------------------------------------------------
 # several packages in one command
 # ---------------------------------------------------------------------
 #

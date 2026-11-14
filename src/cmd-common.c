@@ -119,7 +119,11 @@ void _gtk_update_icon_cache(const gchar* root, const struct cmd_options* opts)
 {
   if (access("/usr/bin/gtk-update-icon-cache", X_OK) == 0)
   {
-    gchar* cmd = g_strdup_printf("/usr/bin/gtk-update-icon-cache %susr/share/icons/hicolor > /dev/null 2>&1", root);
+    gchar* dir = g_strdup_printf("%susr/share/icons/hicolor", root);
+    gchar* qdir = g_shell_quote(dir);
+    gchar* cmd = g_strdup_printf("/usr/bin/gtk-update-icon-cache %s > /dev/null 2>&1", qdir);
+    g_free(qdir);
+    g_free(dir);
 
     _notice("Running /usr/bin/gtk-update-icon-cache...");
     if (!opts->dryrun)
