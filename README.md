@@ -16,7 +16,8 @@ implemented in C and optimized for speed.
 * Rollback and safe cancel functionality.
 * You can use spkg and pkgtools side by side.
 * You can be informed about all actions spkg does if you turn on verbose mode.
-* Everything is libified. (see docs) You can implement new commands easily.
+* Everything is libified. You can implement new commands easily with libspkg;
+  its API is documented in the headers in `include/`.
 
 ## License
 
