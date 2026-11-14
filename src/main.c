@@ -322,15 +322,17 @@ int main(const int ac, const char* av[])
   if (sig_trap(err))
     goto err_2;
 
-  /* open db */
-  gboolean readonly = cmd_opts.dryrun || !is_root();
+  /* open db (listing only reads it, so it doesn't need the lock) */
+  gboolean readonly = cmd_opts.dryrun || !is_root() || command == CMD_LIST;
   if (db_open(cmd_opts.root, readonly, err))
   {
     if (readonly && (e_errno(err) & DB_NOTEX))
     {
       /* explain why the database isn't simply created */
       e_print(err);
-      if (cmd_opts.dryrun)
+      if (command == CMD_LIST)
+        fprintf(stderr, "Check the --root directory.\n");
+      else if (cmd_opts.dryrun)
         fprintf(stderr, "With --dry-run, spkg doesn't create the package database. "
           "Check the --root directory, or install a package there without "
           "--dry-run first.\n");

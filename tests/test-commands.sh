@@ -721,10 +721,9 @@ else
   check "tree unchanged" [ "$before" = "$(snapshot)" ]
 
   begin "lock: list and --dry-run don't need the lock"
-  # -l only reads the database, but as root it opens it for writing and
-  # waits for the lock
   spkg -l
-  xfail "list as root exit status 0" sh -c '[ "$1" = 0 ]' - "$rc"
+  check "list as root exit status 0" rc_is 0
+  check "list as root output" output_has "^hello-1-noarch-1$"
   if [ "$SPKG_REAL_UID" != 0 ]; then
     env -u LD_PRELOAD -u FAKEROOTKEY "$SPKG" --root="$ROOT" -l >"$OUT" 2>&1
     rc=$?
@@ -763,6 +762,13 @@ spkg -l 'oth*'
 check "glob: exit status 0" rc_is 0
 check "glob: lists other" output_has "other-1.0-noarch-1"
 check "glob: hello filtered out" [ -z "$(grep hello "$OUT")" ]
+
+begin "list: root without a package database"
+new_root list-nodb
+spkg -l
+check "exit status 2" rc_is 2
+check "explains" output_has "There is no package database"
+check "database not created" absent var
 
 # ---------------------------------------------------------------------
 # remove
