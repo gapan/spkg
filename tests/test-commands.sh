@@ -247,9 +247,18 @@ check "database lock created" [ -e "$ROOT/var/lib/pkgtools/packages/.lock" ]
 
 begin "install: package database layout is created"
 for d in var/lib/pkgtools/packages var/lib/pkgtools/scripts var/lib/pkgtools/setup \
-         var/log/pkgtools/removed_packages var/log/pkgtools/removed_scripts; do
+         var/log/pkgtools/removed_packages var/log/pkgtools/removed_scripts \
+         var/log/pkgtools/removed_uninstall_scripts; do
   check "$d exists" is_dir "$d"
 done
+check "var/log/packages symlink" link_to var/log/packages ../lib/pkgtools/packages
+check "var/log/scripts symlink" link_to var/log/scripts ../lib/pkgtools/scripts
+check "var/log/setup symlink" link_to var/log/setup ../lib/pkgtools/setup
+check "var/log/removed_packages symlink" link_to var/log/removed_packages pkgtools/removed_packages
+check "var/log/removed_scripts symlink" link_to var/log/removed_scripts pkgtools/removed_scripts
+check "var/log/removed_uninstall_scripts symlink" \
+  link_to var/log/removed_uninstall_scripts pkgtools/removed_uninstall_scripts
+check "symlinks resolve" [ -d "$ROOT/var/log/packages" ] && [ -d "$ROOT/var/log/removed_uninstall_scripts" ]
 
 begin "install: same package again is skipped"
 spkg -i "$PKGS/hello-1-noarch-1.tgz"
@@ -262,6 +271,14 @@ check "exit status 0" rc_is 0
 check "reports skip" output_has "Skipping package hello-2-noarch-1"
 check "new version not installed" db_lacks hello-2-noarch-1
 check "files untouched" content_is usr/bin/hello "hello 1"
+
+begin "install: existing var/log directory is left alone"
+new_root compat-dirs
+mkdir -p "$ROOT/var/log/packages"
+spkg -i "$PKGS/hello-1-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "directory kept" is_dir var/log/packages
+check "other symlinks created" link_to var/log/scripts ../lib/pkgtools/scripts
 
 # --force installs a second version next to the first one. Both are in the
 # database and own the files they have in common, like installpkg does when
@@ -1420,7 +1437,8 @@ else
   check "same douninst.sh mode" [ "$(stat -c %a "$PT/$db/douninst.sh/hello-1-noarch-1")" = \
     "$(stat -c %a "$SP/$db/douninst.sh/hello-1-noarch-1")" ]
   for l in packages scripts setup; do
-    xfail "var/log/$l compatibility symlink" [ -L "$SP/var/log/$l" ]
+    check "var/log/$l compatibility symlink like installpkg" \
+      [ "$(readlink "$SP/var/log/$l")" = "$(readlink "$PT/var/log/$l")" ]
   done
 
   # Both start from the same installpkg install, then pkgtools or spkg

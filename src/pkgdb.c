@@ -22,6 +22,7 @@
 #include "misc.h"
 #include "path.h"
 #include "pkgdb.h"
+#include "message.h"
 #include "bench.h"
 
 /* private 
@@ -70,7 +71,19 @@ gint db_open(const gchar* root, gboolean readonly, struct error* e)
     "lib/pkgtools/setup",
     "log/pkgtools/removed_packages",
     "log/pkgtools/removed_scripts",
+    "log/pkgtools/removed_uninstall_scripts",
     NULL };
+  /* compatibility symlinks in var/log that installpkg and removepkg
+     create: { link, target } */
+  gchar* compat_links[][2] = {
+    { "log/packages", "../lib/pkgtools/packages" },
+    { "log/scripts", "../lib/pkgtools/scripts" },
+    { "log/setup", "../lib/pkgtools/setup" },
+    { "log/removed_packages", "pkgtools/removed_packages" },
+    { "log/removed_scripts", "pkgtools/removed_scripts" },
+    { "log/removed_uninstall_scripts", "pkgtools/removed_uninstall_scripts" },
+  };
+  guint l;
 
   g_assert(e != NULL);
   _db.err = e;
@@ -131,6 +144,18 @@ gint db_open(const gchar* root, gboolean readonly, struct error* e)
     g_free(tmpdir);
   }
   g_free(sane_root);
+
+  /* create the compatibility symlinks where there is nothing yet (a
+     directory or a symlink put there by the admin is left alone) */
+  for (l = 0; l < G_N_ELEMENTS(compat_links) && !readonly; l++)
+  {
+    gchar* link = g_strdup_printf("%s/%s", _db.topdir, compat_links[l][0]);
+    struct stat st;
+    if (lstat(link, &st) != 0 && errno == ENOENT
+        && symlink(compat_links[l][1], link) != 0)
+      _warning("Can't create symlink %s. (%s)", link, strerror(errno));
+    g_free(link);
+  }
 
   if (!readonly)
   {
