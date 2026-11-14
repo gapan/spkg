@@ -329,8 +329,9 @@ static void check_broken(void)
     untgz_close(tgz);
   }
 
-  /* not an archive at all */
-  CHECK(sh("head -c 4096 /dev/urandom | gzip > garbage.tgz") == 0);
+  /* not an archive at all (starting with a non-zero byte: a header block
+   * starting with zero means end of archive) */
+  CHECK(sh("{ printf garbage; head -c 4096 /dev/urandom; } | gzip > garbage.tgz") == 0);
   tgz = untgz_open("garbage.tgz", e);
   if (tgz)
   {
