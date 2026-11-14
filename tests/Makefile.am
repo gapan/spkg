@@ -9,6 +9,7 @@ TESTS = \
   test-path \
   test-parsers \
   test-misc \
+  test-archive \
   test-blacklist \
   test-mkdir \
   test-rm \
@@ -26,6 +27,7 @@ check_PROGRAMS = \
   test-path \
   test-parsers \
   test-misc \
+  test-archive \
   test-blacklist \
   test-mkdir \
   test-rm \
@@ -40,6 +42,7 @@ test_untgz_SOURCES = test-untgz.c
 test_parsers_SOURCES = test-parsers.c check.h
 test_path_SOURCES = test-path.c check.h
 test_misc_SOURCES = test-misc.c check.h
+test_archive_SOURCES = test-archive.c check.h
 test_mkdir_SOURCES = test-mkdir.c check.h
 test_rm_SOURCES = test-rm.c check.h
 
