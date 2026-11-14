@@ -19,6 +19,7 @@ Configure options that change the code:
 - `--enable-static-spkg` builds `spkg.static` alongside the dynamic `spkg`. `--enable-static-spkg=only` builds only a static `spkg` (used by `spkg.SlackBuild`) and skips installing libspkg/pkg-config.
 - `--enable-assume-broken-pkgdb` defines `ASSUME_BROKEN_PKGDB`, which normalizes `//` paths in the package DB.
 - `--disable-legacy` turns off `LEGACY_CHECKS` (for example, the check that rejects symlinks inside the archive).
+- `--enable-sanitizers` builds everything with ASan and UBSan, for running the tests (not with `--enable-static-spkg`). Leak detection is off by default; `make check ASAN_OPTIONS=detect_leaks=1` turns it on.
 
 ## Tests
 
@@ -29,7 +30,7 @@ cat tests/test-parsers.log              # output of a test (failed checks print 
 make distcheck                          # full release check: builds the tarball and runs the tests from it
 ```
 
-Tests are plain C programs linked against `src/libspkg.a`, listed in `TESTS` / `check_PROGRAMS` in `tests/Makefile.am`. Each one exits non-zero on failure. Use the `CHECK`, `CHECK_STR` and `CHECK_INT` macros from `tests/check.h` and return `check_result()` from `main()`. Tests that touch the filesystem must work inside `check_enter_tmpdir()` and remove it at the end, never in the build tree or `/`. Fixture files (such as `tests/blacklist`) are read from `$srcdir` so VPATH builds and distcheck work, and must be added to `EXTRA_DIST`.
+Tests are plain C programs linked against `src/libspkg.a`, listed in `TESTS` / `check_PROGRAMS` in `tests/Makefile.am`. Each one exits non-zero on failure. Use the `CHECK`, `CHECK_STR` and `CHECK_INT` macros from `tests/check.h` and return `check_result()` from `main()`. Use `XFAIL` for known bugs. Tests that touch the filesystem must work inside `check_enter_tmpdir()` and remove it at the end, never in the build tree or `/`. Fixture files (such as `tests/blacklist`) are read from `$srcdir` so VPATH builds and distcheck work, and must be added to `EXTRA_DIST`.
 
 `tests/test-commands.sh` is the end-to-end suite: it builds small packages with tar, then runs the real `src/spkg` against a temporary `--root` under `fakeroot` (it skips if fakeroot is missing). `VERBOSE=1` shows spkg's output, and `KEEP=1` keeps the temporary directory. Known bugs are checked with `xfail`. These report XFAIL while the bug exists and fail with XPASS once it's fixed, so the check can be turned into a normal `check`.
 

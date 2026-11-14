@@ -74,6 +74,24 @@ AC_ARG_ENABLE(legacy,
 
 AM_CONDITIONAL([LEGACY_CHECKS],[test x$legacy_checks = xyes])
 
+# Sanitizers (for running the test suite)
+AC_ARG_ENABLE(sanitizers,
+  AS_HELP_STRING([--enable-sanitizers],
+                 [Build with AddressSanitizer and UndefinedBehaviorSanitizer.
+                 Meant for running the test suite, not for installing.]),
+                 [sanitizers=$enableval], [sanitizers=no])
+
+if test "x$sanitizers" = xyes; then
+  if test "x$create_static" != xno; then
+    AC_MSG_ERROR([--enable-sanitizers can't be combined with --enable-static-spkg])
+  fi
+  # added after the compiler checks above, which run test programs
+  SANITIZER_FLAGS="-fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer"
+  CFLAGS="$CFLAGS $SANITIZER_FLAGS"
+  LDFLAGS="$LDFLAGS $SANITIZER_FLAGS"
+fi
+AM_CONDITIONAL([SANITIZERS],[test "x$sanitizers" = xyes])
+
 # Output
 AC_CONFIG_FILES([
     Makefile

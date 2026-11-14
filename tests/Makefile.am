@@ -22,6 +22,14 @@ AM_TESTS_ENVIRONMENT = SPKG=$(top_builddir)/src/spkg; export SPKG;
 if LEGACY_CHECKS
 AM_TESTS_ENVIRONMENT += SPKG_LEGACY_CHECKS=1; export SPKG_LEGACY_CHECKS;
 endif
+if SANITIZERS
+# fakeroot (and possibly the user's environment) preloads libraries
+# before the ASan runtime, which ASan refuses by default. Leak detection
+# is off by default (spkg is a short-lived process with known small
+# leaks); "make check ASAN_OPTIONS=detect_leaks=1" turns it on.
+AM_TESTS_ENVIRONMENT += ASAN_OPTIONS=verify_asan_link_order=0:detect_leaks=0:$${ASAN_OPTIONS-}; export ASAN_OPTIONS;
+AM_TESTS_ENVIRONMENT += UBSAN_OPTIONS=print_stacktrace=1:$${UBSAN_OPTIONS-}; export UBSAN_OPTIONS;
+endif
 
 # test-untgz is a manual tool (extracts the given archives into the current
 # directory), built by "make check" but not run by it.
