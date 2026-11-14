@@ -331,6 +331,9 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
 
   _run_douninst_sh(real_pkgname, opts, root);
 
+  /* ldconfig runs once at the end of the command (cmd_finish()) */
+  _want_ldconfig_for(pkg);
+
   g_free(root);
 
   _debug("Removal finished!");

@@ -95,7 +95,9 @@ this option to disable such optimizations.
 Disable postinstallation script.
 .TP
 \fB--no-ldconfig\fR
-Don't execute ldconfig after installation and upgrade.
+Don't execute ldconfig. Without this option, spkg runs ldconfig once, after
+the last package, when a package with shared libraries (*.so or *.so.*) was
+installed, upgraded or removed.
 .TP
 \fB--no-gtk-update-icon-cache\fR
 When a package includes a .desktop file, in other words when a package

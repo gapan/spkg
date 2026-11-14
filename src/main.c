@@ -136,7 +136,9 @@ static struct poptOption optsOptions[] = {
 },
 {
   "no-ldconfig", 0, 0, &cmd_opts.no_ldconfig, 0,
-  "Don't execute ldconfig after installation and upgrade.", NULL
+  "Don't execute ldconfig. Without this option it runs once, after the last "
+  "package, when a package with shared libraries was installed, upgraded or "
+  "removed.", NULL
 },
 {
   "no-gtk-update-icon-cache", 0, 0, &cmd_opts.no_gtk_update_icon_cache, 0,
@@ -439,6 +441,9 @@ int main(const int ac, const char* av[])
     }
     break;
   }
+
+  /* run ldconfig once, if any package had shared libraries */
+  cmd_finish(&cmd_opts);
 
   db_close();
 

@@ -1221,14 +1221,28 @@ check "exit status 1" rc_is 1
 check "reports the conflict" output_has "Verbose or quiet?"
 check "nothing installed" db_lacks hello-1-noarch-1
 
-# spkg runs /sbin/ldconfig -r ROOT when the package has a *.so file and
-# ROOT has etc/ld.so.conf, and /usr/bin/gtk-update-icon-cache on ROOT's
-# hicolor theme when the package has a *.desktop file. Both leave a file
-# behind that shows they ran.
+# spkg runs /sbin/ldconfig -r ROOT once at the end of a command, if one of
+# its packages installed, upgraded or removed a shared library (*.so or
+# *.so.*) and ROOT has etc/ld.so.conf. It runs
+# /usr/bin/gtk-update-icon-cache on ROOT's hicolor theme when the package
+# has a *.desktop file. Both leave a file behind that shows they ran.
 st=$TMP/stage-solib
 rm -rf "$st"; mkdir -p "$st/usr/lib"
 echo "lib" > "$st/usr/lib/libtest.so.1"; echo "lib" > "$st/usr/lib/libtest.so"
 pack "$st" solib-1.0-noarch-1.tgz
+# only a versioned library, as makepkg leaves it (the .so symlinks are
+# in doinst.sh)
+st=$TMP/stage-vlib
+rm -rf "$st"; mkdir -p "$st/usr/lib" "$st/install"
+echo "lib" > "$st/usr/lib/libv.so.1.2.3"
+echo "( cd usr/lib ; rm -rf libv.so.1 )" > "$st/install/doinst.sh"
+echo "( cd usr/lib ; ln -sf libv.so.1.2.3 libv.so.1 )" >> "$st/install/doinst.sh"
+pack "$st" vlib-1.0-noarch-1.tgz
+# not libraries
+st=$TMP/stage-nolib
+rm -rf "$st"; mkdir -p "$st/usr/share/nolib"
+echo x > "$st/usr/share/nolib/a.sock"; echo x > "$st/usr/share/nolib/also.sometimes"
+pack "$st" nolib-1.0-noarch-1.tgz
 st=$TMP/stage-desktop
 rm -rf "$st"; mkdir -p "$st/usr/share/applications" "$st/usr/share/icons/hicolor/16x16/apps"
 printf '[Desktop Entry]\nName=Test\nExec=true\nIcon=test\n' > "$st/usr/share/applications/test.desktop"
@@ -1255,10 +1269,59 @@ if [ -x /sbin/ldconfig ]; then
 
   begin "install: no ldconfig without a shared library"
   ld_root no-solib
-  spkg -i "$PKGS/links-1.0-noarch-1.tgz"
+  spkg -i "$PKGS/links-1.0-noarch-1.tgz" "$PKGS/nolib-1.0-noarch-1.tgz"
+  check "exit status 0" rc_is 0
   check "ldconfig not run" absent etc/ld.so.cache
 
+  begin "install: runs ldconfig for a versioned library only"
+  ld_root vlib
+  spkg -i "$PKGS/vlib-1.0-noarch-1.tgz"
+  check "exit status 0" rc_is 0
+  check "ldconfig ran" ld_cache
+  check "doinst.sh symlink" link_to usr/lib/libv.so.1 libv.so.1.2.3
+
+  begin "install: ldconfig runs once, after the last package"
+  ld_root ldconfig-once
+  spkg -i -v "$PKGS/solib-1.0-noarch-1.tgz" "$PKGS/links-1.0-noarch-1.tgz" \
+    "$PKGS/vlib-1.0-noarch-1.tgz"
+  check "exit status 0" rc_is 0
+  check "ldconfig ran" ld_cache
+  check "once" [ "$(grep -c 'Running /sbin/ldconfig' "$OUT")" = 1 ]
+  check "after the last package" [ "$(grep '^Installing package\|Running /sbin/ldconfig' "$OUT" | tail -1)" = \
+    " --> Running /sbin/ldconfig..." ]
+
+  begin "install: --dry-run doesn't run ldconfig"
+  ld_root ldconfig-dry
+  spkg -i "$PKGS/links-1.0-noarch-1.tgz"
+  spkg -i -n "$PKGS/solib-1.0-noarch-1.tgz"
+  check "exit status 0" rc_is 0
+  check "ldconfig not run" absent etc/ld.so.cache
+
+  begin "remove: runs ldconfig for a shared library"
+  ld_root ldconfig-remove
+  spkg -i --no-ldconfig "$PKGS/solib-1.0-noarch-1.tgz" "$PKGS/links-1.0-noarch-1.tgz"
+  spkg -d links
+  check "no library: ldconfig not run" absent etc/ld.so.cache
+  spkg -d --no-ldconfig solib
+  check "--no-ldconfig: ldconfig not run" absent etc/ld.so.cache
+  spkg -i --no-ldconfig "$PKGS/solib-1.0-noarch-1.tgz"
+  spkg -d solib
+  check "exit status 0" rc_is 0
+  check "ldconfig ran" ld_cache
+
+  begin "upgrade: runs ldconfig when only the old version had a library"
+  ld_root ldconfig-dropped
+  spkg -i --no-ldconfig "$PKGS/solib-1.0-noarch-1.tgz"
+  st=$TMP/stage-solib-2
+  rm -rf "$st"; mkdir -p "$st/usr/share/solib"
+  echo "no more libraries" > "$st/usr/share/solib/README"
+  pack "$st" solib-2.0-noarch-1.tgz
+  spkg -u "$PKGS/solib-2.0-noarch-1.tgz"
+  check "exit status 0" rc_is 0
+  check "ldconfig ran" ld_cache
+
   begin "upgrade: --no-ldconfig"
+  ld_root ldconfig-upgrade
   spkg -i --no-ldconfig "$PKGS/solib-1.0-noarch-1.tgz"
   spkg -u --reinstall --no-ldconfig "$PKGS/solib-1.0-noarch-1.tgz"
   check "exit status 0" rc_is 0

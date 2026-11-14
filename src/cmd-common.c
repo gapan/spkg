@@ -6,6 +6,7 @@
 \*----------------------------------------------------------------------*/
 
 #include "cmd-common.h"
+#include <Judy.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 
@@ -32,7 +33,45 @@ gboolean _check_libc_libs(const gchar* path)
   return 1;
 }
 
-void _run_ldconfig(const gchar* root, const struct cmd_options* opts)
+/* set when a package with a shared library was installed, upgraded or
+   removed since the last cmd_finish() */
+static gboolean _ldconfig_wanted = FALSE;
+
+/* name.so or name.so.<anything> (libfoo.so.1.2.3, and also ld.so.conf) */
+static gboolean _is_shared_library(const gchar* path)
+{
+  const gchar* base = strrchr(path, '/');
+  const gchar* p = base ? base + 1 : path;
+  while ((p = strstr(p, ".so")) != NULL)
+  {
+    if (p[3] == '\0' || p[3] == '.')
+      return TRUE;
+    p += 3;
+  }
+  return FALSE;
+}
+
+void _want_ldconfig_for(const struct db_pkg* pkg)
+{
+  gchar path[MAXPATHLEN];
+  Word_t* ptype;
+
+  if (_ldconfig_wanted)
+    return;
+  strcpy(path, "");
+  JSLF(ptype, pkg->paths, path);
+  while (ptype != NULL)
+  {
+    if (_is_shared_library(path))
+    {
+      _ldconfig_wanted = TRUE;
+      return;
+    }
+    JSLN(ptype, pkg->paths, path);
+  }
+}
+
+static void _run_ldconfig(const gchar* root, const struct cmd_options* opts)
 {
   if (access("/sbin/ldconfig", X_OK) == 0)
   {
@@ -61,6 +100,19 @@ void _run_ldconfig(const gchar* root, const struct cmd_options* opts)
   {
     _warning("Program /sbin/ldconfig was not found on the system.");
   }
+}
+
+void cmd_finish(const struct cmd_options* opts)
+{
+  g_assert(opts != 0);
+
+  if (_ldconfig_wanted && !opts->no_ldconfig)
+  {
+    gchar* root = sanitize_root_path(opts->root);
+    _run_ldconfig(root, opts);
+    g_free(root);
+  }
+  _ldconfig_wanted = FALSE;
 }
 
 void _gtk_update_icon_cache(const gchar* root, const struct cmd_options* opts)

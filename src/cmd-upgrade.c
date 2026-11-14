@@ -274,7 +274,6 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
     goto err2;
   pkg->location = g_strdup(pkgfile);
 
-  gboolean need_ldconfig = 0;
   gboolean need_update_icon_cache = 0;
   gboolean has_doinst = 0;
   gchar* sane_path = NULL;
@@ -310,10 +309,6 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
       continue;
     }
     
-    /* check if package contains .so libraries */
-    if (!need_ldconfig && g_str_has_suffix(sane_path, ".so"))
-      need_ldconfig = 1;
-
     /* check if package contains .desktop files */
     if (!need_update_icon_cache && g_str_has_suffix(sane_path, ".desktop"))
       need_update_icon_cache = 1;
@@ -461,9 +456,10 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
     g_free(doinst_path);
   }
 
-  /* run ldconfig */
-  if (need_ldconfig && !opts->no_ldconfig)
-    _run_ldconfig(root, opts);
+  /* ldconfig runs once at the end of the command (cmd_finish()), also
+     when only the old version had libraries */
+  _want_ldconfig_for(pkg);
+  _want_ldconfig_for(ipkg);
 
   /* run gtk-update-icon-cache */
   if (need_update_icon_cache && !opts->no_gtk_update_icon_cache)

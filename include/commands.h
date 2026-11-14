@@ -75,6 +75,15 @@ extern gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, str
  */
 extern gint cmd_list(GSList* arglist, const struct cmd_options* opts, struct error* e);
 
+/** Finish a series of commands. Call it after the last \ref cmd_install,
+ * \ref cmd_upgrade or \ref cmd_remove: it runs ldconfig once if any of
+ * them installed, upgraded or removed a shared library (unless
+ * opts->no_ldconfig is set).
+ *
+ * @param opts Options.
+ */
+extern void cmd_finish(const struct cmd_options* opts);
+
 G_END_DECLS
 
 #endif

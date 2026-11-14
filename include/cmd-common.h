@@ -24,7 +24,9 @@
 
 extern gboolean _check_libc_libs(const gchar* path);
 
-extern void _run_ldconfig(const gchar* root, const struct cmd_options* opts);
+/* Remember that ldconfig must run if the package has a shared library
+ * (lib*.so, lib*.so.*). cmd_finish() runs it once for the whole command. */
+extern void _want_ldconfig_for(const struct db_pkg* pkg);
 
 extern void _gtk_update_icon_cache(const gchar* root, const struct cmd_options* opts);
 

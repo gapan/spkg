@@ -51,7 +51,7 @@ Core modules:
 - **message** provides `_notice`/`_warning`/etc. output gated by verbosity.
 - **cmd-common** (`cmd-common.c`) holds shared command logic:
   - It reads `doinst.sh` and optimizes away its symlink-creation lines. spkg creates those links itself, unless `--no-optsyms` is given or the package is on the `bl_symopts` blacklist. The full script is still stored in the DB.
-  - It runs `doinst.sh`, ldconfig, and gtk-update-icon-cache.
+  - It runs `doinst.sh` and gtk-update-icon-cache per package. ldconfig runs only once per command: the commands record that a package had shared libraries, and `cmd_finish()` (called by `main.c` after the last package) runs it.
   - It handles `douninst.sh` scripts (`var/lib/pkgtools/douninst.sh/`), which run on remove and upgrade.
 - **cmd-upgrade** combines install of the new package with removal of the old package's leftover files, all inside one transaction.
 
