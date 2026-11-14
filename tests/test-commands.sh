@@ -131,8 +131,9 @@ snapshot_no_install() {
 
 # pack STAGEDIR PKGFILE [MEMBERS...]
 # Create a package from STAGEDIR. The compression comes from the PKGFILE
-# extension. With MEMBERS, only those are archived, in that order and
-# without recursing into directories.
+# extension. Entries are named like makepkg does: "./" and then paths
+# without a "./" prefix ("install/doinst.sh"). With MEMBERS, only those are
+# archived, as given, in that order and without recursing into directories.
 pack() {
   _dir=$1 _file=$2; shift 2
   case $_file in
@@ -143,7 +144,8 @@ pack() {
     *.tar) _comp="cat" ;;
   esac
   if [ $# -eq 0 ]; then
-    (cd "$_dir" && tar --owner=root --group=root -cf - .) | $_comp > "$PKGS/$_file"
+    (cd "$_dir" && tar --owner=root --group=root \
+      --transform 's,^\./\(.\),\1,S' -cf - .) | $_comp > "$PKGS/$_file"
   else
     (cd "$_dir" && tar --owner=root --group=root -P --no-recursion -cf - "$@") \
       | $_comp > "$PKGS/$_file"
@@ -154,7 +156,9 @@ pack() {
 # - usr/bin/hello content
 # - usr/lib/libhello.so.N and the libhello.so symlink pointing to it
 # - usr/share/hello/v1.txt is replaced by usr/share/hello/v2.txt
-# Both have a config file handled the usual way by doinst.sh.
+# Both have a config file handled the usual way by doinst.sh, and an
+# uninstall script. doinst.sh and douninst.sh append to script-log, the
+# latter with the usr/bin/hello it sees, to check when each one runs.
 make_hello() { # make_hello VERSION [EXT]
   _v=$1 _ext=${2:-tgz}
   _st=$TMP/stage-hello-$_v
@@ -183,11 +187,19 @@ config() {
 }
 config etc/hello.conf.new
 echo "doinst \$1 $_v" > hello-doinst-ran
+echo "doinst $_v" >> script-log
 ( cd usr/lib ; rm -rf libhello.so )
 ( cd usr/lib ; ln -sf libhello.so.$_v libhello.so )
 EOF
+  cat > "$_st/install/douninst.sh" <<EOF
+echo "douninst $_v saw \$(cat usr/bin/hello 2>/dev/null)" >> script-log
+EOF
   pack "$_st" "hello-$_v-noarch-1.$_ext"
 }
+
+# the script-log lines, joined with ";"
+script_log() { cat "$ROOT/script-log" 2>/dev/null | paste -sd ';' -; }
+log_is() { [ "$(script_log)" = "$1" ] || { echo "    script-log: $(script_log)"; return 1; }; }
 
 # A package that shares a directory and a file with "other".
 make_shared() { # make_shared NAME
@@ -199,13 +211,17 @@ make_shared() { # make_shared NAME
   pack "$_st" "$1-1.0-noarch-1.tgz"
 }
 
-# Install a pre-made uninstall script for an installed package, the way
-# pkgtools stores it. The script leaves a marker in the root when it runs.
-put_douninst() { # put_douninst PKGNAME
+# Give an installed package an uninstall script the way installpkg stores
+# it: in douninst.sh/, and listed in the package's file list. The script
+# appends to script-log when it runs.
+put_pkgtools_douninst() { # put_pkgtools_douninst PKGNAME
   mkdir -p "$ROOT/var/lib/pkgtools/douninst.sh"
-  echo 'echo "douninst ran" > douninst-ran' \
+  echo "echo \"douninst $1\" >> script-log" \
     > "$ROOT/var/lib/pkgtools/douninst.sh/$1"
+  chmod 755 "$ROOT/var/lib/pkgtools/douninst.sh/$1"
+  echo "var/lib/pkgtools/douninst.sh/$1" >> "$ROOT/var/lib/pkgtools/packages/$1"
 }
+douninst_stored() { is_file "var/lib/pkgtools/douninst.sh/$1"; }
 
 make_hello 1
 make_hello 2
@@ -547,49 +563,87 @@ spkg -d -n hello
 check "exit status 0" rc_is 0
 check "tree unchanged" [ "$before" = "$(snapshot)" ]
 
+begin "install: douninst.sh is stored like installpkg does"
+new_root douninst-install
+spkg -i "$PKGS/hello-1-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "stored under the full package name" douninst_stored hello-1-noarch-1
+check "same content" cmp -s "$TMP/stage-hello-1/install/douninst.sh" \
+  "$ROOT/var/lib/pkgtools/douninst.sh/hello-1-noarch-1"
+check "mode 755" mode_is var/lib/pkgtools/douninst.sh/hello-1-noarch-1 755
+check "listed in the file list" \
+  db_lists hello-1-noarch-1 var/lib/pkgtools/douninst.sh/hello-1-noarch-1
+check "install/douninst.sh listed too" db_lists hello-1-noarch-1 install/douninst.sh
+check "not run at install" log_is "doinst 1"
+check "not left in install/" absent install
+
+begin "install: --dry-run doesn't store douninst.sh"
+new_root douninst-install-dry
+spkg -i "$PKGS/one-1.0-noarch-1.tgz" # dry-run needs an existing database
+spkg -i -n "$PKGS/hello-1-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "not stored" absent var/lib/pkgtools/douninst.sh
+
+begin "install: failed install doesn't leave douninst.sh behind"
+st=$TMP/stage-hello-1
+pack "$st" brokenuninst-1-noarch-1.tgz ./ install/ install/douninst.sh \
+  usr/ usr/bin/ usr/bin/hello ../stage-hello-2/usr/bin/hello
+new_root douninst-rollback
+spkg -i "$PKGS/brokenuninst-1-noarch-1.tgz"
+check "exit status 2" rc_is 2
+check "not stored" absent var/lib/pkgtools/douninst.sh/brokenuninst-1-noarch-1
+check "no temporary files" [ -z "$(find "$ROOT" -name '*--###*')" ]
+
 begin "remove: douninst.sh"
 new_root douninst
 spkg -i "$PKGS/hello-1-noarch-1.tgz"
-put_douninst hello-1-noarch-1
 spkg -d hello
 check "exit status 0" rc_is 0
-check "douninst.sh ran" content_is douninst-ran "douninst ran"
+check "ran after the files were removed" log_is "doinst 1;douninst 1 saw "
 check "script moved to removed_uninstall_scripts" \
   is_file var/log/pkgtools/removed_uninstall_scripts/hello-1-noarch-1
-xfail "script removed from douninst.sh/ after removal" \
-  absent var/lib/pkgtools/douninst.sh/hello-1-noarch-1
+check "stored script removed" absent var/lib/pkgtools/douninst.sh/hello-1-noarch-1
+check "no copy left in var/tmp/spkg" absent var/tmp/spkg/hello-1-noarch-1
+
+begin "remove: douninst.sh stored by installpkg"
+new_root douninst-pkgtools
+make_shared one
+spkg -i "$PKGS/one-1.0-noarch-1.tgz"
+put_pkgtools_douninst one-1.0-noarch-1
+spkg -d one
+check "exit status 0" rc_is 0
+check "douninst.sh ran" log_is "douninst one-1.0-noarch-1"
+check "stored script removed" absent var/lib/pkgtools/douninst.sh/one-1.0-noarch-1
+
+begin "remove: failing douninst.sh"
+new_root douninst-fail
+spkg -i "$PKGS/one-1.0-noarch-1.tgz"
+put_pkgtools_douninst one-1.0-noarch-1
+echo "exit 3" >> "$ROOT/var/lib/pkgtools/douninst.sh/one-1.0-noarch-1"
+spkg -d one
+check "exit status 0" rc_is 0
+check "warns" output_has "douninst.sh script execution failed"
+check "package removed" db_lacks one-1.0-noarch-1
+check "script moved to removed_uninstall_scripts anyway (like removepkg)" \
+  is_file var/log/pkgtools/removed_uninstall_scripts/one-1.0-noarch-1
 
 begin "remove: --no-scripts skips douninst.sh"
 new_root douninst-no-scripts
 spkg -i "$PKGS/hello-1-noarch-1.tgz"
-put_douninst hello-1-noarch-1
 spkg -d --no-scripts hello
 check "exit status 0" rc_is 0
-check "douninst.sh not run" absent douninst-ran
+check "douninst.sh not run" log_is "doinst 1"
+check "stored script removed with the package" \
+  absent var/lib/pkgtools/douninst.sh/hello-1-noarch-1
 
 begin "remove: --dry-run doesn't run douninst.sh"
 new_root douninst-dry
 spkg -i "$PKGS/hello-1-noarch-1.tgz"
-put_douninst hello-1-noarch-1
 before=$(snapshot)
 spkg -d -n hello
 check "exit status 0" rc_is 0
-xfail "douninst.sh not run" absent douninst-ran
-xfail "tree unchanged" [ "$before" = "$(snapshot)" ]
-
-begin "install: douninst.sh from the package is kept for removal"
-st=$TMP/stage-withuninst
-mkdir -p "$st/install" "$st/usr"
-echo x > "$st/usr/x"
-echo 'echo "douninst ran" > douninst-ran' > "$st/install/douninst.sh"
-pack "$st" withuninst-1.0-noarch-1.tgz
-new_root withuninst
-spkg -i "$PKGS/withuninst-1.0-noarch-1.tgz"
-check "exit status 0" rc_is 0
-xfail "script stored in douninst.sh/" \
-  is_file var/lib/pkgtools/douninst.sh/withuninst-1.0-noarch-1
-spkg -d withuninst
-xfail "script runs on removal" content_is douninst-ran "douninst ran"
+check "douninst.sh not run" log_is "doinst 1"
+check "tree unchanged" [ "$before" = "$(snapshot)" ]
 
 # ---------------------------------------------------------------------
 # upgrade
@@ -683,20 +737,76 @@ check "tree unchanged" [ "$before" = "$(snapshot)" ]
 begin "upgrade: douninst.sh of the old version runs"
 new_root upgrade-douninst
 spkg -i "$PKGS/hello-1-noarch-1.tgz"
-put_douninst hello-1-noarch-1
 spkg -u "$PKGS/hello-2-noarch-1.tgz"
 check "exit status 0" rc_is 0
-check "douninst.sh ran" content_is douninst-ran "douninst ran"
-check "script moved to removed_uninstall_scripts" \
+# like upgradepkg: the old script runs once the new version is in place,
+# and before the new version's doinst.sh
+check "old script ran between the two doinst.sh" \
+  log_is "doinst 1;douninst 1 saw hello 2;doinst 2"
+check "old script moved to removed_uninstall_scripts" \
   is_file var/log/pkgtools/removed_uninstall_scripts/hello-1-noarch-1
+check "old stored script removed" absent var/lib/pkgtools/douninst.sh/hello-1-noarch-1
+check "new script stored" douninst_stored hello-2-noarch-1
+check "new script listed in the file list" \
+  db_lists hello-2-noarch-1 var/lib/pkgtools/douninst.sh/hello-2-noarch-1
+check "no copy left in var/tmp/spkg" absent var/tmp/spkg/hello-1-noarch-1
+spkg -d hello
+check "new script runs on removal" \
+  log_is "doinst 1;douninst 1 saw hello 2;doinst 2;douninst 2 saw "
+
+begin "upgrade: package installed by installpkg"
+new_root upgrade-douninst-pkgtools
+spkg -i "$PKGS/hello-1-noarch-1.tgz"
+# make it look like installpkg installed it
+rm "$ROOT/var/lib/pkgtools/douninst.sh/hello-1-noarch-1"
+grep -v "^var/lib/pkgtools/douninst.sh/" "$ROOT/var/lib/pkgtools/packages/hello-1-noarch-1" \
+  > "$TMP/entry" && cat "$TMP/entry" > "$ROOT/var/lib/pkgtools/packages/hello-1-noarch-1"
+put_pkgtools_douninst hello-1-noarch-1
+spkg -u "$PKGS/hello-2-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "old script ran" log_is "doinst 1;douninst hello-1-noarch-1;doinst 2"
+check "old stored script removed" absent var/lib/pkgtools/douninst.sh/hello-1-noarch-1
+check "new script stored" douninst_stored hello-2-noarch-1
+
+begin "upgrade: --reinstall"
+new_root upgrade-douninst-reinstall
+spkg -i "$PKGS/hello-1-noarch-1.tgz"
+spkg -u --reinstall "$PKGS/hello-1-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "old script ran" log_is "doinst 1;douninst 1 saw hello 1;doinst 1"
+check "script still stored" douninst_stored hello-1-noarch-1
+
+begin "upgrade: to a version without douninst.sh"
+new_root upgrade-douninst-dropped
+st=$TMP/stage-hello-3
+cp -a "$TMP/stage-hello-2" "$st"
+rm "$st/install/douninst.sh"
+pack "$st" hello-3-noarch-1.tgz
+spkg -i "$PKGS/hello-1-noarch-1.tgz"
+spkg -u "$PKGS/hello-3-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "old script ran" log_is "doinst 1;douninst 1 saw hello 2;doinst 2"
+check "nothing stored" [ -z "$(ls "$ROOT/var/lib/pkgtools/douninst.sh")" ]
+
+begin "upgrade: failed upgrade keeps the old script"
+new_root upgrade-douninst-rollback
+spkg -i "$PKGS/hello-1-noarch-1.tgz"
+before=$(snapshot_no_install)
+cp "$PKGS/brokenuninst-1-noarch-1.tgz" "$PKGS/hello-4-noarch-1.tgz"
+spkg -u "$PKGS/hello-4-noarch-1.tgz"
+check "exit status 2" rc_is 2
+check "old script not run" log_is "doinst 1"
+check "old script still stored" douninst_stored hello-1-noarch-1
+check "tree unchanged (apart from install/)" [ "$before" = "$(snapshot_no_install)" ]
 
 begin "upgrade: --dry-run doesn't run douninst.sh"
 new_root upgrade-douninst-dry
 spkg -i "$PKGS/hello-1-noarch-1.tgz"
-put_douninst hello-1-noarch-1
+before=$(snapshot)
 spkg -u -n "$PKGS/hello-2-noarch-1.tgz"
 check "exit status 0" rc_is 0
-xfail "douninst.sh not run" absent douninst-ran
+check "douninst.sh not run" log_is "doinst 1"
+check "tree unchanged" [ "$before" = "$(snapshot)" ]
 
 # ---------------------------------------------------------------------
 

@@ -135,17 +135,17 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
    - load global filelist
    - open package tgz file
    - initialize transaction
-   - copy the douninst.sh script (if it exists) to /var/tmp/spkg
    - prepare empty db_pkg object for newly installed package
    - for each file in the package:
      - sanitize path
-     - handle special files (install/)
+     - handle special files (install/, including storing douninst.sh)
      - extract file
    - build delete after upgrade list of files and put them into transaction
    - update package database: remove old package desc, install new package desc
-   - run the douninst.sh script
+   - copy the old douninst.sh script (if it exists) to /var/tmp/spkg
    - finish transaction
    - close package file
+   - run the old douninst.sh script
    - run doinst.sh
    - run ldconfig
    - run gtk-update-icon-cache in the hicolor icon dir
@@ -252,9 +252,6 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
   gchar* sane_path = NULL;
   gchar* root = sanitize_root_path(opts->root);
 
-  /* copy the douninst.sh script to /var/tmp/spkg/ */
-  _copy_douninst_sh(installed_pkgname, opts, root);
-
   /* EXIT: free(name), free(shortname), untgz_close(tgz),
      ta_finalize/rollback(), free(root), db_free_pkg(pkg),
      db_free_pkg(ipkg) */
@@ -328,6 +325,18 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
       db_pkg_add_path(pkg, "install/doinst.sh", DB_PATH_FILE);
       continue;
     }
+    else if (!strcmp(sane_path, "install/douninst.sh"))
+    {
+      if (tgz->f_size > DOINSTSH_MAX_SIZE)
+      {
+        e_set(E_ERROR, "Uninstall script is too big. (%ld kB)", tgz->f_size / 1024);
+        goto err3;
+      }
+      _store_douninst_sh(tgz, pkg, root, opts, e, TRUE);
+      if (!e_ok(e))
+        goto err3;
+      continue;
+    }
     else if (!strncmp(sane_path, "install/", 8) && strcmp(sane_path, "install"))
       continue;
 
@@ -374,11 +383,10 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
   db_filelist_rem_pkg_paths(ipkg);
   db_filelist_add_pkg_paths(pkg);
 
-  /* Run the douninst.sh script */
-  _debug("Running douninst.sh script for previous package...");
-  _run_douninst_sh(installed_pkgname, opts, root);
-
-  g_free(installed_pkgname);
+  /* copy the douninst.sh script of the previous package to /var/tmp/spkg/:
+     finalizing removes (or, on reinstall, replaces) the stored one. This is
+     done only now, so a failed upgrade leaves nothing behind. */
+  _copy_douninst_sh(installed_pkgname, opts, root);
 
   /* finalize transaction */
   _debug("Finalizing transaction...");
@@ -387,6 +395,14 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
   /* close tgz */
   untgz_close(tgz);
   tgz = NULL;
+
+  /* Run the douninst.sh script of the previous package. Like upgradepkg,
+     this happens once the new package is in place and the leftovers of the
+     old one are gone, and before the new package's doinst.sh. */
+  _debug("Running douninst.sh script for previous package...");
+  _run_douninst_sh(installed_pkgname, opts, root);
+  g_free(installed_pkgname);
+  installed_pkgname = NULL;
 
   /* EXIT: free(name), free(shortname), free(root), db_free_pkg(pkg),
      db_free_pkg(ipkg) */
@@ -449,6 +465,7 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
   g_free(root);
   ta_rollback();
  err2:
+  g_free(installed_pkgname);
   if (pkg)
     db_free_pkg(pkg);
   if (ipkg)

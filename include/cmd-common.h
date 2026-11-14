@@ -42,6 +42,9 @@ extern void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
                    const struct cmd_options* opts, struct error* e,
                    gboolean do_upgrade, struct db_pkg* ipkg);
 
+extern void _store_douninst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
+                   const gchar* root, const struct cmd_options* opts,
+                   struct error* e, gboolean do_upgrade);
 extern void _copy_douninst_sh(const gchar* pkgname, const struct cmd_options* opts,
                    const gchar* root);
 

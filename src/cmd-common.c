@@ -663,6 +663,60 @@ gboolean _copy_file(const gchar *src, const gchar *dest) {
 }
 
 
+/* Store the package's install/douninst.sh as
+ * var/lib/pkgtools/douninst.sh/<package name>, like installpkg does. The
+ * script is put into place when the transaction is finalized, and its path
+ * is added to the package's file list, so it's removed along with the
+ * package (after _copy_douninst_sh() took its copy). */
+void _store_douninst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
+                        const gchar* root, const struct cmd_options* opts,
+                        struct error* e, gboolean do_upgrade)
+{
+  gchar* path = g_strdup_printf("var/lib/pkgtools/douninst.sh/%s", pkg->name);
+  gchar* fullpath = g_strdup_printf("%s%s", root, path);
+  gchar* temppath = g_strdup_printf("%s--###%s###", fullpath,
+                                    do_upgrade ? "upgrade" : "install");
+
+  if (db_pkg_add_path(pkg, path, DB_PATH_FILE))
+  {
+    e_set(E_ERROR, "Can't add path to the package, it's too long. (%s)", path);
+    goto out;
+  }
+
+  _notice("Installing uninstall script %s", path);
+  if (!opts->dryrun)
+  {
+    gchar* dir = g_path_get_dirname(fullpath);
+    if (sys_mkdir_p(dir))
+    {
+      e_set(E_ERROR, "Can't create directory for the uninstall script. (%s)", dir);
+      g_free(dir);
+      goto out;
+    }
+    g_free(dir);
+    unlink(temppath); /* leftover from an interrupted run */
+    if (untgz_write_file(tgz, temppath))
+    {
+      e_set(E_ERROR, "Failed to extract file %s.", "install/douninst.sh");
+      goto out;
+    }
+    if (chmod(temppath, 0755) == -1)
+    {
+      e_set(E_ERROR, "Can't change mode of the uninstall script. (%s)", strerror(errno));
+      unlink(temppath);
+      goto out;
+    }
+  }
+
+  ta_move_remove(temppath, fullpath); /* both freed by the transaction */
+  temppath = fullpath = NULL;
+
+ out:
+  g_free(temppath);
+  g_free(fullpath);
+  g_free(path);
+}
+
 /* Copy the douninst.sh script to /var/tmp/spkg/ */
 void _copy_douninst_sh(const gchar* pkgname, const struct cmd_options* opts, const gchar* root)
 {
@@ -675,7 +729,11 @@ void _copy_douninst_sh(const gchar* pkgname, const struct cmd_options* opts, con
   struct stat st;
   if (stat(src_path, &st) == 0 && S_ISREG(st.st_mode))
   {
-    if (!opts->no_scripts)
+    if (opts->dryrun)
+    {
+      _notice("Uninstall script %s would be run", pkgname);
+    }
+    else if (!opts->no_scripts)
     {
       /* Create the destination directory if it doesn't exist */
       gchar* dir_path = g_path_get_dirname(dest_path);
@@ -710,37 +768,41 @@ void _run_douninst_sh(const gchar* pkgname, const struct cmd_options* opts, cons
   snprintf(script_path, sizeof(script_path), "var/tmp/spkg/%s", pkgname);
   snprintf(script_path_with_root, sizeof(script_path_with_root), "%svar/tmp/spkg/%s", root, pkgname);
 
+  /* never run in dry-run mode (_copy_douninst_sh() doesn't copy it then,
+     but an old copy may have been left behind) */
+  if (opts->dryrun)
+    return;
+
   struct stat st;
   if (stat(script_path_with_root, &st) == 0 && S_ISREG(st.st_mode))
   {
     if (!opts->no_scripts)
     {
-      gchar* cmd = g_strdup_printf("cd %s && sh %s", root, script_path);
+      gchar* qroot = g_shell_quote(root[0] ? root : ".");
+      gchar* cmd = g_strdup_printf("cd %s && sh %s", qroot, script_path);
+      g_free(qroot);
+      _notice("Running uninstall script...");
       int result = system(cmd);
-      /* douninst.sh script was executed succesfully, so move it to removed_uninstall_scripts */
-      if (result == 0)
+      if (result != 0)
+        _warning("douninst.sh script execution failed with status %d", result);
+      /* like removepkg, move the script to removed_uninstall_scripts
+         whether it succeeded or not */
+      gchar dest_path[MAXPATHLEN];
+      snprintf(dest_path, sizeof(dest_path), "%svar/log/pkgtools/removed_uninstall_scripts", root);
+      /* Check if the destination directory exists, and create it if it doesn't */
+      if (stat(dest_path, &st) != 0 || !S_ISDIR(st.st_mode))
       {
-        gchar dest_path[MAXPATHLEN];
-        snprintf(dest_path, sizeof(dest_path), "%svar/log/pkgtools/removed_uninstall_scripts", root);
-        /* Check if the destination directory exists, and create it if it doesn't */
-        if (stat(dest_path, &st) != 0 || !S_ISDIR(st.st_mode))
+        if (mkdir(dest_path, 0755) != 0 && errno != EEXIST)
         {
-          if (mkdir(dest_path, 0755) != 0 && errno != EEXIST)
-          {
-            _warning("Could not create directory %s", dest_path);
-            g_free(cmd);
-            return;
-          }
-        }
-        snprintf(dest_path, sizeof(dest_path), "%svar/log/pkgtools/removed_uninstall_scripts/%s", root, pkgname);
-        if (rename(script_path_with_root, dest_path) != 0)
-        {
-          _warning("Could not move %s script to %s.", script_path_with_root, dest_path);
+          _warning("Could not create directory %s", dest_path);
+          g_free(cmd);
+          return;
         }
       }
-      else
+      snprintf(dest_path, sizeof(dest_path), "%svar/log/pkgtools/removed_uninstall_scripts/%s", root, pkgname);
+      if (rename(script_path_with_root, dest_path) != 0)
       {
-        _warning("douninst.sh script execution failed with status %d", result);
+        _warning("Could not move %s script to %s.", script_path_with_root, dest_path);
       }
       g_free(cmd);
     }

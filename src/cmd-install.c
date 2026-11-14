@@ -197,6 +197,18 @@ gint cmd_install(const gchar* pkgfile, const struct cmd_options* opts, struct er
       db_pkg_add_path(pkg, "install/doinst.sh", DB_PATH_FILE);
       continue;
     }
+    else if (!strcmp(sane_path, "install/douninst.sh"))
+    {
+      if (tgz->f_size > DOINSTSH_MAX_SIZE)
+      {
+        e_set(E_ERROR, "Uninstall script is too big. (%ld kB)", tgz->f_size / 1024);
+        goto err3;
+      }
+      _store_douninst_sh(tgz, pkg, root, opts, e, FALSE);
+      if (!e_ok(e))
+        goto err3;
+      continue;
+    }
     else if (!strncmp(sane_path, "install/", 8) && strcmp(sane_path, "install"))
       continue;
 
