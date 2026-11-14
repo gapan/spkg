@@ -1,7 +1,7 @@
 // vim:et:sta:sts=2:sw=2:ts=2:tw=79:
 /*----------------------------------------------------------------------*\
 |* spkg - The Unofficial Slackware Linux Package Manager                *|
-|*                                      designed by Ondøej Jirman, 2005 *|
+|*                                      designed by OndÅ™ej Jirman, 2005 *|
 |*----------------------------------------------------------------------*|
 |*          No copy/usage restrictions are imposed on anybody.          *|
 \*----------------------------------------------------------------------*/
