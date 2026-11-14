@@ -35,6 +35,14 @@ if [ "$(id -u)" != 0 ]; then
     echo "SKIP: fakeroot is required to run this test as a regular user"
     exit 77
   fi
+  # fakeroot works through LD_PRELOAD, which a statically linked program
+  # ignores: a static spkg would see the real uid and refuse to run
+  if LC_ALL=C ldd "$SPKG" 2>&1 | grep -q "not a dynamic executable\|statically linked" ||
+     LC_ALL=C file -L "$SPKG" 2>/dev/null | grep -q "statically linked"; then
+    echo "SKIP: $SPKG is statically linked, so it can't run under fakeroot;"
+    echo "      run the tests as root instead (they only use temporary directories)"
+    exit 77
+  fi
   SPKG_REAL_UID=$(id -u)
   export SPKG SPKG_REAL_UID
   exec fakeroot -- /bin/sh "$0" "$@"
