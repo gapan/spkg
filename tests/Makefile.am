@@ -25,10 +25,9 @@ AM_TESTS_ENVIRONMENT += SPKG_LEGACY_CHECKS=1; export SPKG_LEGACY_CHECKS;
 endif
 if SANITIZERS
 # fakeroot (and possibly the user's environment) preloads libraries
-# before the ASan runtime, which ASan refuses by default. Leak detection
-# is off by default (spkg is a short-lived process with known small
-# leaks); "make check ASAN_OPTIONS=detect_leaks=1" turns it on.
-AM_TESTS_ENVIRONMENT += ASAN_OPTIONS=verify_asan_link_order=0:detect_leaks=0:$${ASAN_OPTIONS-}; export ASAN_OPTIONS;
+# before the ASan runtime, which ASan refuses by default.
+# "make check ASAN_OPTIONS=detect_leaks=0" turns leak detection off.
+AM_TESTS_ENVIRONMENT += ASAN_OPTIONS=verify_asan_link_order=0:$${ASAN_OPTIONS-}; export ASAN_OPTIONS;
 AM_TESTS_ENVIRONMENT += UBSAN_OPTIONS=print_stacktrace=1:$${UBSAN_OPTIONS-}; export UBSAN_OPTIONS;
 endif
 

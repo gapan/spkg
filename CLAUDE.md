@@ -19,7 +19,7 @@ Configure options that change the code:
 - `--enable-static-spkg` builds `spkg.static` alongside the dynamic `spkg`. `--enable-static-spkg=only` builds only a static `spkg` (used by `spkg.SlackBuild`) and skips installing libspkg/pkg-config.
 - `--enable-assume-broken-pkgdb` defines `ASSUME_BROKEN_PKGDB`, which normalizes `//` paths in the package DB.
 - `--disable-legacy` turns off `LEGACY_CHECKS` (for example, the check that rejects symlinks inside the archive).
-- `--enable-sanitizers` builds everything with ASan and UBSan, for running the tests (not with `--enable-static-spkg`). Leak detection is off by default; `make check ASAN_OPTIONS=detect_leaks=1` turns it on.
+- `--enable-sanitizers` builds everything with ASan and UBSan, for running the tests (not with `--enable-static-spkg`). Leaks fail the tests too; `make check ASAN_OPTIONS=detect_leaks=0` turns leak detection off.
 
 ## Tests
 
