@@ -223,7 +223,7 @@ gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
       }
       else if (ex_type == SYS_NONE)
       {
-        ta_symlink_nothing(link_fullpath, g_strdup(link_target)); /* target is freed by db_free_pkg(), dup by taction finalize/rollback */
+        ta_symlink_nothing(link_fullpath, g_strdup(link_target)); /* the transaction frees its copy of the target */
         link_fullpath = NULL;
       }
       else
@@ -245,6 +245,8 @@ gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
 
       g_free(link_fullpath);
       g_free(sane_link_path);
+      g_free(link_target);
+      link_fullpath = sane_link_path = link_target = NULL;
     }
     /* if this is not 'delete old file' line... */
     else if (!parse_cleanuplink(ln))
@@ -311,6 +313,9 @@ gint _read_doinst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
   g_free(link_fullpath);
   g_free(sane_link_path);
   g_free(ln);
+  g_free(buf);
+  g_slist_foreach(doinst, (GFunc)g_free, 0);
+  g_slist_free(doinst);
   goto err0;
 }
 

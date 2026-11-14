@@ -524,7 +524,8 @@ gint untgz_get_header(struct untgz_state* s)
 
 gint untgz_write_data(struct untgz_state* s, gchar** buf, gsize* len)
 {
-  gchar* buffer=0;  
+  /* volatile: it's changed after setjmp() and freed after longjmp() */
+  gchar* volatile buffer=0;
   union tar_block* b;
   gsize position=0;
   gsize remaining;
