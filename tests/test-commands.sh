@@ -936,6 +936,165 @@ check "douninst.sh not run" log_is "doinst 1"
 check "tree unchanged" [ "$before" = "$(snapshot)" ]
 
 # ---------------------------------------------------------------------
+# compatibility with pkgtools
+# ---------------------------------------------------------------------
+#
+# The same packages are installed, upgraded and removed with pkgtools in
+# one root and with spkg (or a mix of both) in another, and the results are
+# compared. Skipped when pkgtools isn't installed; PKGTOOLS=dir points to
+# another copy.
+#
+# Known differences that aren't checked:
+# - The package sizes in the database entry: installpkg writes du -h of
+#   the package and the size of the tar stream, spkg whole kilobytes of the
+#   package and of the files in it.
+# - spkg runs doinst.sh with -install as $1, installpkg without arguments
+#   (hello-doinst-ran records it).
+# - installpkg creates var/lib/pkgtools/setup/tmp.
+# - The names of the entries in var/log/pkgtools/removed_*: removepkg
+#   keeps the package name, upgradepkg adds -upgraded-<time>, spkg adds
+#   -removed-<time> to the package and script entries in both cases and
+#   keeps the name of the uninstall script. They are compared without it.
+
+PKGTOOLS=${PKGTOOLS:-/sbin}
+
+# pt ROOTDIR TOOL ARGS... : run a pkgtools command on ROOTDIR
+pt() {
+  _r=$1 _t=$2; shift 2
+  ROOT=$_r INSTLOCKDIR=$TMP/pkgtools-lock LC_ALL=C "$PKGTOOLS/$_t" "$@" >"$OUT" 2>&1
+  rc=$?
+  if [ "${VERBOSE:-0}" = 1 ]; then
+    sed 's/^/    | /' "$OUT"
+  fi
+}
+
+# Everything outside var/ (types, modes, owners, sizes, link targets and
+# file contents), and the names in the package database with the
+# timestamps of removed entries taken out.
+pt_tree() {
+  (cd "$1" &&
+    find . \( -path ./var -o -path ./hello-doinst-ran \) -prune -o \
+      -printf '%p %y %m %u %g %s %l\n' | LC_ALL=C sort &&
+    find . \( -path ./var -o -path ./hello-doinst-ran \) -prune -o \
+      -type f -exec md5sum {} + | LC_ALL=C sort &&
+    for _d in var/lib/pkgtools/packages var/lib/pkgtools/scripts \
+              var/lib/pkgtools/douninst.sh var/log/pkgtools/removed_packages \
+              var/log/pkgtools/removed_scripts \
+              var/log/pkgtools/removed_uninstall_scripts; do
+      [ -d "$_d" ] && ls "$_d" | sed "s,^,$_d/,; s/-\(upgraded\|removed\)-[0-9:,-]*$//"
+    done)
+}
+same_tree() { # same_tree ROOT1 ROOT2
+  pt_tree "$1" > "$TMP/tree1"; pt_tree "$2" > "$TMP/tree2"
+  diff "$TMP/tree1" "$TMP/tree2" > "$TMP/tree-diff" && return 0
+  sed 's/^/    | /' "$TMP/tree-diff"; return 1
+}
+# a database entry without the size lines
+entry() { grep -v '^\(UN\)\?COMPRESSED PACKAGE SIZE:' "$1/var/lib/pkgtools/packages/$2"; }
+same_entry() { # same_entry ROOT1 ROOT2 PKGNAME
+  entry "$1" "$3" > "$TMP/entry1"; entry "$2" "$3" > "$TMP/entry2"
+  diff "$TMP/entry1" "$TMP/entry2" > "$TMP/entry-diff" && return 0
+  sed 's/^/    | /' "$TMP/entry-diff"; return 1
+}
+same_file_list() { # same_file_list ROOT1 ROOT2 PKGNAME
+  sed -n '/^FILE LIST:/,$p' "$1/var/lib/pkgtools/packages/$3" > "$TMP/list1"
+  sed -n '/^FILE LIST:/,$p' "$2/var/lib/pkgtools/packages/$3" > "$TMP/list2"
+  diff "$TMP/list1" "$TMP/list2" > "$TMP/list-diff" && return 0
+  sed 's/^/    | /' "$TMP/list-diff"; return 1
+}
+same_file() { cmp -s "$1" "$2"; }
+# the mode of hello-1's script in removed_uninstall_scripts in $PT and $SP
+same_uninst_mode() {
+  [ "$(stat -c %a "$PT"/var/log/pkgtools/removed_uninstall_scripts/hello-1-noarch-1*)" = \
+    "$(stat -c %a "$SP"/var/log/pkgtools/removed_uninstall_scripts/hello-1-noarch-1*)" ]
+}
+
+if [ ! -x "$PKGTOOLS/installpkg" ] || [ ! -x "$PKGTOOLS/removepkg" ] ||
+   [ ! -x "$PKGTOOLS/upgradepkg" ]; then
+  begin "pkgtools"
+  echo "    skipped, pkgtools not found in $PKGTOOLS"
+else
+  PT=$TMP/root-pt SP=$TMP/root-sp
+  db=var/lib/pkgtools
+
+  begin "pkgtools: spkg -i installs like installpkg"
+  rm -rf "$PT" "$SP"; mkdir "$PT" "$SP"
+  pt "$PT" installpkg "$PKGS/hello-1-noarch-1.tgz"
+  check "installpkg exit status 0" rc_is 0
+  ROOT=$SP; spkg -i "$PKGS/hello-1-noarch-1.tgz"
+  check "spkg exit status 0" rc_is 0
+  check "same files and database names" same_tree "$PT" "$SP"
+  check "same file list in the entry" same_file_list "$PT" "$SP" hello-1-noarch-1
+  # spkg writes the empty description lines as "hello: ", installpkg copies
+  # them from slack-desc as they are ("hello:")
+  xfail "same database entry" same_entry "$PT" "$SP" hello-1-noarch-1
+  check "same doinst.sh stored" same_file "$PT/$db/scripts/hello-1-noarch-1" "$SP/$db/scripts/hello-1-noarch-1"
+  check "same douninst.sh stored" same_file "$PT/$db/douninst.sh/hello-1-noarch-1" "$SP/$db/douninst.sh/hello-1-noarch-1"
+  check "same douninst.sh mode" [ "$(stat -c %a "$PT/$db/douninst.sh/hello-1-noarch-1")" = \
+    "$(stat -c %a "$SP/$db/douninst.sh/hello-1-noarch-1")" ]
+  for l in packages scripts setup; do
+    xfail "var/log/$l compatibility symlink" [ -L "$SP/var/log/$l" ]
+  done
+
+  # Both start from the same installpkg install, then pkgtools or spkg
+  # does the next step.
+  pt_pair() { # pt_pair PKG : installpkg PKG into both roots
+    rm -rf "$PT" "$SP"; mkdir "$PT" "$SP"
+    pt "$PT" installpkg "$1"; pt "$SP" installpkg "$1"
+  }
+
+  begin "pkgtools: spkg -d removes a package installed by installpkg"
+  pt_pair "$PKGS/hello-1-noarch-1.tgz"
+  pt "$PT" removepkg hello
+  check "removepkg exit status 0" rc_is 0
+  ROOT=$SP; spkg -d hello
+  check "spkg exit status 0" rc_is 0
+  check "same result as removepkg" same_tree "$PT" "$SP"
+  check "same removed entry" same_file "$PT"/var/log/pkgtools/removed_packages/hello-1-noarch-1* \
+    "$SP"/var/log/pkgtools/removed_packages/hello-1-noarch-1*
+  xfail "same mode of the removed uninstall script" same_uninst_mode
+
+  begin "pkgtools: spkg -u upgrades a package installed by installpkg"
+  pt_pair "$PKGS/hello-1-noarch-1.tgz"
+  pt "$PT" upgradepkg "$PKGS/hello-2-noarch-1.tgz"
+  check "upgradepkg exit status 0" rc_is 0
+  ROOT=$SP; spkg -u "$PKGS/hello-2-noarch-1.tgz"
+  check "spkg exit status 0" rc_is 0
+  check "same result as upgradepkg" same_tree "$PT" "$SP"
+  check "same scripts ran" [ "$(cat "$PT/script-log")" = "$(cat "$SP/script-log")" ]
+  xfail "same mode of the removed uninstall script" same_uninst_mode
+
+  # Both start from the same spkg install, then pkgtools or spkg does the
+  # next step.
+  sp_pair() { # sp_pair PKG : spkg -i PKG into both roots
+    rm -rf "$PT" "$SP"; mkdir "$PT" "$SP"
+    ROOT=$PT; spkg -i "$1"; ROOT=$SP; spkg -i "$1"
+  }
+
+  begin "pkgtools: removepkg removes a package installed by spkg"
+  sp_pair "$PKGS/hello-1-noarch-1.tgz"
+  pt "$PT" removepkg hello
+  check "removepkg exit status 0" rc_is 0
+  ROOT=$SP; spkg -d hello
+  check "same result as spkg -d" same_tree "$PT" "$SP"
+  check "douninst.sh ran" grep -q "^douninst 1" "$PT/script-log"
+
+  begin "pkgtools: upgradepkg upgrades a package installed by spkg"
+  sp_pair "$PKGS/hello-1-noarch-1.tgz"
+  pt "$PT" upgradepkg "$PKGS/hello-2-noarch-1.tgz"
+  check "upgradepkg exit status 0" rc_is 0
+  ROOT=$SP; spkg -u "$PKGS/hello-2-noarch-1.tgz"
+  check "same result as spkg -u" same_tree "$PT" "$SP"
+  check "same scripts ran" [ "$(cat "$PT/script-log")" = "$(cat "$SP/script-log")" ]
+
+  begin "pkgtools: spkg reads a database entry written by installpkg"
+  pt_pair "$PKGS/hello-1-noarch-1.tgz"
+  ROOT=$PT; spkg -l
+  check "list exit status 0" rc_is 0
+  check "listed" output_has "^hello-1-noarch-1$"
+fi
+
+# ---------------------------------------------------------------------
 
 echo
 if [ $failures -ne 0 ]; then
