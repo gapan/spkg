@@ -6,6 +6,8 @@
 \*----------------------------------------------------------------------*/
 
 #include "cmd-common.h"
+#include <fcntl.h>
+#include <sys/stat.h>
 
 #define e_set(n, fmt, args...) e_add(e, "common", __func__, n, fmt, ##args)
 
@@ -634,50 +636,89 @@ void _extract_file(struct untgz_state* tgz, struct db_pkg* pkg,
   goto done;
 }
 
-/* This just copies a file from src to dest */
-gboolean _copy_file(const gchar *src, const gchar *dest) {
-    FILE *source, *destination;
-    gchar buffer[4096];
-    gsize bytes;
+/* The copy of the old douninst.sh that is run after the package is
+ * removed is kept in a private directory of the package database, like
+ * removepkg does (it uses var/lib/pkgtools/setup/tmp). Not in var/tmp:
+ * everyone can write there, so another user could create the directory
+ * first and replace the script that root then runs, or redirect the copy
+ * with a symlink. */
+#define DOUNINST_TMPDIR "var/lib/pkgtools/setup/tmp/spkg"
 
-    /* Open source file */
-    source = fopen(src, "rb");
-    if (source == NULL) {
-        _warning("Error reading douninst.sh script: %s\n", src);
-        return FALSE;
+/* Create the directory for the douninst.sh copies (mode 700). Returns
+ * FALSE if it can't be created or isn't a real directory. */
+static gboolean _make_douninst_tmpdir(const gchar* root)
+{
+  gchar* dirs[] = { "var/lib/pkgtools/setup/tmp", DOUNINST_TMPDIR };
+  gboolean ok = TRUE;
+  guint i;
+
+  for (i = 0; i < G_N_ELEMENTS(dirs) && ok; i++)
+  {
+    gchar* dir = g_strdup_printf("%s%s", root, dirs[i]);
+    struct stat st;
+    if (sys_mkdir_p(dir)
+        || lstat(dir, &st) != 0 || !S_ISDIR(st.st_mode)
+        || chmod(dir, 0700) != 0)
+    {
+      _warning("Can't create directory %s for the uninstall script.", dir);
+      ok = FALSE;
     }
-
-    /* Open destination file */
-    destination = fopen(dest, "wb");
-    if (destination == NULL) {
-        _warning("Error opening douninst.sh script for writing: %s\n", dest);
-        fclose(source);
-        return FALSE;
-    }
-
-    /* Copy data in chunks */
-    while ((bytes = fread(buffer, 1, sizeof(buffer), source)) > 0) {
-        if (fwrite(buffer, 1, bytes, destination) != bytes) {
-            _warning("Error writing to destination file: %s\n", dest);
-            fclose(source);
-            fclose(destination);
-            return FALSE;
-        }
-    }
-
-    /* Check for read errors */
-    if (ferror(source)) {
-        _warning("Error reading source file: %s\n", src);
-        fclose(source);
-        fclose(destination);
-        return FALSE;
-    }
-
-    fclose(source);
-    fclose(destination);
-    return TRUE;
+    g_free(dir);
+  }
+  return ok;
 }
 
+/* Copy src to a new file dest with mode 755. An existing dest is replaced,
+ * and a symlink at dest is replaced, not followed. */
+static gboolean _copy_douninst_file(const gchar* src, const gchar* dest)
+{
+  gchar buffer[4096];
+  gsize bytes;
+  gboolean ok = FALSE;
+
+  FILE* source = fopen(src, "rb");
+  if (source == NULL)
+  {
+    _warning("Can't read uninstall script %s. (%s)", src, strerror(errno));
+    return FALSE;
+  }
+
+  if (unlink(dest) != 0 && errno != ENOENT)
+  {
+    _warning("Can't remove %s. (%s)", dest, strerror(errno));
+    fclose(source);
+    return FALSE;
+  }
+  int fd = open(dest, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0700);
+  FILE* destination = fd == -1 ? NULL : fdopen(fd, "wb");
+  if (destination == NULL)
+  {
+    _warning("Can't create %s. (%s)", dest, strerror(errno));
+    if (fd != -1)
+      close(fd);
+    fclose(source);
+    return FALSE;
+  }
+
+  while ((bytes = fread(buffer, 1, sizeof(buffer), source)) > 0)
+  {
+    if (fwrite(buffer, 1, bytes, destination) != bytes)
+      goto done;
+  }
+  if (!ferror(source) && fchmod(fd, 0755) == 0)
+    ok = TRUE;
+
+ done:
+  fclose(source);
+  if (fclose(destination) != 0)
+    ok = FALSE;
+  if (!ok)
+  {
+    _warning("Can't copy uninstall script %s to %s.", src, dest);
+    unlink(dest);
+  }
+  return ok;
+}
 
 /* Store the package's install/douninst.sh as
  * var/lib/pkgtools/douninst.sh/<package name>, like installpkg does. The
@@ -733,14 +774,14 @@ void _store_douninst_sh(struct untgz_state* tgz, struct db_pkg* pkg,
   g_free(path);
 }
 
-/* Copy the douninst.sh script to /var/tmp/spkg/ */
+/* Copy the douninst.sh script to DOUNINST_TMPDIR */
 void _copy_douninst_sh(const gchar* pkgname, const struct cmd_options* opts, const gchar* root)
 {
   gchar src_path[MAXPATHLEN];
   gchar dest_path[MAXPATHLEN];
 
-  snprintf(src_path, sizeof(src_path), "%s/var/lib/pkgtools/douninst.sh/%s", root, pkgname);
-  snprintf(dest_path, sizeof(dest_path), "%s/var/tmp/spkg/%s", root, pkgname);
+  snprintf(src_path, sizeof(src_path), "%svar/lib/pkgtools/douninst.sh/%s", root, pkgname);
+  snprintf(dest_path, sizeof(dest_path), "%s" DOUNINST_TMPDIR "/%s", root, pkgname);
 
   struct stat st;
   if (stat(src_path, &st) == 0 && S_ISREG(st.st_mode))
@@ -751,19 +792,8 @@ void _copy_douninst_sh(const gchar* pkgname, const struct cmd_options* opts, con
     }
     else if (!opts->no_scripts)
     {
-      /* Create the destination directory if it doesn't exist */
-      gchar* dir_path = g_path_get_dirname(dest_path);
-      if (g_mkdir_with_parents(dir_path, 0755) != 0) {
-        _warning("Failed to create directory for moving douninst.sh script: %s", dir_path);
-        g_free(dir_path);
-        return;
-      }
-      g_free(dir_path);
-
-      /* Copy the script */
-      if (!_copy_file(src_path, dest_path)) {
-        _warning("Failed to copy douninst.sh script from %s to %s", src_path, dest_path);
-      }
+      if (_make_douninst_tmpdir(root))
+        _copy_douninst_file(src_path, dest_path);
     }
     else
     {
@@ -781,8 +811,8 @@ void _run_douninst_sh(const gchar* pkgname, const struct cmd_options* opts, cons
 {
   gchar script_path[MAXPATHLEN];
   gchar script_path_with_root[MAXPATHLEN];
-  snprintf(script_path, sizeof(script_path), "var/tmp/spkg/%s", pkgname);
-  snprintf(script_path_with_root, sizeof(script_path_with_root), "%svar/tmp/spkg/%s", root, pkgname);
+  snprintf(script_path, sizeof(script_path), DOUNINST_TMPDIR "/%s", pkgname);
+  snprintf(script_path_with_root, sizeof(script_path_with_root), "%s%s", root, script_path);
 
   /* never run in dry-run mode (_copy_douninst_sh() doesn't copy it then,
      but an old copy may have been left behind) */
@@ -790,7 +820,7 @@ void _run_douninst_sh(const gchar* pkgname, const struct cmd_options* opts, cons
     return;
 
   struct stat st;
-  if (stat(script_path_with_root, &st) == 0 && S_ISREG(st.st_mode))
+  if (lstat(script_path_with_root, &st) == 0 && S_ISREG(st.st_mode))
   {
     if (!opts->no_scripts)
     {

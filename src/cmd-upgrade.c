@@ -142,7 +142,7 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
      - extract file
    - build delete after upgrade list of files and put them into transaction
    - update package database: remove old package desc, install new package desc
-   - copy the old douninst.sh script (if it exists) to /var/tmp/spkg
+   - copy the old douninst.sh script (if it exists) to var/lib/pkgtools/setup/tmp/spkg
    - finish transaction
    - close package file
    - run the old douninst.sh script
@@ -386,7 +386,7 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
   db_filelist_rem_pkg_paths(ipkg);
   db_filelist_add_pkg_paths(pkg);
 
-  /* copy the douninst.sh script of the previous package to /var/tmp/spkg/:
+  /* copy the douninst.sh script of the previous package to var/lib/pkgtools/setup/tmp/spkg/:
      finalizing removes (or, on reinstall, replaces) the stored one. This is
      done only now, so a failed upgrade leaves nothing behind. */
   _copy_douninst_sh(installed_pkgname, opts, root);

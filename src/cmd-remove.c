@@ -87,7 +87,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
   /*
    - load package from db
    - load list of all installed paths
-   - copies the douninst.sh script (if it exists) to /var/tmp/spkg
+   - copies the douninst.sh script (if it exists) to var/lib/pkgtools/setup/tmp/spkg
    - remove files that has ref == 1
    - remove symlinks that has ref == 1
    - remove dirs that has ref == 1
@@ -129,7 +129,7 @@ gint cmd_remove(const gchar* pkgname, const struct cmd_options* opts, struct err
 
   gchar* root = sanitize_root_path(opts->root);
 
-  /* copy the douninst.sh script to /var/tmp/spkg/ */
+  /* copy the douninst.sh script to var/lib/pkgtools/setup/tmp/spkg/ */
   _copy_douninst_sh(real_pkgname, opts, root);
 
   _debug("Removing files...");

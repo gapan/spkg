@@ -721,7 +721,50 @@ check "ran after the files were removed" log_is "doinst 1;douninst 1 saw "
 check "script moved to removed_uninstall_scripts" \
   is_file var/log/pkgtools/removed_uninstall_scripts/hello-1-noarch-1
 check "stored script removed" absent var/lib/pkgtools/douninst.sh/hello-1-noarch-1
-check "no copy left in var/tmp/spkg" absent var/tmp/spkg/hello-1-noarch-1
+check "no copy left behind" absent var/lib/pkgtools/setup/tmp/spkg/hello-1-noarch-1
+check "removed script has mode 755" \
+  mode_is var/log/pkgtools/removed_uninstall_scripts/hello-1-noarch-1 755
+
+# var/tmp is writable by everyone, so a user could create var/tmp/spkg
+# before spkg does and put a symlink where the copy of douninst.sh goes.
+# spkg must neither write through it nor run what it points to.
+plant_douninst_symlink() { # plant_douninst_symlink PKGNAME
+  echo "precious" > "$ROOT/victim"
+  mkdir -p "$ROOT/var/tmp/spkg"
+  chmod 1777 "$ROOT/var/tmp" "$ROOT/var/tmp/spkg"
+  ln -sf "$ROOT/victim" "$ROOT/var/tmp/spkg/$1"
+}
+
+begin "remove: douninst.sh copy can't be redirected through var/tmp"
+new_root douninst-symlink
+spkg -i "$PKGS/hello-1-noarch-1.tgz"
+plant_douninst_symlink hello-1-noarch-1
+spkg -d hello
+check "exit status 0" rc_is 0
+check "symlink target not written" content_is victim "precious"
+check "the package's own script ran" log_is "doinst 1;douninst 1 saw "
+check "removed script is the package's" \
+  content_is var/log/pkgtools/removed_uninstall_scripts/hello-1-noarch-1 \
+  'echo "douninst 1 saw $(cat usr/bin/hello 2>/dev/null)" >> script-log'
+
+begin "remove: douninst.sh with the current directory as root"
+new_root douninst-dot
+spkg -i "$PKGS/hello-1-noarch-1.tgz"
+(cd "$ROOT" && "$SPKG" --root=. -d hello) >"$OUT" 2>&1
+rc=$?
+check "exit status 0" rc_is 0
+check "douninst.sh ran" log_is "doinst 1;douninst 1 saw "
+
+begin "upgrade: douninst.sh copy can't be redirected through var/tmp"
+new_root upgrade-douninst-symlink
+spkg -i "$PKGS/hello-1-noarch-1.tgz"
+plant_douninst_symlink hello-1-noarch-1
+spkg -u "$PKGS/hello-2-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "symlink target not written" content_is victim "precious"
+check "the old package's script ran" log_is "doinst 1;douninst 1 saw hello 2;doinst 2"
+check "removed script has mode 755" \
+  mode_is var/log/pkgtools/removed_uninstall_scripts/hello-1-noarch-1 755
 
 begin "remove: douninst.sh stored by installpkg"
 new_root douninst-pkgtools
@@ -875,7 +918,7 @@ check "old stored script removed" absent var/lib/pkgtools/douninst.sh/hello-1-no
 check "new script stored" douninst_stored hello-2-noarch-1
 check "new script listed in the file list" \
   db_lists hello-2-noarch-1 var/lib/pkgtools/douninst.sh/hello-2-noarch-1
-check "no copy left in var/tmp/spkg" absent var/tmp/spkg/hello-1-noarch-1
+check "no copy left behind" absent var/lib/pkgtools/setup/tmp/spkg/hello-1-noarch-1
 spkg -d hello
 check "new script runs on removal" \
   log_is "doinst 1;douninst 1 saw hello 2;doinst 2;douninst 2 saw "
@@ -1052,7 +1095,7 @@ else
   check "same result as removepkg" same_tree "$PT" "$SP"
   check "same removed entry" same_file "$PT"/var/log/pkgtools/removed_packages/hello-1-noarch-1* \
     "$SP"/var/log/pkgtools/removed_packages/hello-1-noarch-1*
-  xfail "same mode of the removed uninstall script" same_uninst_mode
+  check "same mode of the removed uninstall script" same_uninst_mode
 
   begin "pkgtools: spkg -u upgrades a package installed by installpkg"
   pt_pair "$PKGS/hello-1-noarch-1.tgz"
@@ -1062,7 +1105,7 @@ else
   check "spkg exit status 0" rc_is 0
   check "same result as upgradepkg" same_tree "$PT" "$SP"
   check "same scripts ran" [ "$(cat "$PT/script-log")" = "$(cat "$SP/script-log")" ]
-  xfail "same mode of the removed uninstall script" same_uninst_mode
+  check "same mode of the removed uninstall script" same_uninst_mode
 
   # Both start from the same spkg install, then pkgtools or spkg does the
   # next step.
