@@ -117,7 +117,35 @@ static void _delete_leftovers(struct db_pkg* pkg, struct db_pkg* ipkg,
   }
 }
 
-/* public 
+/* Like upgradepkg, remove the other installed versions of the package
+   (installed next to each other with --force), except the new one and
+   the one that was upgraded (it's still in the database in dry-run mode).
+   They are removed like with --remove, after the upgrade, so files the
+   new version has are kept. */
+static gint _remove_other_versions(const gchar* shortname, const gchar* name,
+                                   const gchar* upgraded,
+                                   const struct cmd_options* opts, struct error* e)
+{
+  GSList* all = db_query(NULL, NULL, DB_QUERY_NAMES);
+  GSList* i;
+  gint rv = 0;
+
+  for (i = all; i != NULL && !sig_break; i = i->next)
+  {
+    gchar* other = i->data;
+    gchar* other_short = parse_pkgname(other, 1);
+    gboolean same = other_short && !strcmp(other_short, shortname);
+    g_free(other_short);
+    if (!same || !strcmp(other, name) || !strcmp(other, upgraded))
+      continue;
+    if (cmd_remove(other, opts, e))
+      rv = 1;
+  }
+  db_free_query(all, DB_QUERY_NAMES);
+  return rv;
+}
+
+/* public
  ************************************************************************/
 
 gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct error* e)
@@ -457,12 +485,14 @@ gint cmd_upgrade(const gchar* pkgfile, const struct cmd_options* opts, struct er
 
   _debug("Package upgrade finished!");
 
+  gint rv = _remove_other_versions(shortname, name, ipkg->name, opts, e);
+
   db_free_pkg(ipkg);
   db_free_pkg(pkg);
   g_free(root);
   g_free(name);
   g_free(shortname);
-  return 0;
+  return rv;
 
  err3:
   _debug("Rolling back...");

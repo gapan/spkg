@@ -332,18 +332,28 @@ check "all files gone" absent usr/bin/hello
 
 # upgradepkg removes every other installed version of the package.
 make_hello 3
-begin "upgrade: with two versions installed"
+begin "upgrade: --dry-run with two versions installed changes nothing"
 new_root force-upgrade
 spkg -i "$PKGS/hello-1-noarch-1.tgz"
 spkg -i -f "$PKGS/hello-2-noarch-1.tgz"
+before=$(snapshot)
+spkg -u -n "$PKGS/hello-3-noarch-1.tgz"
+check "exit status 0" rc_is 0
+check "tree unchanged" [ "$before" = "$(snapshot)" ]
+
+begin "upgrade: with two versions installed"
 spkg -u "$PKGS/hello-3-noarch-1.tgz"
 check "exit status 0" rc_is 0
 check "new version in the database" db_has hello-3-noarch-1
 check "file content" content_is usr/bin/hello "hello 3"
-xfail "no other version left in the database" \
+check "file of the new version" content_is usr/share/hello/v3.txt "data 3"
+check "no other version left in the database" \
   [ "$(ls "$ROOT/var/lib/pkgtools/packages")" = hello-3-noarch-1 ]
-xfail "files of the old versions removed" \
+check "files of the old versions removed" \
   sh -c '! [ -e "$1/usr/share/hello/v1.txt" ] && ! [ -e "$1/usr/share/hello/v2.txt" ]' - "$ROOT"
+check "uninstall scripts of both old versions ran" \
+  [ "$(grep -c '^douninst [12] ' "$ROOT/script-log")" = 2 ]
+check "library symlink of the new version kept" link_to usr/lib/libhello.so libhello.so.3
 
 for ext in txz tlz tbr tar; do
   case $ext in
