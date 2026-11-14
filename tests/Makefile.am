@@ -10,11 +10,26 @@ TESTS = \
   test-parsers \
   test-blacklist \
   test-mkdir \
-  test-rm
+  test-rm \
+  test-commands.sh
+
+# test-commands.sh runs the spkg binary built in src/.
+AM_TESTS_ENVIRONMENT = SPKG=$(top_builddir)/src/spkg; export SPKG;
+if LEGACY_CHECKS
+AM_TESTS_ENVIRONMENT += SPKG_LEGACY_CHECKS=1; export SPKG_LEGACY_CHECKS;
+endif
 
 # test-untgz is a manual tool (extracts the given archives into the current
 # directory), built by "make check" but not run by it.
-check_PROGRAMS = $(TESTS) test-untgz
+check_PROGRAMS = \
+  test-path \
+  test-parsers \
+  test-blacklist \
+  test-mkdir \
+  test-rm \
+  test-untgz
+
+dist_check_SCRIPTS = test-commands.sh
 
 LDADD = $(top_builddir)/src/libspkg.a $(GLIB_LIBS) -lz -lJudy
 
