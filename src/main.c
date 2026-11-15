@@ -241,12 +241,6 @@ int main(const int ac, const char* av[])
     printf(
       PACKAGE_STRING "\n"
       "\n"
-      "Written by Ondrej Jirman, 2005-2006.\n"
-      "Maintained by George Vlahavas, 2012-2026\n"
-      "\n"
-      "This is free software. Not like a beer or like in a \"freedom\",\n"
-      "but like in \"I don't care what you are going to do with it.\"\n"
-      "\n"
     );
     poptPrintHelp(optCon, stdout, 0);
     printf(
@@ -258,8 +252,7 @@ int main(const int ac, const char* av[])
       "  spkg -l kde*           [--list]\n"
       "  spkg -vnu <packages>   [--upgrade --verbose --dry-run]\n"
       "\n"
-      "Official website: https://github.com/gapan/spkg\n"
-      "Bug reports can be sent to <vlahavas@gmail.com>.\n"
+      "Homepage: https://github.com/gapan/spkg\n"
     );
     goto out;
   }
