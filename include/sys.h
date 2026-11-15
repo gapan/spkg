@@ -139,6 +139,18 @@ extern gint sys_write_buffer_to_file(const gchar* file, const gchar* buf, gsize 
  */
 extern gint sys_read_file_to_buffer(const gchar* file, gchar* buf, gsize len, struct error* e);
 
+/** Move a regular file, like mv(1).
+ *
+ * Uses rename(), and when @a src and @a dst are on different filesystems
+ * (for example a /var/log on tmpfs), copies the file (keeping its mode and
+ * times) and removes @a src. An existing @a dst is replaced.
+ *
+ * @param src source file
+ * @param dst destination path
+ * @return 0 on success, -1 on failure (errno is set)
+ */
+extern gint sys_move_file(const gchar* src, const gchar* dst);
+
 G_END_DECLS
 
 #endif

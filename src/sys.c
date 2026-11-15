@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
+#include <sys/time.h>
 
 #include "sys.h"
 #include "path.h"
@@ -284,4 +285,106 @@ gint sys_read_file_to_buffer(const gchar* file, gchar* buf, gsize len, struct er
   }
   fclose(f);
   return 0;
+}
+
+gint sys_move_file(const gchar* src, const gchar* dst)
+{
+  g_assert(src != NULL);
+  g_assert(dst != NULL);
+
+  if (rename(src, dst) == 0)
+    return 0;
+  if (errno != EXDEV)
+    return -1;
+
+  /* different filesystems: copy to a temporary file next to dst, put it
+     into place with rename() so dst is never half-written, then remove
+     src */
+  struct stat st;
+  gchar buf[16384];
+  gint saved_errno;
+  gint ok = 0;
+  gchar* tmp = NULL;
+  gint out = -1;
+
+  gint in = open(src, O_RDONLY | O_NOFOLLOW);
+  if (in == -1)
+    return -1;
+  if (fstat(in, &st) == -1)
+    goto err;
+  if (!S_ISREG(st.st_mode))
+  {
+    errno = EINVAL;
+    goto err;
+  }
+
+  gchar* dir = g_path_get_dirname(dst);
+  gchar* base = g_path_get_basename(dst);
+  tmp = g_strdup_printf("%s/.%s.spkg-XXXXXX", dir, base);
+  g_free(dir);
+  g_free(base);
+  out = g_mkstemp_full(tmp, O_WRONLY, 0600);
+  if (out == -1)
+    goto err;
+
+  while (1)
+  {
+    ssize_t n = read(in, buf, sizeof(buf));
+    if (n == 0)
+      break;
+    if (n < 0)
+    {
+      if (errno == EINTR)
+        continue;
+      goto err;
+    }
+    gchar* p = buf;
+    while (n > 0)
+    {
+      ssize_t w = write(out, p, n);
+      if (w < 0)
+      {
+        if (errno == EINTR)
+          continue;
+        goto err;
+      }
+      p += w;
+      n -= w;
+    }
+  }
+
+  struct timespec times[2] = { st.st_atim, st.st_mtim };
+  if (fchmod(out, st.st_mode & 07777) == -1 || futimens(out, times) == -1)
+    goto err;
+  /* keeping the owner may fail for a regular user, that's fine */
+  if (fchown(out, st.st_uid, st.st_gid) == -1)
+    errno = 0;
+  if (close(out) == -1)
+  {
+    out = -1;
+    goto err;
+  }
+  out = -1;
+  if (rename(tmp, dst) == -1)
+    goto err;
+  ok = 1;
+  if (unlink(src) == -1)
+  {
+    /* don't leave two copies behind */
+    saved_errno = errno;
+    unlink(dst);
+    errno = saved_errno;
+    ok = 0;
+  }
+
+ err:
+  saved_errno = errno;
+  if (out != -1)
+    close(out);
+  if (!ok && tmp != NULL)
+    unlink(tmp);
+  close(in);
+  g_free(tmp);
+  errno = saved_errno;
+  return ok ? 0 : -1;
 }

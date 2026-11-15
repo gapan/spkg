@@ -1885,6 +1885,78 @@ check "exit status 0" rc_is 0
 check "shared file removed with its last owner" absent usr/share/multi/shared.txt
 
 # ---------------------------------------------------------------------
+# var/log on its own filesystem
+# ---------------------------------------------------------------------
+#
+# Some users mount /var/log as tmpfs. Moving entries from var/lib/pkgtools
+# to var/log/pkgtools/removed_* then can't be done with rename() (EXDEV).
+# var/log is made a symlink to a directory on a filesystem other than the
+# one $TMP is on; the cases are skipped if there is no such directory.
+
+XDEV=
+for _d in /dev/shm /var/tmp "$PWD" /tmp; do
+  [ -d "$_d" ] && [ -w "$_d" ] || continue
+  [ "$(stat -c %d "$_d")" != "$(stat -c %d "$TMP")" ] || continue
+  XDEV=$(mktemp -d "$_d/spkg-test-xdev-XXXXXX" 2>/dev/null) && break
+done
+if [ -z "$XDEV" ]; then
+  echo "== var/log on its own filesystem: skipped (no other filesystem)"
+else
+  if [ "${KEEP:-0}" = 1 ]; then
+    echo "keeping $XDEV"
+  else
+    trap 'rm -rf "$TMP" "$XDEV"' EXIT
+  fi
+
+  # new_root, with var/log on the other filesystem
+  new_xdev_root() {
+    new_root "$1"
+    mkdir -p "$ROOT/var" "$XDEV/$1"
+    ln -s "$XDEV/$1" "$ROOT/var/log"
+  }
+
+  begin "remove: var/log on another filesystem"
+  new_xdev_root xdev-remove
+  spkg -i "$PKGS/hello-1-noarch-1.tgz"
+  installed_at hello-1-noarch-1 "2001-02-03 04:05:06"
+  spkg -d hello
+  check "exit status 0" rc_is 0
+  check "removed from the database" db_lacks hello-1-noarch-1
+  check "entry moved to removed_packages" removed_entry hello-1-noarch-1
+  check "entry keeps its mtime" sh -c \
+    '[ "$(stat -c %Y "$1"/var/log/pkgtools/removed_packages/hello-1-noarch-1-*)" = "$(date -d "2001-02-03 04:05:06" +%s)" ]' - "$ROOT"
+  check "script entry moved to removed_scripts" sh -c \
+    'ls "$1"/var/log/pkgtools/removed_scripts/hello-1-noarch-1-* >/dev/null 2>&1' - "$ROOT"
+  check "no script entry left" absent var/lib/pkgtools/scripts/hello-1-noarch-1
+  check "files removed" absent usr/bin/hello
+  check "douninst.sh moved to removed_uninstall_scripts" \
+    is_file var/log/pkgtools/removed_uninstall_scripts/hello-1-noarch-1
+  check "removed douninst.sh has mode 755" \
+    mode_is var/log/pkgtools/removed_uninstall_scripts/hello-1-noarch-1 755
+  check "stored douninst.sh removed" absent var/lib/pkgtools/douninst.sh/hello-1-noarch-1
+  check "no temporary files left" sh -c \
+    '[ -z "$(find "$1" -name ".*.spkg-*")" ]' - "$XDEV"
+
+  begin "upgrade: var/log on another filesystem"
+  new_xdev_root xdev-upgrade
+  spkg -i "$PKGS/hello-1-noarch-1.tgz"
+  spkg -u "$PKGS/hello-2-noarch-1.tgz"
+  check "exit status 0" rc_is 0
+  check "new package in the database" db_has hello-2-noarch-1
+  check "old package gone from the database" db_lacks hello-1-noarch-1
+  check "old entry moved to removed_packages" removed_entry hello-1-noarch-1
+  check "new files" content_is usr/bin/hello "hello 2"
+
+  begin "upgrade: --reinstall with var/log on another filesystem"
+  new_xdev_root xdev-reinstall
+  spkg -i "$PKGS/hello-1-noarch-1.tgz"
+  spkg -u --reinstall "$PKGS/hello-1-noarch-1.tgz"
+  check "exit status 0" rc_is 0
+  check "still in the database" db_has hello-1-noarch-1
+  check "old entry moved to removed_packages" removed_entry hello-1-noarch-1
+fi
+
+# ---------------------------------------------------------------------
 # compatibility with pkgtools
 # ---------------------------------------------------------------------
 #

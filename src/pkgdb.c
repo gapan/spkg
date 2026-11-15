@@ -966,14 +966,14 @@ gint db_rem_pkg(gchar* name)
     e_set(E_ERROR|DB_NOTEX, "Package is not in the database. (%s)", name);
     goto err_1;
   }
-  if (rename(p, rp) < 0)
+  if (sys_move_file(p, rp) < 0)
   {
     e_set(E_ERROR, "Package file removal failed. (%s)", strerror(errno));
     goto err_1;
   }
   if (sys_file_type(s, 1) == SYS_REG)
   {
-    if (rename(s, rs) < 0)
+    if (sys_move_file(s, rs) < 0)
     {
       e_set(E_ERROR, "Script file removal failed. (%s)", strerror(errno));
       goto err_1;

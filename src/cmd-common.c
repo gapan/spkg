@@ -991,9 +991,9 @@ void _run_douninst_sh(const gchar* pkgname, const struct cmd_options* opts, cons
         }
       }
       snprintf(dest_path, sizeof(dest_path), "%svar/log/pkgtools/removed_uninstall_scripts/%s", root, pkgname);
-      if (rename(script_path_with_root, dest_path) != 0)
+      if (sys_move_file(script_path_with_root, dest_path) != 0)
       {
-        _warning("Could not move %s script to %s.", script_path_with_root, dest_path);
+        _warning("Could not move %s script to %s. (%s)", script_path_with_root, dest_path, strerror(errno));
       }
       g_free(cmd);
     }
