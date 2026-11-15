@@ -1,6 +1,16 @@
 ----------------------------------------------------------------
 spkg - Release Notes
 ----------------------------------------------------------------
+2026-11-15: spkg 2.1
+
+  Removing, upgrading and reinstalling packages works when /var/log is
+  on its own filesystem, such as a tmpfs. The database entries of
+  removed packages (and their uninstall scripts) are moved to
+  /var/log/pkgtools/removed_* by copying them when they can't be
+  renamed, like mv does. Before, these commands failed with "Invalid
+  cross-device link", and a removal failed after the package's files
+  were already deleted, leaving the package in the database.
+
 2026-11-15: spkg 2.0
 
   Uninstall scripts. Packages can ship an install/douninst.sh, like with
